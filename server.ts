@@ -1673,7 +1673,7 @@ async function startServer() {
   });
 
   // --- C4: central RBAC policy (single source of truth) ---
-  // Mirrors the screen matrix the UI already enforces (src/App.tsx:391-397).
+  // Mirrors the screen matrix the UI already enforces (src/App.tsx allow(), lines 205-210).
   // The server enforces exactly what the interface assumes — no new policy.
   const PERM = {
     ESS: "ess.self_service",
@@ -1700,6 +1700,19 @@ async function startServer() {
     // payroll screens but must not decide disciplinary or traffic deductions.
     PAYROLL_DEDUCTIONS_APPLY: "payroll.deductions.apply",
     BUDGETS_MANAGE: "budgets.manage",
+    // --- cycle 4: keys for the write routes that the table below did not classify yet ---
+    // Each one mirrors the role list of the screen that issues the call, named after the
+    // resource rather than the screen id so it can be reused as the UI grows.
+    BONUSES_MANAGE: "bonuses.manage", // bonuses screen: admin, hr_manager, finance
+    LOANS_MANAGE: "loans.manage", // loans screen: admin, hr_manager, finance
+    EXPENSES_MANAGE: "expenses.manage", // expenses screen: admin, hr_manager, finance
+    LEAVES_MANAGE: "leaves.manage", // leaves screen + manager_inbox approvals
+    ATTENDANCE_MANAGE: "attendance.manage", // attendance screen (manual punch edits)
+    WORKFLOWS_MANAGE: "workflows.manage", // approval_workflows + manager_inbox screens
+    DOCUMENTS_MANAGE: "documents.manage", // employees & employee_documents screens
+    HR_OPERATIONS_MANAGE: "hr_operations.manage", // HR-only screens (fleet, medical, visas, ...)
+    AI_TOOLS_USE: "ai.tools.use", // ai_consultant & ai_letters screens
+    ALERTS_MANAGE: "alerts.manage", // expiry-alert hub, opened from the header bell
   } as const;
 
   // role -> permission keys ("*" = every screen: admin/hr_manager own all screens)
@@ -1715,12 +1728,21 @@ async function startServer() {
       PERM.SAUDI_COMPLIANCE,
       PERM.AUDIT_LOGS_VIEW, // DashboardView reads recent activity for every dashboard role
       PERM.BUDGETS_MANAGE, // budgeting screen: admin, hr_manager, finance
+      PERM.BONUSES_MANAGE, // bonuses screen: admin, hr_manager, finance
+      PERM.LOANS_MANAGE, // loans screen: admin, hr_manager, finance
+      PERM.EXPENSES_MANAGE, // expenses screen: admin, hr_manager, finance
+      PERM.ALERTS_MANAGE, // expiry-alert hub is reached from the bell every role renders
     ]),
     branch_manager: new Set<string>([
       PERM.EMPLOYEES_MANAGE,
       PERM.ATTENDANCE_DEVICES_MANAGE,
       PERM.AUDIT_LOGS_VIEW, // DashboardView reads recent activity for every dashboard role
       PERM.BIOMETRIC_ENROLL, // attendance_kiosk screen: admin, hr_manager, branch_manager
+      PERM.ATTENDANCE_MANAGE, // attendance screen: admin, hr_manager, branch_manager
+      PERM.LEAVES_MANAGE, // leaves + manager_inbox screens: admin, hr_manager, branch_manager
+      PERM.WORKFLOWS_MANAGE, // approval_workflows + manager_inbox screens
+      PERM.DOCUMENTS_MANAGE, // employees screen uploads attachments (EmployeesView)
+      PERM.ALERTS_MANAGE, // expiry-alert hub is reached from the bell every role renders
     ]),
     employee_ess: new Set<string>([PERM.ESS]),
   };
@@ -1776,6 +1798,52 @@ async function startServer() {
     { method: "DELETE", pattern: /^\/api\/entities\/[^/]+$/, perm: PERM.ENTITIES_MANAGE },
     { method: "PUT", pattern: /^\/api\/countries\/[^/]+\/rules$/, perm: PERM.ADMIN_MANAGE },
     { method: "POST", pattern: /^\/api\/auth\/register$/, perm: PERM.AUTH_REGISTER },
+
+    // --- cycle 4: the remaining write routes, classified from the screen matrix ---
+    // Every rule below is derived from the component that issues the call and the screen id
+    // that renders it (src/App.tsx allow(), lines 205-210). A route whose caller could not be
+    // determined in src/** is deliberately left out of this table so it keeps the pre-cycle
+    // behaviour: allowed for operational roles, denied for employee_ess, and still reported
+    // by the boot-time coverage scan.
+    // bonuses screen: admin, hr_manager, finance (src/components/BonusesView.tsx:38,49)
+    { method: "POST", pattern: /^\/api\/bonuses-penalties$/, perm: PERM.BONUSES_MANAGE },
+    { method: "DELETE", pattern: /^\/api\/bonuses-penalties\/[^/]+$/, perm: PERM.BONUSES_MANAGE },
+    // loans screen: admin, hr_manager, finance (src/components/LoansView.tsx:48)
+    { method: "POST", pattern: /^\/api\/loans$/, perm: PERM.LOANS_MANAGE },
+    // expenses screen: admin, hr_manager, finance (src/components/ExpensesView.tsx:40)
+    { method: "POST", pattern: /^\/api\/expenses$/, perm: PERM.EXPENSES_MANAGE },
+    // attendance screen manual punch edits: admin, hr_manager, branch_manager
+    // (src/components/AttendanceView.tsx:188). The kiosk legs stay in openApi untouched.
+    { method: "POST", pattern: /^\/api\/attendance$/, perm: PERM.ATTENDANCE_MANAGE },
+    // leaves screen + manager_inbox approval: admin, hr_manager, branch_manager
+    // (LeavesView.tsx:41,53 and ManagerInboxView.tsx:21)
+    { method: "POST", pattern: /^\/api\/leaves$/, perm: PERM.LEAVES_MANAGE },
+    { method: "PUT", pattern: /^\/api\/leaves\/[^/]+$/, perm: PERM.LEAVES_MANAGE },
+    // approval_workflows + manager_inbox: admin, hr_manager, branch_manager
+    // (ApprovalWorkflowsView.tsx:85,58 and ManagerInboxView.tsx:25)
+    { method: "POST", pattern: /^\/api\/workflow-requests$/, perm: PERM.WORKFLOWS_MANAGE },
+    { method: "POST", pattern: /^\/api\/workflow-requests\/[^/]+\/action$/, perm: PERM.WORKFLOWS_MANAGE },
+    // documents are attached from the employees / employee_documents screens, which
+    // branch_manager also owns (EmployeesView.tsx:104) — admin, hr_manager, branch_manager
+    { method: "POST", pattern: /^\/api\/documents$/, perm: PERM.DOCUMENTS_MANAGE },
+    { method: "DELETE", pattern: /^\/api\/documents\/[^/]+$/, perm: PERM.DOCUMENTS_MANAGE },
+    // expiry-alert hub: opened from the header bell, which every signed-in operational role
+    // renders (src/App.tsx:511 -> ExpiryAlertsModal.tsx:78). employee_ess stays denied here,
+    // exactly as it was while the route was unclassified.
+    { method: "POST", pattern: /^\/api\/alerts\/send-reminder$/, perm: PERM.ALERTS_MANAGE },
+    // AI studio screens: admin, hr_manager (LaborLawAiConsultantView.tsx:50)
+    { method: "POST", pattern: /^\/api\/ai\/labor-law-consultant$/, perm: PERM.AI_TOOLS_USE },
+    // HR-only screens: admin, hr_manager. Each group below exists in a nav screen that neither
+    // finance's nor branch_manager's allow-list contains (src/App.tsx:209-210).
+    { method: "POST", pattern: /^\/api\/(appraisals|assets|clearances|disciplinary\/violations|ewa\/withdrawals|exit-interviews|flight-tickets|flexible\/shifts|grievances|hearings|promotions|smart-assets|telework\/permits|transfers|visas|warnings|work-injuries)$/, perm: PERM.HR_OPERATIONS_MANAGE },
+    { method: "POST", pattern: /^\/api\/(fleet\/vehicles|fleet\/traffic-fines|qiwa\/contracts|qiwa\/draft-from-employees)$/, perm: PERM.HR_OPERATIONS_MANAGE },
+    { method: "POST", pattern: /^\/api\/(hse\/inspections|hse\/ppe-logs|medical\/dependents|medical\/policies)$/, perm: PERM.HR_OPERATIONS_MANAGE },
+    { method: "POST", pattern: /^\/api\/(recruitment\/candidates|recruitment\/jobs|talent\/assessments|talent\/succession)$/, perm: PERM.HR_OPERATIONS_MANAGE },
+    { method: "POST", pattern: /^\/api\/(kudos(\/[^/]+\/like)?|rewards\/redeem)$/, perm: PERM.HR_OPERATIONS_MANAGE },
+    { method: "POST", pattern: /^\/api\/overtime(\/[^/]+\/approve)?$/, perm: PERM.HR_OPERATIONS_MANAGE },
+    { method: "DELETE", pattern: /^\/api\/(fleet\/vehicles|medical\/dependents|overtime|talent\/succession)\/[^/]+$/, perm: PERM.HR_OPERATIONS_MANAGE },
+    { method: "PUT", pattern: /^\/api\/(assets|smart-assets)\/[^/]+\/assign$/, perm: PERM.HR_OPERATIONS_MANAGE },
+    { method: "PUT", pattern: /^\/api\/(clearances\/[^/]+\/department|grievances\/[^/]+\/status|policies\/ramadan)$/, perm: PERM.HR_OPERATIONS_MANAGE },
   ];
 
   // The only write routes employee_ess may call (self-service surface of src/components/ESSView.tsx
