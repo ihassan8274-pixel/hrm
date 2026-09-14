@@ -198,6 +198,34 @@ function AuthenticatedApp() {
   const [isEditingSettings, setIsEditingSettings] = useState(false);
   const [tempSettings, setTempSettings] = useState<AppSettings>(settings);
 
+  // All hooks must run unconditionally and in the same order on every render, so the settings
+  // fetch below is hoisted above the early returns (loading spinner / not logged in).
+  // `isLoggedIn` is a primitive dependency: it keeps a stable identity across renders, whereas
+  // depending on `user` (an object) could re-fire the fetch on every render. The guard also
+  // keeps the call after login, since before login there is no token and /api/settings -> 401.
+  const isLoggedIn = !!user;
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.org_name) {
+          const loadedSettings = {
+            org_name: data.org_name || 'شركة المسار الرقمي للحلول المتكاملة',
+            country: data.country || 'المملكة العربية السعودية',
+            currency: data.currency || 'SAR',
+            tax_rate: Number(data.tax_rate) || 0,
+            insurance_emp_rate: Number(data.insurance_emp_rate) || 9.75,
+            insurance_comp_rate: Number(data.insurance_comp_rate) || 11.75
+          };
+          setSettings(loadedSettings);
+          setTempSettings(loadedSettings);
+        }
+      })
+      .catch(err => console.error("App settings error:", err));
+  }, [isLoggedIn]);
+
   // Single screen/role matrix for the shell (sidebar + header actions). It mirrors the
   // server's RBAC policy, so a control whose API call is classified is never rendered for a
   // role the endpoint would answer with 403.
@@ -227,26 +255,6 @@ function AuthenticatedApp() {
   if (!user) {
     return <LoginView onLogin={() => {}} />;
   }
-
-  useEffect(() => {
-    fetch('/api/settings')
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.org_name) {
-          const loadedSettings = {
-            org_name: data.org_name || 'شركة المسار الرقمي للحلول المتكاملة',
-            country: data.country || 'المملكة العربية السعودية',
-            currency: data.currency || 'SAR',
-            tax_rate: Number(data.tax_rate) || 0,
-            insurance_emp_rate: Number(data.insurance_emp_rate) || 9.75,
-            insurance_comp_rate: Number(data.insurance_comp_rate) || 11.75
-          };
-          setSettings(loadedSettings);
-          setTempSettings(loadedSettings);
-        }
-      })
-      .catch(err => console.error("App settings error:", err));
-  }, []);
 
   const handleUpdateSettings = async () => {
     await fetch('/api/settings', {
