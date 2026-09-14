@@ -1,0 +1,28 @@
+{
+  "name": "hr-platform",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "db:generate": "turbo run db:generate --filter=@hr-platform/db",
+    "db:push": "turbo run db:push --filter=@hr-platform/db",
+    "db:migrate": "turbo run db:migrate --filter=@hr-platform/db",
+    "db:studio": "turbo run db:studio --filter=@hr-platform/db"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0",
+    "@types/node": "^20.12.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "npm@10.5.0"
+}

@@ -1,0 +1,17 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+.jwt-secret
+
+# --- runtime data & build artifacts (never commit) ---
+backups/
+uploads/
+*.db
+.pnpm-store/
+InstallerOutput/
+*.log.*

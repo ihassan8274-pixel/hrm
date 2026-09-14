@@ -1,0 +1,8 @@
+{
+  "name": "نظام إدارة الموارد البشرية والرواتب والامتثال السعودي",
+  "description": "نظام مؤسسي شامل لإدارة الموظفين، مسير الرواتب، التأمينات الاجتماعية GOSI، الإقامات ورخص العمل (قوى)، التأمين الطبي، وحماية الأجور (مدد).",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
