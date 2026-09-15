@@ -273,6 +273,35 @@ export const ESS_WRITE_ALLOWLIST: Array<{ method: string; pattern: RegExp }> = [
   { method: "POST", pattern: /^\/api\/copilot\/chat$/ }, // floating AI launcher is rendered for every role (read-only on the server)
 ];
 
+// --- C4: operational write routes (explicit classification) ---
+// The routes below are deliberately operational: any signed-in role other than employee_ess
+// may call them, employee_ess stays denied. This replicates exactly what the unclassified
+// write path already did, but makes the policy explicit and removes them from the boot-time
+// coverage scan. None concern self-service (those live in ESS_WRITE_ALLOWLIST).
+export const OPERATIONAL_WRITE_ALLOWLIST: Array<{ method: string; pattern: RegExp }> = [
+  { method: "DELETE", pattern: /^\/api\/clearances\/[^/]+$/ },
+  { method: "DELETE", pattern: /^\/api\/disciplinary\/violations\/[^/]+$/ },
+  { method: "DELETE", pattern: /^\/api\/flight-tickets\/[^/]+$/ },
+  { method: "DELETE", pattern: /^\/api\/qiwa\/contracts\/[^/]+$/ },
+  { method: "DELETE", pattern: /^\/api\/salary-certificates\/[^/]+$/ },
+  { method: "DELETE", pattern: /^\/api\/visas\/[^/]+$/ },
+  { method: "DELETE", pattern: /^\/api\/work-injuries\/[^/]+$/ },
+  { method: "POST", pattern: /^\/api\/ai\/hr-letter-generator$/ },
+  { method: "POST", pattern: /^\/api\/biometric\/verify$/ },
+  { method: "POST", pattern: /^\/api\/checklists$/ },
+  { method: "POST", pattern: /^\/api\/notifications$/ },
+  { method: "POST", pattern: /^\/api\/projects$/ },
+  { method: "POST", pattern: /^\/api\/tasks$/ },
+  { method: "PUT", pattern: /^\/api\/checklists\/[^/]+\/toggle$/ },
+  { method: "PUT", pattern: /^\/api\/fleet\/vehicles\/[^/]+$/ },
+  { method: "PUT", pattern: /^\/api\/flight-tickets\/[^/]+$/ },
+  { method: "PUT", pattern: /^\/api\/qiwa\/contracts\/[^/]+$/ },
+  { method: "PUT", pattern: /^\/api\/talent\/succession\/[^/]+$/ },
+  { method: "PUT", pattern: /^\/api\/telework\/permits\/[^/]+$/ },
+  { method: "PUT", pattern: /^\/api\/visas\/[^/]+$/ },
+  { method: "PUT", pattern: /^\/api\/work-injuries\/[^/]+$/ },
+];
+
 export const FORBIDDEN = { error: "Insufficient permissions" };
 export const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
@@ -311,12 +340,17 @@ const enforceRoutePermissions = (req: express.Request, res: express.Response, ne
     if (String(user.role || "") === "employee_ess" && !ESS_WRITE_ALLOWLIST.some((r) => r.method === method && r.pattern.test(url))) {
       return res.status(403).json(FORBIDDEN);
     }
-    // Fail-safe: unclassified writes stay allowed for operational roles (behaviour preserved),
-    // and are logged once so classification can be completed later.
-    const key = method + " " + url;
-    if (!unclassifiedWrites.has(key)) {
-      unclassifiedWrites.add(key);
-      console.warn("[RBAC] unclassified write route (allowed for operational roles): " + key);
+    // Classifications: ESS (self-service) and OPERATIONAL (all non-ess roles may write)
+    // are fully resolved above — no coverage warning needed.
+    const classified =
+      ESS_WRITE_ALLOWLIST.some((r) => r.method === method && r.pattern.test(url)) ||
+      OPERATIONAL_WRITE_ALLOWLIST.some((r) => r.method === method && r.pattern.test(url));
+    if (!classified) {
+      const key = method + " " + url;
+      if (!unclassifiedWrites.has(key)) {
+        unclassifiedWrites.add(key);
+        console.warn("[RBAC] unclassified write route (allowed for operational roles): " + key);
+      }
     }
   }
 
@@ -360,6 +394,7 @@ export function reportUnclassifiedWriteRoutes(app: express.Express) {
         if (!WRITE_METHODS.has(method)) continue;
         if (ROUTE_PERMISSIONS.some((r) => ruleMatches(r, method, routePath))) continue;
         if (ESS_WRITE_ALLOWLIST.some((r) => r.method === method && r.pattern.test(routePath))) continue;
+        if (OPERATIONAL_WRITE_ALLOWLIST.some((r) => r.method === method && r.pattern.test(routePath))) continue;
         found.add(method + " " + routePath);
       }
     }
