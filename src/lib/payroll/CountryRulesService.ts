@@ -36,12 +36,12 @@ export class CountryRulesService {
     // Modern schema: rows of rule_key/rule_value (optionally filtered by is_active when the column exists)
     if (hasRuleKeyValue) {
       const sql = `SELECT * FROM country_rules WHERE country_code = ?${hasIsActive ? ' AND is_active = 1' : ''}`;
-      const customRules = this.db.prepare(sql).all(countryCode);
+      const customRules = this.db.prepare(sql).all(country.code);
       return this.buildConfig(country, customRules as any[]);
     }
 
     // Legacy schema: single row of flat country fields (no rule_key/rule_value, and no is_active column)
-    const legacy = this.db.prepare('SELECT * FROM country_rules WHERE country_code = ?').get(countryCode);
+    const legacy = this.db.prepare('SELECT * FROM country_rules WHERE country_code = ?').get(country.code);
     const legacyRules: { rule_key: string; rule_value: string }[] = [];
     if (legacy) {
       const flat: Record<string, unknown> = {
@@ -58,7 +58,7 @@ export class CountryRulesService {
       if (legacy.tax_type === 'progressive') {
         const legacyBrackets = this.db.prepare(
           'SELECT lower_bound AS min, upper_bound AS max, rate FROM tax_brackets WHERE country_code = ? ORDER BY lower_bound'
-        ).all(countryCode) as { min: number; max: number | null; rate: number }[];
+        ).all(country.code) as { min: number; max: number | null; rate: number }[];
         if (legacyBrackets.length) {
           legacyRules.push({ rule_key: 'tax_brackets_json', rule_value: JSON.stringify(legacyBrackets) });
         }

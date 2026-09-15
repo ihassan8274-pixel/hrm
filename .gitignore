@@ -12,6 +12,8 @@ coverage/
 backups/
 uploads/
 *.db
+*.db-wal
+*.db-shm
 .pnpm-store/
 InstallerOutput/
 *.log.*

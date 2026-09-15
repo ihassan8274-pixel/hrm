@@ -1,6 +1,13 @@
 import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
 
+if (process.env.FORCE_INIT_AUTH !== 'true') {
+  console.error('Skipped: init-auth seeds DEFAULT LOGIN CREDENTIALS (admin123 / hr123 / finance123 / branch123 / employee123).');
+  console.error('Only run this on a FRESH database, then change every password immediately.');
+  console.error('Re-run with FORCE_INIT_AUTH=true to proceed.');
+  process.exit(0);
+}
+
 const db = new Database('payroll.db');
 
 console.log('Initializing authentication system...');
