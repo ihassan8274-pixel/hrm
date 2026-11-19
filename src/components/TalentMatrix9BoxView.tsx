@@ -125,11 +125,11 @@ export default function TalentMatrix9BoxView() {
   // 9-Box Grid Definitions
   const boxes = [
     { key: 'dilemma', title: 'علامة استفهام / لغز (Enigma)', perf: 1, pot: 3, color: 'bg-amber-50 border-amber-200 text-amber-900', badge: 'إمكانات عالية / أداء منخفض', icon: '❓' },
-    { key: 'high_potential', title: 'موهبة نمو واعدة (Growth Talent)', perf: 2, pot: 3, color: 'bg-indigo-50 border-indigo-200 text-indigo-900', badge: 'إمكانات عالية / أداء جيد', icon: '🚀' },
+    { key: 'high_potential', title: 'موهبة نمو واعدة (Growth Talent)', perf: 2, pot: 3, color: 'bg-brand-50 border-brand-200 text-brand-900', badge: 'إمكانات عالية / أداء جيد', icon: '🚀' },
     { key: 'star', title: 'النجم المستقبلي (Top Star)', perf: 3, pot: 3, color: 'bg-emerald-50 border-emerald-300 text-emerald-950', badge: 'إمكانات فائقة / أداء استثنائي', icon: '⭐' },
     
     { key: 'inconsistent', title: 'أداء غير مستقر (Inconsistent)', perf: 1, pot: 2, color: 'bg-rose-50 border-rose-200 text-rose-900', badge: 'إمكانات متوسطة / أداء منخفض', icon: '⚠️' },
-    { key: 'core_player', title: 'اللاعب الأساسي (Core Player)', perf: 2, pot: 2, color: 'bg-blue-50 border-blue-200 text-blue-900', badge: 'عمود فقري للمؤسسة', icon: '💎' },
+    { key: 'core_player', title: 'اللاعب الأساسي (Core Player)', perf: 2, pot: 2, color: 'bg-brand-50 border-brand-200 text-brand-900', badge: 'عمود فقري للمؤسسة', icon: '💎' },
     { key: 'high_performer', title: 'متميز عالي الإنجاز (High Performer)', perf: 3, pot: 2, color: 'bg-teal-50 border-teal-200 text-teal-900', badge: 'إمكانات جيدة / أداء فائق', icon: '🏆' },
     
     { key: 'underperformer', title: 'منخفض الأداء (Underperformer)', perf: 1, pot: 1, color: 'bg-slate-100 border-slate-300 text-slate-900', badge: 'يتطلب خطة تصحيحية عاجلة', icon: '🛑' },
@@ -150,7 +150,7 @@ export default function TalentMatrix9BoxView() {
     switch (risk) {
       case 'critical': return <span className="bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded font-bold">حرج جداً</span>;
       case 'high': return <span className="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded font-bold">مرتفع</span>;
-      case 'medium': return <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-medium">متوسط</span>;
+      case 'medium': return <span className="bg-brand-100 text-brand-800 text-xs px-2 py-0.5 rounded font-medium">متوسط</span>;
       default: return <span className="bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded">منخفض</span>;
     }
   };
@@ -209,7 +209,7 @@ export default function TalentMatrix9BoxView() {
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
             <div className="flex items-center justify-between text-slate-500 mb-2">
               <span className="text-sm font-medium">خطط التعاقب للوظائف الحرجة</span>
-              <Briefcase className="w-5 h-5 text-blue-500" />
+              <Briefcase className="w-5 h-5 text-brand-500" />
             </div>
             <div className="text-2xl font-bold text-slate-800">{successionPlans.length} منصب قيادي</div>
             <div className="text-xs text-emerald-600 font-medium mt-1">مغطاة بكوادر صف ثانٍ جاهزة</div>

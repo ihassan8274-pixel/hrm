@@ -63,7 +63,7 @@ export default function PerformanceView() {
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-6 py-3 rounded-2xl font-bold hover:shadow-lg hover:shadow-indigo-100 transition-all"
+          className="flex items-center gap-2 bg-gradient-to-r from-brand-600 to-brand-600 text-white px-6 py-3 rounded-2xl font-bold hover:shadow-lg hover:shadow-brand-100 transition-all"
         >
           <Plus className="w-5 h-5" />
           <span>إجراء تقييم جديد</span>
@@ -72,7 +72,7 @@ export default function PerformanceView() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center mb-4">
                <Target className="w-6 h-6" />
             </div>
             <h4 className="text-sm font-bold text-slate-400 mb-1">متوسط التقييم</h4>
@@ -93,7 +93,7 @@ export default function PerformanceView() {
                <div className="flex-1">
                   <h4 className="text-sm font-bold text-slate-800">موظف الشهر المثالي</h4>
                   <p className="text-xs text-slate-400">بناءً على نتائج التقييمات الأخيرة</p>
-                  <p className="text-sm font-bold text-indigo-600 mt-1">ياسين محمد - إدارة الموارد البشرية</p>
+                  <p className="text-sm font-bold text-brand-600 mt-1">ياسين محمد - إدارة الموارد البشرية</p>
                </div>
             </div>
          </div>
@@ -117,7 +117,7 @@ export default function PerformanceView() {
                <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 font-bold text-xl">
                   {app.employee_name?.[0]}
                </div>
-               <div className="bg-indigo-50 text-indigo-600 text-[10px] font-bold px-2 py-1 rounded-lg">
+               <div className="bg-brand-50 text-brand-600 text-[10px] font-bold px-2 py-1 rounded-lg">
                   {app.period}
                </div>
             </div>
@@ -141,7 +141,7 @@ export default function PerformanceView() {
                
                <div className="flex gap-2">
                   <span className="text-[10px] bg-emerald-50 text-emerald-600 font-bold px-2 py-1 rounded-lg">تطوير مستمر</span>
-                  <span className="text-[10px] bg-blue-50 text-blue-600 font-bold px-2 py-1 rounded-lg">قائد فريق</span>
+                  <span className="text-[10px] bg-brand-50 text-brand-600 font-bold px-2 py-1 rounded-lg">قائد فريق</span>
                </div>
             </div>
           </div>
@@ -165,7 +165,7 @@ export default function PerformanceView() {
                   <select 
                     value={formData.employee_id}
                     onChange={e => setFormData({ ...formData, employee_id: Number(e.target.value) })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
                   >
                     <option value="0">اختر موظفاً...</option>
                     {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
@@ -190,7 +190,7 @@ export default function PerformanceView() {
                     <select 
                       value={formData.period}
                       onChange={e => setFormData({ ...formData, period: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
                     >
                       <option value="ربع سنوي (Q1)">ربع سنوي (Q1)</option>
                       <option value="ربع سنوي (Q2)">ربع سنوي (Q2)</option>
@@ -206,14 +206,14 @@ export default function PerformanceView() {
                   <textarea 
                     value={formData.comments}
                     onChange={e => setFormData({ ...formData, comments: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right min-h-[120px]"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right min-h-[120px]"
                     placeholder="اكتب نقاط القوة والضعف ومقترحات التحسين..."
                   />
                 </div>
 
                 <div className="flex gap-4">
                    <button onClick={() => setIsModalOpen(false)} className="flex-1 bg-slate-100 py-4 rounded-2xl font-bold text-slate-600">إلغاء</button>
-                   <button onClick={handleSubmit} className="flex-[2] bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-xl shadow-indigo-100">حفظ التقييم واعتماده</button>
+                   <button onClick={handleSubmit} className="flex-[2] bg-brand-600 text-white py-4 rounded-2xl font-bold shadow-xl shadow-brand-100">حفظ التقييم واعتماده</button>
                 </div>
               </div>
             </motion.div>

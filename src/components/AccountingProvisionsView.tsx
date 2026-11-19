@@ -4,11 +4,15 @@ import {
   TrendingUp, Calendar, AlertCircle, CheckCircle, FileSpreadsheet, ShieldAlert
 } from 'lucide-react';
 import type { AccountingProvisionSummary } from '../types';
+import { Letterhead } from '../lib/print/letterhead';
+import { useLetterhead } from '../lib/print/use-letterhead';
 
 export default function AccountingProvisionsView() {
   const [data, setData] = useState<AccountingProvisionSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  // ترويسة موحّدة مع بقية مخرجات النظام (ورقة الشركة).
+  const company = useLetterhead();
 
   const fetchProvisions = async () => {
     setLoading(true);
@@ -79,6 +83,11 @@ export default function AccountingProvisionsView() {
 
   return (
     <div className="space-y-6" dir="rtl">
+      {/* ترويسة تظهر على الورق فقط — الورق لا يبدأ بلا ترويسة. */}
+      <div className="print-only">
+        <Letterhead company={company} />
+      </div>
+
       {/* Header and Summary Cards */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
         <div>
@@ -96,7 +105,7 @@ export default function AccountingProvisionsView() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportCSV}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all"
+            className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-brand-600/20 transition-all"
           >
             <Download className="w-4 h-4" />
             تصدير تقرير القيود (Excel/CSV)
@@ -137,7 +146,7 @@ export default function AccountingProvisionsView() {
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
           <span className="text-xs text-slate-500 font-bold block">إجمالي مخصص الإجازات السنوية</span>
-          <h4 className="text-2xl font-black text-blue-600">
+          <h4 className="text-2xl font-black text-brand-600">
             {data?.totalLeaveProvision?.toLocaleString() || 0} <span className="text-xs text-slate-400 font-normal">ر.س</span>
           </h4>
           <p className="text-[10px] text-slate-400 pt-1">مقابل رصيد الأيام المستحقة (21 أو 30 يوم)</p>
@@ -211,7 +220,7 @@ export default function AccountingProvisionsView() {
                       {p.cumulative_eosb_provision.toLocaleString()} ر.س
                     </td>
                     <td className="p-3.5">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-brand-50 text-brand-700">
                         {p.annual_leave_accrued_days} يوم
                       </span>
                     </td>

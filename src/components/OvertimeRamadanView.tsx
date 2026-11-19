@@ -197,7 +197,7 @@ export default function OvertimeRamadanView() {
           <div className="flex gap-2">
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-600/20"
+              className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-brand-600/20"
             >
               <Plus className="w-4 h-4" />
               تسجيل عمل إضافي
@@ -261,7 +261,7 @@ export default function OvertimeRamadanView() {
                         {o.status === 'pending' && (
                           <button
                             onClick={() => handleApprove(o.id)}
-                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold shadow-sm"
+                            className="px-3 py-1 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-[10px] font-bold shadow-sm"
                           >
                             اعتماد وصرف
                           </button>
@@ -367,7 +367,7 @@ export default function OvertimeRamadanView() {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md shadow-emerald-600/20"
+                  className="px-6 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-black shadow-md shadow-brand-600/20"
                 >
                   حفظ واحتساب
                 </button>

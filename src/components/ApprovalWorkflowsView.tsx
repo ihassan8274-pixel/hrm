@@ -102,15 +102,15 @@ export default function ApprovalWorkflowsView() {
     <div id="approval-workflows-view" className="space-y-6">
       
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-blue-800/40">
+      <div className="bg-gradient-to-r from-brand-900 via-brand-900 to-slate-900 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-brand-800/40">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <span className="p-2 bg-blue-500/20 backdrop-blur rounded-xl border border-blue-400/30">
-              <GitPullRequest className="w-6 h-6 text-blue-300" />
+            <span className="p-2 bg-brand-500/20 backdrop-blur rounded-xl border border-brand-400/30">
+              <GitPullRequest className="w-6 h-6 text-brand-300" />
             </span>
             <h2 className="text-xl font-black">محرك الموافقات وسلاسل الاعتماد المتعددة (Approval Workflows)</h2>
           </div>
-          <p className="text-sm text-blue-200/90 max-w-2xl">
+          <p className="text-sm text-brand-200/90 max-w-2xl">
             إدارة مسارات الاعتماد الذكية (المدير المباشر ⬅️ الموارد البشرية ⬅️ المالية ⬅️ الإدارة التنفيذية) وفق حدود الصلاحيات وسجلات التدقيق الزمني.
           </p>
         </div>
@@ -118,7 +118,7 @@ export default function ApprovalWorkflowsView() {
         <div className="flex gap-2">
           <button
             onClick={() => setShowNewRequestModal(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow"
+            className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow"
           >
             <Plus className="w-4 h-4" />
             إنشاء طلب جديد
@@ -132,7 +132,7 @@ export default function ApprovalWorkflowsView() {
           onClick={() => setActiveTab('inbox')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
             activeTab === 'inbox'
-              ? 'bg-blue-600 text-white shadow-sm'
+              ? 'bg-brand-600 text-white shadow-sm'
               : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
           }`}
         >
@@ -149,7 +149,7 @@ export default function ApprovalWorkflowsView() {
           onClick={() => setActiveTab('chains')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
             activeTab === 'chains'
-              ? 'bg-blue-600 text-white shadow-sm'
+              ? 'bg-brand-600 text-white shadow-sm'
               : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
           }`}
         >
@@ -166,7 +166,7 @@ export default function ApprovalWorkflowsView() {
           <div className="lg:col-span-7 space-y-3">
             {loading ? (
               <div className="py-16 text-center text-slate-400 text-xs">
-                <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-blue-600" />
+                <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-brand-600" />
                 جاري تحميل طلبات الاعتماد...
               </div>
             ) : requests.length === 0 ? (
@@ -180,8 +180,8 @@ export default function ApprovalWorkflowsView() {
                   onClick={() => setSelectedRequest(req)}
                   className={`p-4 bg-white dark:bg-slate-900 border rounded-2xl shadow-sm transition cursor-pointer space-y-3 ${
                     selectedRequest?.id === req.id
-                      ? 'border-blue-500 ring-2 ring-blue-500/20'
-                      : 'border-slate-200 dark:border-slate-800 hover:border-blue-300'
+                      ? 'border-brand-500 ring-2 ring-brand-500/20'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-brand-300'
                   }`}
                 >
                   <div className="flex items-start justify-between">
@@ -189,7 +189,7 @@ export default function ApprovalWorkflowsView() {
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-800 dark:text-white text-sm">{req.request_title}</span>
                         {req.amount && req.amount > 0 && (
-                          <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-xs font-mono font-bold rounded">
+                          <span className="px-2 py-0.5 bg-brand-50 dark:bg-brand-950 text-brand-700 dark:text-brand-300 text-xs font-mono font-bold rounded">
                             {req.amount.toLocaleString()} ر.س
                           </span>
                         )}
@@ -254,7 +254,7 @@ export default function ApprovalWorkflowsView() {
                   </div>
 
                   {selectedRequest.amount && selectedRequest.amount > 0 && (
-                    <div className="p-3 bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200 flex justify-between items-center">
+                    <div className="p-3 bg-brand-50 dark:bg-brand-950/40 rounded-xl border border-brand-200 dark:border-brand-800 text-brand-900 dark:text-brand-200 flex justify-between items-center">
                       <span>المبلغ المالي المطلوب:</span>
                       <span className="text-base font-black font-mono">{selectedRequest.amount.toLocaleString()} ر.س</span>
                     </div>
@@ -362,7 +362,7 @@ export default function ApprovalWorkflowsView() {
                 <span className="text-[11px] font-semibold text-slate-400 block">سلسلة الموافقات المتتالية:</span>
                 {w.levels.map((step, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-xs">
-                    <div className="w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+                    <div className="w-5 h-5 rounded-full bg-brand-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
                       {step.level}
                     </div>
                     <span className="font-medium text-slate-800 dark:text-slate-200">{step.approver_role_ar}</span>
@@ -461,7 +461,7 @@ export default function ApprovalWorkflowsView() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl"
+                  className="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl"
                 >
                   إرسال الطلب للاعتماد
                 </button>

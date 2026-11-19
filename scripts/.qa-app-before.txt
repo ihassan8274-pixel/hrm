@@ -1,0 +1,800 @@
+import { useState, useEffect, lazy, Suspense } from 'react';
+import { 
+  Users, 
+  Building2, 
+  LayoutDashboard, 
+  BadgeDollarSign, 
+  Menu, 
+  X,
+  Plus,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  History,
+  ShieldCheck,
+  HandCoins,
+  Settings,
+  Landmark,
+  Clock,
+  Star,
+  Wallet,
+  FileText,
+  User,
+  Briefcase,
+  Receipt,
+  GraduationCap,
+  TrendingUp,
+  Target,
+  ClipboardList,
+  Scale,
+  Plane,
+  Calculator,
+  DollarSign,
+  Sparkles,
+  HeartPulse,
+  FileSpreadsheet,
+  Stethoscope,
+  ShieldAlert,
+  UserCheck,
+  Car,
+  FileCheck2,
+  Layers,
+  Laptop,
+  TrendingDown,
+  Award,
+  HardHat,
+  GitPullRequest,
+  Network,
+  UserMinus,
+  Bot,
+  MessageSquare,
+  Printer,
+  Database,
+  Globe,
+  Bell
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import type { Branch, Employee, PayrollRecord, Stats, AppSettings } from './types';
+import { useLanguage } from './context/LanguageContext';
+import { LanguageSwitcher } from './components/LanguageSwitcher';
+// Modals are opened on demand. Keeping these eager would drag the ~594KB
+// jsPDF/html2canvas chunk into the initial page load for every user, even
+// though only a few ever export a PDF.
+const PdfExportModal = lazy(() => import('./components/PdfExportModal').then(m => ({ default: m.PdfExportModal })));
+const BackupRestoreModal = lazy(() => import('./components/BackupRestoreModal').then(m => ({ default: m.BackupRestoreModal })));
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { LoginView } from './components/LoginView';
+import { MustChangePasswordView } from './components/MustChangePasswordView';
+
+// Components
+// NotificationBell renders in the header on every screen, so it stays eager.
+import NotificationBell from './components/NotificationBell';
+
+// Every routed screen is code-split. These were all static imports, which
+// pulled 58 screens plus jsPDF/html2canvas/recharts into one ~3.4MB bundle that
+// every user downloaded on first paint. The heavy export/PDF libraries are
+// isolated further by manualChunks in vite.config.ts.
+const DashboardView = lazy(() => import('./components/DashboardView'));
+const SaudiComplianceView = lazy(() => import('./components/SaudiComplianceView'));
+const BranchesView = lazy(() => import('./components/BranchesView'));
+const EmployeesView = lazy(() => import('./components/EmployeesView'));
+const HealthCertificatesView = lazy(() => import('./components/HealthCertificatesView'));
+const ImportCenterView = lazy(() => import('./components/ImportCenterView'));
+const PayrollView = lazy(() => import('./components/PayrollView'));
+const AllowanceTypesView = lazy(() => import('./components/AllowanceTypesView'));
+const AuditLogsView = lazy(() => import('./components/AuditLogsView'));
+const DepartmentsView = lazy(() => import('./components/DepartmentsView'));
+const BonusesView = lazy(() => import('./components/BonusesView'));
+const LoansView = lazy(() => import('./components/LoansView'));
+const AttendanceView = lazy(() => import('./components/AttendanceView'));
+const ReportsView = lazy(() => import('./components/ReportsView'));
+const LeavesView = lazy(() => import('./components/LeavesView'));
+const AssetsView = lazy(() => import('./components/AssetsView'));
+const DocumentsView = lazy(() => import('./components/DocumentsView'));
+const PerformanceView = lazy(() => import('./components/PerformanceView'));
+const ESSView = lazy(() => import('./components/ESSView'));
+const RecruitmentView = lazy(() => import('./components/RecruitmentView'));
+const ExpensesView = lazy(() => import('./components/ExpensesView'));
+const TrainingView = lazy(() => import('./components/TrainingView'));
+const PromotionsView = lazy(() => import('./components/PromotionsView'));
+const SettingsView = lazy(() => import('./components/SettingsView'));
+const TasksView = lazy(() => import('./components/TasksView'));
+const VisasMuqeemView = lazy(() => import('./components/VisasMuqeemView'));
+const AccountingProvisionsView = lazy(() => import('./components/AccountingProvisionsView'));
+const TotalCostEmploymentView = lazy(() => import('./components/TotalCostEmploymentView'));
+const OvertimeRamadanView = lazy(() => import('./components/OvertimeRamadanView'));
+const LaborLawAiConsultantView = lazy(() => import('./components/LaborLawAiConsultantView'));
+const QiwaContractsView = lazy(() => import('./components/QiwaContractsView'));
+const DisciplinaryMatrixView = lazy(() => import('./components/DisciplinaryMatrixView'));
+const ExitClearanceView = lazy(() => import('./components/ExitClearanceView'));
+const WorkInjuriesView = lazy(() => import('./components/WorkInjuriesView'));
+const NitaqatSimulatorView = lazy(() => import('./components/NitaqatSimulatorView'));
+const AiHrLetterStudioView = lazy(() => import('./components/AiHrLetterStudioView'));
+const MedicalInsuranceView = lazy(() => import('./components/MedicalInsuranceView'));
+const WpsAuditSifView = lazy(() => import('./components/WpsAuditSifView'));
+const TalentMatrix9BoxView = lazy(() => import('./components/TalentMatrix9BoxView'));
+const FleetManagementView = lazy(() => import('./components/FleetManagementView'));
+const FlexibleWorkTeleworkView = lazy(() => import('./components/FlexibleWorkTeleworkView'));
+const AiRetentionPredictorView = lazy(() => import('./components/AiRetentionPredictorView'));
+const EarnedWageAccessView = lazy(() => import('./components/EarnedWageAccessView'));
+const HseSafetyComplianceView = lazy(() => import('./components/HseSafetyComplianceView'));
+const ExecutiveBoardroomView = lazy(() => import('./components/ExecutiveBoardroomView'));
+const ExitInterviewAnalyticsView = lazy(() => import('./components/ExitInterviewAnalyticsView'));
+const ApprovalWorkflowsView = lazy(() => import('./components/ApprovalWorkflowsView'));
+const GrievancesView = lazy(() => import('./components/GrievancesView').then(m => ({ default: m.GrievancesView })));
+const BudgetingView = lazy(() => import('./components/BudgetingView').then(m => ({ default: m.BudgetingView })));
+const RewardsKudosView = lazy(() => import('./components/RewardsKudosView').then(m => ({ default: m.RewardsKudosView })));
+const SmartAssetsView = lazy(() => import('./components/SmartAssetsView').then(m => ({ default: m.SmartAssetsView })));
+const AttendanceKioskView = lazy(() => import('./components/AttendanceKioskView'));
+const BranchLiveAttendanceView = lazy(() => import('./components/BranchLiveAttendanceView'));
+const ManagerInboxView = lazy(() => import('./components/ManagerInboxView'));
+const EmployeeDocumentsView = lazy(() => import('./components/EmployeeDocumentsView'));
+const AlertsCenterView = lazy(() => import('./components/AlertsCenterView'));
+const TransfersView = lazy(() => import('./components/TransfersView'));
+const SalaryReportsView = lazy(() => import('./components/SalaryReportsView'));
+const ConsolidatedBranchesView = lazy(() => import('./components/ConsolidatedBranchesView'));
+const SystemsHubView = lazy(() => import('./components/SystemsHubView'));
+// Opened on demand from the floating launcher, so it must stay lazy too.
+const AiHrCopilotModal = lazy(() => import('./components/AiHrCopilotModal'));
+
+type View = 
+  | 'dashboard' 
+  | 'saudi' 
+  | 'executive_board'
+  | 'approval_workflows'
+  | 'grievances'
+  | 'budgeting'
+  | 'rewards_kudos'
+  | 'smart_assets'
+  | 'ewa_wellness'
+  | 'hse_safety'
+  | 'exit_interviews'
+  | 'medical'
+  | 'wps_audit'
+  | 'talent_9box'
+  | 'fleet'
+  | 'flexible_telework'
+  | 'retention_ai'
+  | 'qiwa_contracts' 
+  | 'nitaqat_sim' 
+  | 'ai_letters' 
+  | 'disciplinary' 
+  | 'clearance' 
+  | 'work_injuries' 
+  | 'visas' 
+  | 'provisions' 
+  | 'cost_employment' 
+  | 'overtime' 
+  | 'ai_consultant' 
+  | 'branches'
+  | 'employees'
+  | 'health_certificates'
+  | 'import_center'
+  | 'payroll'
+  | 'allowances' 
+  | 'audit' 
+  | 'loans' 
+  | 'attendance' 
+  | 'reports' 
+  | 'departments' 
+  | 'bonuses' 
+  | 'leaves' 
+  | 'assets' 
+  | 'documents' 
+  | 'performance' 
+  | 'ess' 
+  | 'recruitment' 
+  | 'expenses' 
+  | 'training' 
+  | 'promotions' 
+  | 'settings' 
+  | 'tasks'
+  | 'attendance_kiosk'
+  | 'attendance_live'
+  | 'manager_inbox'
+  | 'employee_documents'
+  | 'alerts_center'
+  | 'transfers'
+  | 'salary_reports'
+  | 'consolidated_reports'
+  | 'systems_hub';
+
+/** Shown while a lazily-loaded screen chunk is in flight. */
+function ScreenLoader() {
+  return (
+    <div className="flex items-center justify-center py-24" role="status" aria-live="polite">
+      <div className="flex flex-col items-center gap-3">
+        <div className="animate-spin rounded-full h-10 w-10 border-4 border-emerald-600 border-t-transparent" />
+        <span className="text-sm text-slate-500">جارٍ تحميل الشاشة…</span>
+      </div>
+    </div>
+  );
+}
+
+// Inner App component that requires authentication
+function AuthenticatedApp() {
+  const { t, language, direction } = useLanguage();
+  const { user, logout, hasRole, isLoading } = useAuth();
+  const [activeView, setActiveView] = useState<View>('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [showCopilot, setShowCopilot] = useState(false);
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [showBackupModal, setShowBackupModal] = useState(false);
+
+  const [settings, setSettings] = useState<AppSettings>({
+    org_name: 'شركة المسار الرقمي للحلول المتكاملة',
+    country: 'المملكة العربية السعودية',
+    currency: 'SAR',
+    tax_rate: 0,
+    insurance_emp_rate: 9.75,
+    insurance_comp_rate: 11.75
+  });
+  const [isEditingSettings, setIsEditingSettings] = useState(false);
+  const [tempSettings, setTempSettings] = useState<AppSettings>(settings);
+
+  // All hooks must run unconditionally and in the same order on every render, so the settings
+  // fetch below is hoisted above the early returns (loading spinner / not logged in).
+  // `isLoggedIn` is a primitive dependency: it keeps a stable identity across renders, whereas
+  // depending on `user` (an object) could re-fire the fetch on every render. The guard also
+  // keeps the call after login, since before login there is no token and /api/settings -> 401.
+  const isLoggedIn = !!user;
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.org_name) {
+          const loadedSettings = {
+            org_name: data.org_name || 'شركة المسار الرقمي للحلول المتكاملة',
+            country: data.country || 'المملكة العربية السعودية',
+            currency: data.currency || 'SAR',
+            tax_rate: Number(data.tax_rate) || 0,
+            insurance_emp_rate: Number(data.insurance_emp_rate) || 9.75,
+            insurance_comp_rate: Number(data.insurance_comp_rate) || 11.75
+          };
+          setSettings(loadedSettings);
+          setTempSettings(loadedSettings);
+        }
+      })
+      .catch(err => console.error("App settings error:", err));
+  }, [isLoggedIn]);
+
+  // Single screen/role matrix for the shell (sidebar + header actions). It mirrors the
+  // server's RBAC policy, so a control whose API call is classified is never rendered for a
+  // role the endpoint would answer with 403.
+  const role = user?.role || '';
+  const allow = (id: string) => {
+    if (!role) return false; // no user/role must not grant any screen
+    if (role === 'admin' || role === 'hr_manager') return true;
+    if (role === 'employee_ess') return id === 'ess';
+    if (role === 'finance') return ['dashboard', 'payroll', 'wps_audit', 'loans', 'bonuses', 'expenses', 'allowances', 'reports', 'salary_reports', 'consolidated_reports', 'provisions', 'cost_employment', 'budgeting'].includes(id);
+    if (role === 'branch_manager') return ['dashboard', 'attendance', 'attendance_kiosk', 'attendance_live', 'employees', 'leaves', 'approval_workflows', 'manager_inbox', 'ess', 'alerts_center'].includes(id);
+    return true;
+  };
+  // "الإعدادات السريعة" writes PUT /api/settings -> settings.manage (admin, hr_manager).
+  const canManageSettings = allow('settings');
+  // "تصدير PDF" reads /api/saudi/compliance-summary -> saudi.compliance. finance holds that
+  // permission even though the compliance screen id is not part of finance's sidebar list.
+  const canExportCompliancePdf = allow('saudi') || role === 'finance';
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginView />;
+  }
+
+  // The bootstrap admin runs on a documented default password until it is
+  // changed. Nothing else in the app renders until that happens, so the default
+  // is never usable beyond this screen.
+  if (user.must_change_password) {
+    return <MustChangePasswordView />;
+  }
+
+  const handleUpdateSettings = async () => {
+    await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tempSettings)
+    });
+    setSettings(tempSettings);
+    setIsEditingSettings(false);
+  };
+
+  const navSections = [
+    {
+      titleKey: 'nav.sec.main',
+      defaultTitle: 'الرئيسية والأنظمة السعودية ومجلس الإدارة',
+      items: [
+        { id: 'dashboard', key: 'nav.dashboard', defaultLabel: 'لوحة التحكم العامة', icon: LayoutDashboard },
+        { id: 'executive_board', key: 'nav.executive_board', defaultLabel: 'لوحة القيادة التنفيذية ومجلس الإدارة (ROI)', icon: Award },
+        { id: 'approval_workflows', key: 'nav.approval_workflows', defaultLabel: 'مسارات وسلاسل الاعتماد (Workflows)', icon: GitPullRequest },
+        { id: 'manager_inbox', key: 'nav.manager_inbox', defaultLabel: 'صندوق اعتماد المدير (جوال)', icon: UserCheck },
+        { id: 'grievances', key: 'nav.grievances', defaultLabel: 'التظلمات ولجان التحقيق والإنذارات (المادة 209)', icon: Scale },
+        { id: 'budgeting', key: 'nav.budgeting', defaultLabel: 'ميزانية الموارد وتكاليف التعيين', icon: DollarSign },
+        { id: 'ewa_wellness', key: 'nav.ewa_wellness', defaultLabel: 'سحب الراتب عند الطلب (EWA)', icon: Wallet },
+        { id: 'hse_safety', key: 'nav.hse_safety', defaultLabel: 'الصحة والسلامة وتفتيش المنشآت (HSE)', icon: HardHat },
+        { id: 'saudi', key: 'nav.saudi', defaultLabel: 'الامتثال والأنظمة السعودية', icon: Scale },
+        { id: 'wps_audit', key: 'nav.wps_audit', defaultLabel: 'تدقيق حماية الأجور (SIF & مدد)', icon: FileCheck2 },
+        { id: 'medical', key: 'nav.medical', defaultLabel: 'التأمين الطبي ومجلس الضمان (CCHI)', icon: HeartPulse },
+        { id: 'qiwa_contracts', key: 'nav.qiwa_contracts', defaultLabel: 'عقود قوى الموحدة', icon: FileText },
+        { id: 'nitaqat_sim', key: 'nav.nitaqat_sim', defaultLabel: 'محاكي نطاقات والتوطين', icon: Target },
+        { id: 'flexible_telework', key: 'nav.flexible_telework', defaultLabel: 'العمل المرن والعمل عن بعد', icon: Laptop },
+        { id: 'ai_letters', key: 'nav.ai_letters', defaultLabel: 'استوديو الخطابات (AI)', icon: Sparkles },
+        { id: 'disciplinary', key: 'nav.disciplinary', defaultLabel: 'لائحة الجزاءات والتحقيق', icon: ShieldAlert },
+        { id: 'clearance', key: 'nav.clearance', defaultLabel: 'إخلاء الطرف وإبراء الذمة', icon: UserCheck },
+        { id: 'work_injuries', key: 'nav.work_injuries', defaultLabel: 'إصابات العمل (GOSI)', icon: HeartPulse },
+        { id: 'visas', key: 'nav.visas', defaultLabel: 'التأشيرات وخدمات مقيم', icon: Plane },
+        { id: 'provisions', key: 'nav.provisions', defaultLabel: 'المخصصات (IAS 19)', icon: Calculator },
+        { id: 'cost_employment', key: 'nav.cost_employment', defaultLabel: 'التكلفة الشاملة (TCOE)', icon: DollarSign },
+        { id: 'overtime', key: 'nav.overtime', defaultLabel: 'العمل الإضافي ورمضان', icon: Clock },
+        { id: 'ai_consultant', key: 'nav.ai_consultant', defaultLabel: 'المستشار القانوني الذكي', icon: Sparkles },
+        { id: 'reports', key: 'nav.reports', defaultLabel: 'التقارير والتحليلات', icon: TrendingUp },
+      ]
+    },
+    {
+      titleKey: 'nav.sec.hr',
+      defaultTitle: 'الموارد البشرية (HR)',
+      items: [
+        { id: 'employees', key: 'nav.employees', defaultLabel: 'الموظفين والإقامات', icon: Users },
+        { id: 'health_certificates', key: 'nav.health_certificates', defaultLabel: 'الشهادات الصحية والمتابعة (بلدي)', icon: Stethoscope },
+        { id: 'rewards_kudos', key: 'nav.rewards_kudos', defaultLabel: 'التقدير والمكافآت (Kudos & Rewards)', icon: Award },
+        { id: 'smart_assets', key: 'nav.smart_assets', defaultLabel: 'الأصول والعهد الذكية (QR Handover)', icon: Laptop },
+        { id: 'exit_interviews', key: 'nav.exit_interviews', defaultLabel: 'محلل مقابلات الخروج (AI Exits)', icon: UserMinus },
+        { id: 'talent_9box', key: 'nav.talent_9box', defaultLabel: 'مصفوفة المواهب (9-Box) والتعاقب', icon: Layers },
+        { id: 'retention_ai', key: 'nav.retention_ai', defaultLabel: 'محلل مخاطر التسرب (AI Predictor)', icon: TrendingDown },
+        { id: 'fleet', key: 'nav.fleet', defaultLabel: 'أسطول المركبات والمخالفات', icon: Car },
+        { id: 'departments', key: 'nav.departments', defaultLabel: 'الإدارات والأقسام', icon: Building2 },
+        { id: 'recruitment', key: 'nav.recruitment', defaultLabel: 'التوظيف (ATS)', icon: Briefcase },
+        { id: 'leaves', key: 'nav.leaves', defaultLabel: 'الإجازات والغياب', icon: Clock },
+        { id: 'documents', key: 'nav.documents', defaultLabel: 'الأرشيف والوثائق', icon: ShieldCheck },
+        { id: 'assets', key: 'nav.assets', defaultLabel: 'الأصول والعهدة', icon: Wallet },
+        { id: 'performance', key: 'nav.performance', defaultLabel: 'تقييم الأداء', icon: Star },
+        { id: 'training', key: 'nav.training', defaultLabel: 'التدريب والتطوير', icon: GraduationCap },
+        { id: 'promotions', key: 'nav.promotions', defaultLabel: 'المسار الوظيفي', icon: TrendingUp },
+        { id: 'tasks', key: 'nav.tasks', defaultLabel: 'المشاريع والمهام', icon: Target },
+      ]
+    },
+    {
+      titleKey: 'nav.sec.finance',
+      defaultTitle: 'المالية وحماية الأجور',
+      items: [
+        { id: 'payroll', key: 'nav.payroll', defaultLabel: 'مسير الرواتب (WPS)', icon: BadgeDollarSign },
+        { id: 'expenses', key: 'nav.expenses', defaultLabel: 'المطالبات المالية', icon: Receipt },
+        { id: 'loans', key: 'nav.loans', defaultLabel: 'القروض والسلف', icon: Landmark },
+        { id: 'bonuses', key: 'nav.bonuses', defaultLabel: 'المكافآت والجزاءات', icon: HandCoins },
+        { id: 'attendance', key: 'nav.attendance', defaultLabel: 'بيانات الحضور', icon: Clock },
+        { id: 'allowances', key: 'nav.allowances', defaultLabel: 'تكويد البدلات', icon: Settings },
+      ]
+    },
+    {
+      titleKey: 'nav.sec.ess',
+      defaultTitle: 'الخدمة الذاتية',
+      items: [
+        { id: 'ess', key: 'nav.ess', defaultLabel: 'بوابة الموظف (ESS)', icon: User },
+      ]
+    },
+    {
+      titleKey: 'nav.sec.admin',
+      defaultTitle: 'الإدارة والنظام',
+      items: [
+        { id: 'branches', key: 'nav.branches', defaultLabel: 'الفروع والمواقع', icon: Building2 },
+        { id: 'consolidated_reports', key: 'nav.consolidated_reports', defaultLabel: 'التقارير المجمعة بين الفروع', icon: Network },
+        { id: 'systems_hub', key: 'nav.systems_hub', defaultLabel: 'بوابة أنظمة معصوب حليب', icon: Layers },
+        { id: 'settings', key: 'nav.settings', defaultLabel: 'بيانات المنشأة واللوائح', icon: Settings },
+        { id: 'audit', key: 'nav.audit', defaultLabel: 'سجل العمليات', icon: History },
+        { id: 'import_center', key: 'nav.import_center', defaultLabel: 'مركز الاستيراد الموحد (Excel)', icon: FileSpreadsheet },
+      ]
+    },
+    {
+      titleKey: 'nav.sec.new',
+      defaultTitle: 'الميزات الجديدة',
+      items: [
+        { id: 'attendance_kiosk', key: 'nav.attendance_kiosk', defaultLabel: 'جهاز الحضور (Kiosk)', icon: Clock },
+        { id: 'attendance_live', key: 'nav.attendance_live', defaultLabel: 'حضور الفروع الآن', icon: Users },
+        { id: 'employee_documents', key: 'nav.employee_documents', defaultLabel: 'ملف الموظف والوثائق', icon: FileText },
+        { id: 'alerts_center', key: 'nav.alerts_center', defaultLabel: 'مركز التنبيهات', icon: Bell },
+        { id: 'transfers', key: 'nav.transfers', defaultLabel: 'نقل الموظف بين الفروع', icon: GitPullRequest },
+        { id: 'salary_reports', key: 'nav.salary_reports', defaultLabel: 'تقارير الرواتب', icon: TrendingUp },
+      ]
+    }
+  ];
+
+  const currentLabel = () => {
+    for (const section of navSections) {
+      const item = section.items.find(i => i.id === activeView);
+      if (item) return t(item.key, item.defaultLabel);
+    }
+    return '';
+  };
+
+  return (
+    <div className="flex h-screen bg-slate-50 font-sans" dir={direction}>
+      {/* Sidebar */}
+      <motion.aside 
+        initial={false}
+        animate={{ width: isSidebarOpen ? 288 : 80 }}
+        className="text-navy-800 h-full transition-all duration-300 relative z-20 flex flex-col shrink-0
+                   bg-white border-e border-shell-line"
+      >
+        <div className="p-5 flex items-center justify-between border-b border-shell-line shrink-0">
+          {isSidebarOpen && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center gap-3"
+            >
+              <div className="bg-brand-600 p-2.5 rounded-xl shadow-md shadow-brand-600/25">
+                <Scale className="w-5 h-5 text-white" />
+              </div>
+              <div className="overflow-hidden">
+                <span 
+                  className="text-sm font-black tracking-tight truncate block max-w-[180px] text-navy-900"
+                  title={settings.org_name}
+                >
+                  {settings.org_name}
+                </span>
+                <span className="text-[10px] text-brand-600 font-bold block">
+                  {language === 'ar' ? 'الموارد البشرية والرواتب والامتثال' : 'Saudi HR & Compliance'}
+                </span>
+              </div>
+            </motion.div>
+          )}
+          <button 
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-2 hover:bg-shell-100 rounded-xl transition-colors text-slate-400 hover:text-brand-600"
+            aria-label={isSidebarOpen ? 'طي القائمة' : 'توسيع القائمة'}
+          >
+            {isSidebarOpen ? (
+              direction === 'rtl' ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />
+            ) : (
+              direction === 'rtl' ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />
+            )}
+          </button>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5 custom-scrollbar">
+          {navSections.map((section, idx) => {
+            const items = section.items.filter(i => allow(i.id));
+            if (!items.length) return null;
+            return (
+            <div key={idx} className="space-y-1">
+              {isSidebarOpen && (
+                <p className="px-3 pt-3 pb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  {t(section.titleKey, section.defaultTitle)}
+                </p>
+              )}
+              {items.map((item) => {
+                const isActive = activeView === item.id;
+                const label = t(item.key, item.defaultLabel);
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveView(item.id as View)}
+                    title={!isSidebarOpen ? label : undefined}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 relative ${
+                      isActive
+                        ? 'bg-brand-50 text-brand-700 font-bold'
+                        : 'text-slate-600 hover:bg-shell-100 hover:text-navy-900'
+                    } ${isSidebarOpen ? '' : 'justify-center'}`}
+                  >
+                    {/* شريط المؤشر على حافة القائمة (يمين في RTL) */}
+                    {isActive && (
+                      <span className="absolute inset-y-1.5 right-0 w-[3px] rounded-l-full bg-brand-600" />
+                    )}
+                    <item.icon className={`w-[18px] h-[18px] shrink-0 ${
+                      isActive ? 'text-brand-600' : 'text-slate-400'
+                    }`} />
+                    {isSidebarOpen && <span className="font-bold text-[12.5px] truncate text-start">{label}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          );
+          })}
+        </nav>
+
+        {isSidebarOpen && (
+          <div className="p-3 border-t border-shell-line shrink-0 space-y-2">
+            {canManageSettings && (
+            <button 
+              onClick={() => {
+                setTempSettings(settings);
+                setIsEditingSettings(true);
+              }}
+              className="w-full flex items-center justify-between px-3 py-2.5 bg-shell-100 hover:bg-shell-200 rounded-xl text-xs text-navy-700 hover:text-navy-900 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Settings className="w-4 h-4 text-brand-600" />
+                <span className="font-bold">{t('btn.quick_settings')}</span>
+              </div>
+              <span className="text-[10px] bg-white px-1.5 py-0.5 rounded font-mono text-navy-700 border border-shell-line">{settings.currency || 'SAR'}</span>
+            </button>
+            )}
+            <div className="p-2.5 bg-shell-50 rounded-xl border border-shell-line text-center">
+              <p className="text-[10px] text-slate-400">{t('app.title')}</p>
+              <p className="text-[11px] font-mono font-bold text-navy-700">{t('app.version')}</p>
+            </div>
+          </div>
+        )}
+      </motion.aside>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto flex flex-col">
+        {/* Top Header Bar */}
+        <header className="h-16 bg-white border-b border-shell-line px-6 md:px-8 flex items-center justify-between sticky top-0 z-10 shrink-0 shadow-sm">
+          <div className="flex items-center gap-3">
+            <h2 className="text-base md:text-lg font-black text-navy-900">
+              {currentLabel()}
+            </h2>
+          </div>
+
+          {/* Quick Header Utility Actions */}
+          <div className="flex items-center gap-2 md:gap-3">
+            {/* 1. PDF Export Button (hidden when /api/saudi/compliance-summary would 403) */}
+            {canExportCompliancePdf && (
+            <button
+              id="top-header-pdf-export-btn"
+              onClick={() => setShowPdfModal(true)}
+              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition-all shadow-sm"
+              title={t('btn.export_pdf')}
+            >
+              <Printer className="w-4 h-4 text-emerald-700" />
+              <span>{language === 'ar' ? 'تصدير PDF' : 'PDF Export'}</span>
+            </button>
+            )}
+
+            {/* 2. Database Backup & Restore Button */}
+            <button
+              id="top-header-backup-btn"
+              onClick={() => setShowBackupModal(true)}
+              className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-sm"
+              title={t('backup.title')}
+            >
+              <Database className="w-4 h-4 text-brand-600" />
+              <span>{language === 'ar' ? 'النسخ والاحتياط' : 'Backup DB'}</span>
+            </button>
+
+            {/* 3. Language Switcher Toggle */}
+            <LanguageSwitcher />
+
+            <div className="w-px h-6 bg-slate-200" />
+
+            {/* 4. Smart Expiry Alerts & Notification Bell */}
+            <NotificationBell onNavigate={(viewId) => setActiveView(viewId as View)} />
+
+            <div className="w-px h-6 bg-slate-200 hidden sm:block" />
+
+            {/* 5. Company Info */}
+            <div className="hidden sm:block text-left rtl:text-right">
+              <p className="text-xs font-black text-slate-800 truncate max-w-[140px]">{settings.org_name}</p>
+              <p className="text-[10px] text-emerald-600 font-bold">{t('country.ksa')}</p>
+            </div>
+            
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center border border-emerald-100 text-emerald-700 shrink-0">
+              <Users className="w-4 h-4" />
+            </div>
+          </div>
+        </header>
+
+        <div className="p-6 md:p-8 flex-1">
+          {/* No AnimatePresence mode="wait" here: its exit gating deadlocks with
+              lazy (Suspense) screens — the first navigation after load never
+              swaps the view. Enter-only animation swaps unconditionally. */}
+          <motion.div
+            key={activeView}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+              {/* Screens are code-split, so each one loads on first visit. */}
+              <Suspense fallback={<ScreenLoader />}>
+              {activeView === 'dashboard' && <DashboardView />}
+              {activeView === 'executive_board' && <ExecutiveBoardroomView />}
+              {activeView === 'approval_workflows' && <ApprovalWorkflowsView />}
+              {activeView === 'grievances' && <GrievancesView />}
+              {activeView === 'budgeting' && <BudgetingView />}
+              {activeView === 'rewards_kudos' && <RewardsKudosView />}
+              {activeView === 'smart_assets' && <SmartAssetsView />}
+              {activeView === 'ewa_wellness' && <EarnedWageAccessView />}
+              {activeView === 'hse_safety' && <HseSafetyComplianceView />}
+              {activeView === 'exit_interviews' && <ExitInterviewAnalyticsView />}
+              {activeView === 'saudi' && <SaudiComplianceView />}
+              {activeView === 'wps_audit' && <WpsAuditSifView />}
+              {activeView === 'medical' && <MedicalInsuranceView />}
+              {activeView === 'talent_9box' && <TalentMatrix9BoxView />}
+              {activeView === 'fleet' && <FleetManagementView />}
+              {activeView === 'flexible_telework' && <FlexibleWorkTeleworkView />}
+              {activeView === 'retention_ai' && <AiRetentionPredictorView />}
+              {activeView === 'qiwa_contracts' && <QiwaContractsView />}
+              {activeView === 'nitaqat_sim' && <NitaqatSimulatorView />}
+              {activeView === 'ai_letters' && <AiHrLetterStudioView />}
+              {activeView === 'disciplinary' && <DisciplinaryMatrixView />}
+              {activeView === 'clearance' && <ExitClearanceView />}
+              {activeView === 'work_injuries' && <WorkInjuriesView />}
+              {activeView === 'visas' && <VisasMuqeemView />}
+              {activeView === 'provisions' && <AccountingProvisionsView />}
+              {activeView === 'cost_employment' && <TotalCostEmploymentView />}
+              {activeView === 'overtime' && <OvertimeRamadanView />}
+              {activeView === 'ai_consultant' && <LaborLawAiConsultantView />}
+              {activeView === 'branches' && <BranchesView />}
+              {activeView === 'employees' && <EmployeesView />}
+              {activeView === 'health_certificates' && <HealthCertificatesView />}
+              {activeView === 'import_center' && <ImportCenterView />}
+              {activeView === 'payroll' && <PayrollView />}
+              {activeView === 'allowances' && <AllowanceTypesView />}
+              {activeView === 'audit' && <AuditLogsView />}
+              {activeView === 'loans' && <LoansView />}
+              {activeView === 'attendance' && <AttendanceView />}
+              {activeView === 'reports' && <ReportsView />}
+              {activeView === 'departments' && <DepartmentsView />}
+              {activeView === 'bonuses' && <BonusesView />}
+              {activeView === 'leaves' && <LeavesView />}
+              {activeView === 'assets' && <AssetsView />}
+              {activeView === 'documents' && <DocumentsView />}
+              {activeView === 'performance' && <PerformanceView />}
+              {activeView === 'ess' && <ESSView />}
+              {activeView === 'recruitment' && <RecruitmentView />}
+              {activeView === 'expenses' && <ExpensesView />}
+              {activeView === 'training' && <TrainingView />}
+              {activeView === 'promotions' && <PromotionsView />}
+              {activeView === 'settings' && <SettingsView />}
+              {activeView === 'tasks' && <TasksView />}
+              {activeView === 'attendance_kiosk' && <AttendanceKioskView />}
+              {activeView === 'attendance_live' && <BranchLiveAttendanceView />}
+              {activeView === 'manager_inbox' && <ManagerInboxView />}
+              {activeView === 'employee_documents' && <EmployeeDocumentsView />}
+              {activeView === 'alerts_center' && <AlertsCenterView />}
+              {activeView === 'transfers' && <TransfersView />}
+              {activeView === 'salary_reports' && <SalaryReportsView />}
+              {activeView === 'consolidated_reports' && <ConsolidatedBranchesView />}
+              {activeView === 'systems_hub' && <SystemsHubView onOpenReports={() => setActiveView('consolidated_reports')} />}
+              </Suspense>
+          </motion.div>
+        </div>
+      </main>
+
+      {/* Floating AI HR Copilot Launcher */}
+      <button
+        id="floating-ai-copilot-btn"
+        onClick={() => setShowCopilot(true)}
+        className="fixed bottom-6 left-6 rtl:left-6 ltr:right-6 z-40 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white px-4 py-3.5 rounded-full shadow-2xl hover:shadow-emerald-500/40 transition-all transform hover:scale-105 flex items-center gap-2.5 border-2 border-emerald-300/40"
+        title="المساعد الذكي للموارد البشرية (AI Copilot)"
+      >
+        <span className="relative flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+        </span>
+        <Sparkles className="w-5 h-5 text-emerald-100" />
+        <span className="font-bold text-xs pl-1">{language === 'ar' ? 'مساعد HR الذكي (AI)' : 'AI HR Copilot'}</span>
+      </button>
+
+      {/* AI HR Copilot Modal */}
+      {showCopilot && (
+        <Suspense fallback={null}>
+          <AiHrCopilotModal 
+            isOpen={showCopilot}
+            onClose={() => setShowCopilot(false)}
+            onNavigate={(viewId) => {
+              setActiveView(viewId as View);
+              setShowCopilot(false);
+            }}
+          />
+        </Suspense>
+      )}
+
+      {/* PDF Export Modal */}
+      {showPdfModal && (
+        <PdfExportModal 
+          isOpen={showPdfModal}
+          onClose={() => setShowPdfModal(false)}
+        />
+      )}
+
+      {/* Backup & Restore Modal */}
+      {showBackupModal && (
+        <BackupRestoreModal 
+          isOpen={showBackupModal}
+          onClose={() => setShowBackupModal(false)}
+        />
+      )}
+
+      {/* Quick Settings Modal */}
+      {isEditingSettings && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-lg rounded-3xl p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-6">
+               <h3 className="text-xl font-black text-slate-800">{t('btn.quick_settings')}</h3>
+               <button onClick={() => setIsEditingSettings(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors">
+                  <X className="w-5 h-5" />
+               </button>
+            </div>
+            
+            <div className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">اسم المؤسسة / المنشأة</label>
+                <input 
+                  type="text" 
+                  value={tempSettings.org_name}
+                  onChange={e => setTempSettings({ ...tempSettings, org_name: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-right font-bold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">الدولة والأنظمة</label>
+                  <select 
+                    value={tempSettings.country}
+                    onChange={e => setTempSettings({ ...tempSettings, country: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-right font-bold text-xs"
+                  >
+                    <option value="المملكة العربية السعودية">المملكة العربية السعودية (GOSI & قوى)</option>
+                    <option value="الإمارات">الإمارات</option>
+                    <option value="مصر">مصر</option>
+                    <option value="أخرى">أخرى</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">العملة الأساسية</label>
+                  <input 
+                    type="text" 
+                    value={tempSettings.currency}
+                    onChange={e => setTempSettings({ ...tempSettings, currency: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-right font-bold font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">نسبة تأمينات الموظف (%)</label>
+                  <input 
+                    type="number" 
+                    value={tempSettings.insurance_emp_rate}
+                    onChange={e => setTempSettings({ ...tempSettings, insurance_emp_rate: parseFloat(e.target.value) })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-right font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">نسبة تأمينات المنشأة (%)</label>
+                  <input 
+                    type="number" 
+                    value={tempSettings.insurance_comp_rate}
+                    onChange={e => setTempSettings({ ...tempSettings, insurance_comp_rate: parseFloat(e.target.value) })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-right font-mono font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-slate-100">
+                <button 
+                  onClick={handleUpdateSettings}
+                  className="flex-1 bg-brand-600 text-white py-3.5 rounded-2xl font-black hover:bg-brand-700 transition-all shadow-md shadow-emerald-200"
+                >
+                  {t('btn.save')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AuthenticatedApp />
+    </AuthProvider>
+  );
+}

@@ -167,4 +167,79 @@ describe('PayrollCalculator', () => {
     expect(results[1].employeeId).toBe(2);
     expect(results[1].grossSalary).toBeGreaterThan(results[0].grossSalary);
   });
+
+  describe('additional salary (دفعة خارج الدورة)', () => {
+    it('aggregates earning and deduction lines into signed totals', () => {
+      const agg = PayrollCalculator.aggregateAdditionalSalaries([
+        { type: 'earning', amount: 1000 },
+        { type: 'earning', amount: 250.555 },
+        { type: 'deduction', amount: 300 },
+      ]);
+      expect(agg.earnings).toBeCloseTo(1250.56, 2);
+      expect(agg.deductions).toBeCloseTo(300, 2);
+    });
+
+    it('adds off-cycle earnings to net and reports them in details', () => {
+      const r = calc({
+        basicSalary: 10000,
+        housingAllowance: 5000,
+        additionalSalaries: [
+          { type: 'earning', amount: 2000 },
+          { type: 'deduction', amount: 500 },
+        ],
+      });
+      // gross = 15000 (10k basic + 5k housing), insEmp = 1462.5 (base 15000);
+      // net = gross - insEmp - 500 + 2000 = 15037.5
+      expect(r.calculationDetails.additionalEarnings).toBeCloseTo(2000, 2);
+      expect(r.calculationDetails.additionalDeductions).toBeCloseTo(500, 2);
+      expect(r.netSalary).toBeCloseTo(15000 - 1462.5 + 2000 - 500, 2);
+    });
+  });
+
+  describe('tax exemption (إثبات إعفاء ضريبي)', () => {
+    it('reduces taxable income before progressive tax is applied', () => {
+      // taxable 45000 → 1875 tax normally; with 15000 exemption → taxable 30000
+      const r = calc({ basicSalary: 45000, taxExemptions: 15000 }, egConfig);
+      // brackets on 30000: 0*15000 + 0.025*15000 = 375
+      expect(r.taxAmount).toBeCloseTo(375, 2);
+      expect(r.calculationDetails.taxExemptions).toBe(15000);
+      expect(r.calculationDetails.taxableIncome).toBe(30000);
+    });
+
+    it('cannot drive taxable income negative', () => {
+      const r = calc({ basicSalary: 10000, taxExemptions: 999999 }, egConfig);
+      expect(r.calculationDetails.taxableIncome).toBe(0);
+      expect(r.taxAmount).toBe(0);
+    });
+  });
+
+  describe('gratuity (مكافأة نهاية الخدمة)', () => {
+    const basis = (b: number) => b; // SA basis = last_basic
+
+    it('returns 0 for service under 1 year', () => {
+      expect(PayrollCalculator.calculateEndOfService(0.5, 5000, saConfig)).toBe(0);
+    });
+
+    it('pays half a month per year for the first 5 years', () => {
+      // 3 years * 0.5 * 5000 = 7500
+      expect(PayrollCalculator.calculateEndOfService(3, 5000, saConfig)).toBe(7500);
+    });
+
+    it('pays a full month per year after the 5th year (Saudi cliff)', () => {
+      // 8 years = 5*0.5 + 3*1 = 5.5 months * 5000 = 27500
+      expect(PayrollCalculator.calculateEndOfService(8, 5000, saConfig)).toBe(27500);
+    });
+
+    it('honours maxYears cap for linear rule types', () => {
+      const capped = { ...saConfig, eos: { ...saConfig.eos, type: '30_days_per_year' as const, maxYears: 5 } };
+      // 8 years linear = 8 months but capped at 5 → 5*5000 = 25000
+      expect(PayrollCalculator.calculateEndOfService(8, 5000, capped)).toBe(25000);
+    });
+
+    it('uses 21-days-per-year rule when configured', () => {
+      const r21 = { ...saConfig, eos: { ...saConfig.eos, type: '21_days_per_year' as const } };
+      // 3 years * (21/30) * 5000 = 10500
+      expect(PayrollCalculator.calculateEndOfService(3, 5000, r21)).toBe(10500);
+    });
+  });
 });

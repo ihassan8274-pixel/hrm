@@ -200,7 +200,7 @@ export default function FleetManagementView() {
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between text-slate-500 mb-2">
             <span className="text-sm font-medium">إجمالي المخالفات المسجلة</span>
-            <DollarSign className="w-5 h-5 text-indigo-500" />
+            <DollarSign className="w-5 h-5 text-brand-500" />
           </div>
           <div className="text-2xl font-bold text-slate-800">{totalFinesAmount.toLocaleString()} ر.س</div>
           <div className="text-xs text-emerald-600 mt-1">ترحيل تلقائي للمسيرات عبر نظام الجزاءات</div>

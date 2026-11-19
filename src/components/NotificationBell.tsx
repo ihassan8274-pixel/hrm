@@ -85,7 +85,7 @@ export default function NotificationBell({ onNavigate }: { onNavigate?: (view: s
       case 'success': return <Check className="w-4 h-4 text-emerald-500" />;
       case 'error': return <X className="w-4 h-4 text-red-500" />;
       case 'warning': return <AlertTriangle className="w-4 h-4 text-amber-500" />;
-      default: return <Info className="w-4 h-4 text-blue-500" />;
+      default: return <Info className="w-4 h-4 text-brand-500" />;
     }
   };
 
@@ -107,12 +107,12 @@ export default function NotificationBell({ onNavigate }: { onNavigate?: (view: s
         <button 
           id="top-notification-bell-btn"
           onClick={() => setIsOpen(!isOpen)}
-          className="p-2 text-slate-500 hover:bg-slate-100 hover:text-indigo-600 rounded-xl transition-all relative border border-slate-200/60 bg-white"
+          className="p-2 text-slate-500 hover:bg-slate-100 hover:text-brand-600 rounded-xl transition-all relative border border-slate-200/60 bg-white"
         >
           <Bell className="w-5 h-5" />
           {totalBadgeCount > 0 && (
             <span className={`absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white ${
-              criticalExpiries > 0 ? 'bg-rose-600' : 'bg-indigo-600'
+              criticalExpiries > 0 ? 'bg-rose-600' : 'bg-brand-600'
             }`}>
               {totalBadgeCount}
             </span>
@@ -122,7 +122,7 @@ export default function NotificationBell({ onNavigate }: { onNavigate?: (view: s
         <AnimatePresence>
           {isOpen && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+              <div className="print-hide fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -137,14 +137,14 @@ export default function NotificationBell({ onNavigate }: { onNavigate?: (view: s
                       {language === 'ar' ? 'التنبيهات والإشعارات' : 'Notifications & Alerts'}
                     </h3>
                     {unreadCount > 0 && (
-                      <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold">
+                      <span className="px-2 py-0.5 rounded-full bg-brand-100 text-brand-700 text-[10px] font-bold">
                         {unreadCount} جديد
                       </span>
                     )}
                   </div>
                   <button 
                     onClick={markAllRead}
-                    className="text-[10px] font-bold text-indigo-600 hover:underline"
+                    className="text-[10px] font-bold text-brand-600 hover:underline"
                   >
                     {t('btn.mark_read')}
                   </button>
@@ -181,7 +181,7 @@ export default function NotificationBell({ onNavigate }: { onNavigate?: (view: s
                       <div 
                         key={n.id} 
                         className={`p-3.5 border-b border-slate-50 flex gap-3 hover:bg-slate-50 transition-colors ${
-                          n.is_read === 0 ? 'bg-indigo-50/30' : ''
+                          n.is_read === 0 ? 'bg-brand-50/30' : ''
                         }`}
                       >
                         <div className="mt-0.5 shrink-0">{getIcon(n.type)}</div>
@@ -207,7 +207,7 @@ export default function NotificationBell({ onNavigate }: { onNavigate?: (view: s
                       setIsOpen(false);
                       setShowExpiryModal(true);
                     }}
-                    className="text-[11px] font-black text-indigo-600 hover:text-indigo-800 flex items-center justify-center gap-1.5 w-full py-1"
+                    className="text-[11px] font-black text-brand-600 hover:text-brand-800 flex items-center justify-center gap-1.5 w-full py-1"
                   >
                     <span>{t('alerts.open_hub')}</span>
                     <ExternalLink className="w-3.5 h-3.5" />

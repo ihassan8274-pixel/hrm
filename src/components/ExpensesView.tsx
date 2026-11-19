@@ -47,7 +47,7 @@ export default function ExpensesView() {
   };
 
   const categories = [
-    { id: 'travel', name: 'سفر وانتقالات', color: 'bg-blue-100 text-blue-600' },
+    { id: 'travel', name: 'سفر وانتقالات', color: 'bg-brand-100 text-brand-600' },
     { id: 'food', name: 'ضيافة وطعام', color: 'bg-orange-100 text-orange-600' },
     { id: 'office', name: 'أدوات مكتبية', color: 'bg-purple-100 text-purple-600' },
     { id: 'marketing', name: 'تسويق', color: 'bg-pink-100 text-pink-600' },
@@ -66,7 +66,7 @@ export default function ExpensesView() {
         </div>
         <button 
           onClick={() => setIsAdding(true)}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+          className="flex items-center gap-2 bg-brand-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-brand-700 transition-all shadow-lg shadow-brand-100"
         >
           <Plus className="w-5 h-5" />
           <span>طلب استرداد جديد</span>
@@ -142,7 +142,7 @@ export default function ExpensesView() {
                    <p className="text-[11px] text-slate-400 truncate max-w-[150px]">{exp.description}</p>
                 </td>
                 <td className="px-6 py-4">
-                   <button className="text-[10px] font-black text-indigo-600 hover:underline">مراجعة</button>
+                   <button className="text-[10px] font-black text-brand-600 hover:underline">مراجعة</button>
                 </td>
               </tr>
             ))}
@@ -163,7 +163,7 @@ export default function ExpensesView() {
                 <label className="block text-xs font-black text-slate-400 uppercase mb-2">الموظف</label>
                 <select 
                   required
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700"
                   value={form.employee_id}
                   onChange={e => setForm({...form, employee_id: e.target.value})}
                 >
@@ -177,7 +177,7 @@ export default function ExpensesView() {
                   <input 
                     type="number"
                     required
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700"
                     value={form.amount}
                     onChange={e => setForm({...form, amount: e.target.value})}
                   />
@@ -187,7 +187,7 @@ export default function ExpensesView() {
                   <input 
                     type="date"
                     required
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700"
                     value={form.date}
                     onChange={e => setForm({...form, date: e.target.value})}
                   />
@@ -196,7 +196,7 @@ export default function ExpensesView() {
               <div>
                 <label className="block text-xs font-black text-slate-400 uppercase mb-2">الفئة</label>
                 <select 
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700"
                   value={form.category}
                   onChange={e => setForm({...form, category: e.target.value})}
                 >
@@ -206,13 +206,13 @@ export default function ExpensesView() {
               <div>
                 <label className="block text-xs font-black text-slate-400 uppercase mb-2">التفاصيل والوصف</label>
                 <textarea 
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 h-24"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700 h-24"
                   value={form.description}
                   onChange={e => setForm({...form, description: e.target.value})}
                 />
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="submit" className="flex-1 bg-indigo-600 text-white py-3 rounded-2xl font-bold hover:bg-indigo-700 transition-all">حفظ الطلب</button>
+                <button type="submit" className="flex-1 bg-brand-600 text-white py-3 rounded-2xl font-bold hover:bg-brand-700 transition-all">حفظ الطلب</button>
                 <button type="button" onClick={() => setIsAdding(false)} className="px-6 py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold">إلغاء</button>
               </div>
             </form>

@@ -35,7 +35,7 @@ export default function AlertsCenterView() {
 
       <div className="flex gap-2 flex-wrap">
         {tabs.map(t => (
-          <button key={t.v} onClick={() => setTab(t.v)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border ${tab === t.v ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'}`}>
+          <button key={t.v} onClick={() => setTab(t.v)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border ${tab === t.v ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-600 border-slate-200'}`}>
             <t.i className="w-4 h-4" /> {t.l}
           </button>
         ))}
@@ -54,7 +54,7 @@ export default function AlertsCenterView() {
                   return (
                     <tr key={i} className="border-b border-slate-50">
                       <td className="py-2 font-bold text-slate-700">{a.name}</td>
-                      <td className="py-2 flex items-center gap-2 text-slate-600"><Icon className="w-4 h-4 text-blue-600" /> {a.label}</td>
+                      <td className="py-2 flex items-center gap-2 text-slate-600"><Icon className="w-4 h-4 text-brand-600" /> {a.label}</td>
                       <td className="py-2 text-slate-600">{a.expiry}</td>
                       <td className="py-2"><span className={`px-2 py-1 rounded-lg text-xs font-bold ${critical ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{critical ? 'منتهية' : `${a.days_left} يوم`}</span></td>
                       <td className="py-2"><a className="text-xs font-bold text-emerald-700 hover:underline" target="_blank" rel="noreferrer" href={`https://wa.me/?text=${encodeURIComponent(`تذكير: ${a.label} للموظف ${a.name} تنتهي ${a.expiry}`)}`}>واتساب</a></td>

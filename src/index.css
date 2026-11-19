@@ -1,19 +1,102 @@
+/* ============================================================
+   مساري — نظام الموارد البشرية والرواتب
+   الهوية: درجة زرقاء هادئة (فاتحة) — نظام واحد للقائمة والمحتوى
+   ============================================================
+
+   The whole point of this file: ONE hue drives the sidebar, the active nav
+   item, primary buttons, focus rings, links and chart accents. Previously the
+   sidebar was dark green while every button inside the content was emerald and
+   every link blue — three identities on one screen.
+
+   Palette rules:
+   - brand    : the single hue. Light-mid range only. Nothing darker than 700
+                is used for surfaces, so the shell never reads as "dark mode".
+   - navy     : a deeper companion for text-on-light and table headers. It is a
+                neutral ink, not a second brand colour.
+   - emerald  : untouched, and it stays RESERVED for compliance/success
+                (GOSI, WPS, Saudization, approved). It must not read as
+                "primary action" or the compliance screens stop meaning
+                anything.
+   - slate    : surfaces and body text.
+
+   Typography:
+   Cairo for Arabic, Inter for Latin numerals and tabular figures — payroll
+   columns need digits that align vertically inside RTL text.
+*/
+
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap');
 
 @theme {
+  /* ===== الدرجة الأساسية — زرقاء هادئة فاتحة =====
+     Deliberately stops at 700. Anything darker was only ever used for the
+     old dark sidebar, which is what we are replacing. */
+  --color-brand-50:  #f0f6ff;
+  --color-brand-100: #dbe8fe;
+  --color-brand-200: #bfd7fe;
+  --color-brand-300: #93bbfd;
+  --color-brand-400: #6098fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a8a;
+  --color-brand-950: #172554;
+
+  /* ===== الحبر العميق — للنصوص على خلفية فاتحة ===== */
+  --color-navy-600: #334155;
+  --color-navy-700: #1e293b;
+  --color-navy-800: #172033;
+  --color-navy-900: #0f172a;
+
+  /* ===== أسطح القائمة (فاتحة) ===== */
+  --color-shell-50:  #f8fafc;
+  --color-shell-100: #f1f5f9;
+  --color-shell-200: #e8eef6;
+  --color-shell-line: #dde5ef;
+
+  /* ===== التمييز — كهرماني هادئ ===== */
+  --color-primary-50:  #fdf8f3;
+  --color-primary-100: #f8ecd4;
+  --color-primary-200: #f0d9a8;
+  --color-primary-300: #e5c076;
+  --color-primary-400: #d9a94a;
+  --color-primary-500: #c99733;
+  --color-primary-600: #a97a1f;
+  --color-primary-700: #8a6116;
+  --color-primary-800: #6b4a10;
+  --color-primary-900: #4d350b;
+  --color-primary-950: #2a1d04;
+
+  /* ===== الخطوط ===== */
   --font-sans: "Cairo", ui-sans-serif, system-ui, sans-serif;
+  /* الأرقام اللاتينية + عرض ثابت: أعمدة المبالغ يجب أن تتحاذى. */
+  --font-num:  "Inter", "Cairo", ui-sans-serif, system-ui, sans-serif;
+
+  /* ===== الظلال — خفيفة، تتبع الدرجة الأساسية ===== */
+  --shadow-card:   0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow-card-hover: 0 8px 24px -6px rgb(37 99 235 / 0.16), 0 4px 8px -4px rgb(0 0 0 / 0.06);
+  --shadow-focus: 0 0 0 3px rgb(59 130 246 / 0.28);
 }
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900;
+    @apply bg-slate-100 text-slate-900;
     direction: rtl;
     font-family: "Cairo", sans-serif;
   }
+
+  /* الأرقام داخل نص عربي: خط Inter بأرقام ثابتة واتجاه LTR مدمج،
+     وإلا اختلّت أعمدة المبالغ. */
+  .tnum {
+    font-family: "Inter", "Cairo", sans-serif;
+    font-variant-numeric: tabular-nums;
+    direction: ltr;
+    unicode-bidi: embed;
+  }
 }
 
-/* Custom scrollbar for a cleaner look */
+/* أشرطة التمرير — كان bg-slate-300 على bg-slate-100: تباين ضعيف
+   وفشل WCAG 1.4.11. صُبغت بالدرجة الأساسية لتبقى مرئية ومتّسقة. */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -21,5 +104,238 @@
   @apply bg-slate-100;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
+  @apply rounded-full transition-colors;
+  background: #93bbfd;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #6098fa;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #93bbfd transparent;
+}
+
+@media print {
+  /* الطباعة: الدرجة الأساسية والحبر 모두 يطبعان بتدرّجات محايدة،
+     وتبقى بقية العناصر بلونها لتبقى الجداول المالية مقروءة. */
+  aside, header, .no-print, .print\:hidden {
+    display: none !important;
+  }
+  /* عناصر واجهة النظام العائمة (مساعد HR، خلفيات النوافذ المنبثقة):
+     لا مكان لها على الورق. المتصفح يرسم العناصر fixed في أعلى كل صفحة،
+     فيظهر الزر فوق الترويسة لو ما اتخفيش. */
+  #floating-ai-copilot-btn,
+  .print-hide {
+    display: none !important;
+  }
+  .print\:card {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    border-color: #cbd5e1 !important;
+  }
+}
+
+/* ============================================================
+   مركز النماذج والطباعة — ورقة A4 وترويسة موحّدة
+   ============================================================ */
+
+/* الورقة بمقاس A4 الحقيقي (210×297مم) حتى يخرج المطبوع بنفس
+   المسافات في كل مرة، على أي طابعة. */
+.print-page {
+  width: 210mm;
+  min-height: 297mm;
+  box-sizing: border-box;
+  padding: 18mm 16mm;
+  margin: 0 auto;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* العلامة المائية — الشعار في منتصف الورقة كما في ورقة الشركة. */
+.print-watermark {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 58%;
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 0;
+  filter: grayscale(1);
+}
+
+.print-logo {
+  max-width: 160px;
+}
+
+.print-letterhead {
+  color: #0f172a;
+}
+
+.print-letterhead--compact {
+  font-size: 12px;
+}
+
+.print-body p {
+  margin: 0;
+  text-align: justify;
+}
+
+.print-body .print-line {
+  white-space: pre-wrap;
+}
+
+.print-signature {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-footer {
+  color: #64748b;
+}
+
+/* عنصر يظهر في الطباعة فقط — يُستعمل لترويسة اللوحات والتقارير التي
+   تُطبع كصفحة كاملة (وليست مستنداً معزولاً). */
+.print-only {
+  display: none !important;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  /* الترويسة التي تُطبع فقط على الورق. */
+  .print-only {
+    display: block !important;
+  }
+
+  /* حاويات التمرير تقطع المحتوى في الطباعة — تُفتح لتظهر الورقة كاملة. */
+  main,
+  main > div {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    padding: 0 !important;
+  }
+
+  .print-page {
+    width: auto;
+    /* ارتفاع منطقة الطباعة بعد هوامش @page (مع هامش احتياطي بسيط حتى لا
+       تتOverflow الورقة إلى صفحة ثانية). */
+    min-height: 265mm;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+
+  /* حاوية المعاينة: تُفتح في الطباعة كي لا تقطع الورقة. */
+  .print-paper-wrap {
+    overflow: visible !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    border-radius: 0 !important;
+  }
+
+  /* ============================================================
+     عزل المستند عن واجهة النظام
+     ------------------------------------------------------------
+     أي مستند مُعلَّم بـ print-document هو وحده ما يُطبع:
+     كل عناصر التطبيق تصبح غير مرئية، وتظهر الورقة في أعلى الصفحة.
+     يعمل مع زر «طباعة» ومع Ctrl+P على السواء.
+
+     ملاحظة: قاعدة الإخفاء تحمل #root، فقواعد الظهور
+     يجب أن يحمل #root أيضاً وإلا غلبته قاعدة الإخفاء على
+     الورقة نفسها فخرجت الصفحة بيضاء.
+     ============================================================ */
+  body:has(.print-document) #root * {
+    visibility: hidden !important;
+  }
+
+  body:has(.print-document) #root .print-document,
+  body:has(.print-document) #root .print-document *,
+  body:has(.print-document) .print-document,
+  body:has(.print-document) .print-document * {
+    visibility: visible !important;
+  }
+
+  body:has(.print-document) .print-document {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+  }
+
+  /* الحركات (transform/filter) تُنشئ «سياق احتواء» جديداً، فتحوّل الورقة
+     إلى موضع نسبي داخل الشاشة بدل أعلى الصفحة. نُبطلها على سلالة الورقة. */
+  body:has(.print-document) #root *:has(.print-document) {
+    transform: none !important;
+    filter: none !important;
+    perspective: none !important;
+  }
+
+  /* النوافذ المنبثقة: في الطباعة تصبح частьاً عادية من الصفحة، وإلا رسمها
+     المتصفح في أعلى كل صفحة فتكرّرت الورقة. */
+  body:has(.print-document) .print-modal-overlay {
+    position: static !important;
+    inset: auto !important;
+    padding: 0 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+  }
+
+  body:has(.print-document) .print-modal-overlay > div {
+    max-height: none !important;
+    max-width: none !important;
+    overflow: visible !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  /* أشرطة التمرير داخل النافذة: تُفتح في الطباعة. */
+  body:has(.print-document) .print-modal-scroll {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  /* ورقة تلو الأخرى تبدأ صفحة جديدة. */
+  .print-page + .print-page {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .print-body {
+    font-size: 12pt;
+    line-height: 1.9;
+  }
+
+  .print-signature,
+  .print-footer,
+  .print-letterhead {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  table {
+    break-inside: auto;
+  }
+
+  tr,
+  thead {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  thead {
+    display: table-header-group;
+  }
 }

@@ -61,7 +61,7 @@ export default function AllowanceTypesView() {
             setNewName('');
             setIsAdding(true);
           }}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95"
+          className="flex items-center gap-2 bg-brand-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all active:scale-95"
         >
           <Plus className="w-5 h-5" />
           <span>نوع جديد</span>
@@ -69,7 +69,7 @@ export default function AllowanceTypesView() {
       </div>
 
       {isAdding && (
-        <div className="bg-white p-6 rounded-2xl border border-indigo-100 shadow-sm animate-in slide-in-from-top-4 duration-300">
+        <div className="bg-white p-6 rounded-2xl border border-brand-100 shadow-sm animate-in slide-in-from-top-4 duration-300">
           <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-6 items-end">
             <div className="flex-1">
               <label className="block text-sm font-bold text-slate-700 mb-2">اسم البدل</label>
@@ -78,7 +78,7 @@ export default function AllowanceTypesView() {
                 type="text" 
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right"
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right"
                 placeholder="مثال: بدل سكن، بدل تمثيل، بدل مخاطر"
               />
             </div>
@@ -94,9 +94,9 @@ export default function AllowanceTypesView() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {types.map(type => (
-          <div key={type.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between group hover:border-indigo-100 transition-colors">
+          <div key={type.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between group hover:border-brand-100 transition-colors">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+              <div className="p-2 bg-brand-50 text-brand-600 rounded-lg">
                 <Tag className="w-4 h-4" />
               </div>
               <span className="font-bold text-slate-800">{type.name}</span>
@@ -104,7 +104,7 @@ export default function AllowanceTypesView() {
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button 
                 onClick={() => handleEdit(type)}
-                className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 transition-all rounded-lg"
+                className="p-2 text-slate-300 hover:text-brand-500 hover:bg-brand-50 transition-all rounded-lg"
               >
                 <Edit2 className="w-4 h-4" />
               </button>

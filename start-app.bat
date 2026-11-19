@@ -39,6 +39,7 @@ if not exist "dist\" (
 
 echo [+] Opening system in browser...
 set PORT=8090
+set NODE_ENV=production
 start "" http://localhost:8090
 
 echo [+] Starting server...

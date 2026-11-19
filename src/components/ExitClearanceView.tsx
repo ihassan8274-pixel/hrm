@@ -4,8 +4,12 @@ import {
   CheckCircle2, Clock, X, AlertCircle, Printer, FileText
 } from 'lucide-react';
 import type { EmployeeClearance, Employee } from '../types';
+import { Letterhead, DocumentFooter } from '../lib/print/letterhead';
+import { useLetterhead } from '../lib/print/use-letterhead';
 
 export default function ExitClearanceView() {
+  // ترويسة موحّدة مع بقية مخرجات النظام (ورقة الشركة).
+  const company = useLetterhead();
   const [clearances, setClearances] = useState<EmployeeClearance[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,7 +126,7 @@ export default function ExitClearanceView() {
       {/* Header */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-indigo-50 text-indigo-700 rounded-xl border border-indigo-100">
+          <div className="p-3 bg-brand-50 text-brand-700 rounded-xl border border-brand-100">
             <CheckSquare className="w-6 h-6" />
           </div>
           <div>
@@ -132,7 +136,7 @@ export default function ExitClearanceView() {
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition shadow-sm"
+          className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition shadow-sm"
         >
           <Plus className="w-4 h-4" />
           بدء إجراءات إخلاء طرف جديد
@@ -191,7 +195,7 @@ export default function ExitClearanceView() {
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                     <div
-                      className={`h-full transition-all duration-500 ${progressPct === 100 ? 'bg-emerald-500' : 'bg-indigo-600'}`}
+                      className={`h-full transition-all duration-500 ${progressPct === 100 ? 'bg-emerald-500' : 'bg-brand-600'}`}
                       style={{ width: `${progressPct}%` }}
                     />
                   </div>
@@ -204,7 +208,7 @@ export default function ExitClearanceView() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                          <Laptop className="w-4 h-4 text-indigo-600" />
+                          <Laptop className="w-4 h-4 text-brand-600" />
                           1. تقنية المعلومات (IT)
                         </span>
                         {c.it_status === 'cleared' ? (
@@ -221,7 +225,7 @@ export default function ExitClearanceView() {
                         setDeptForm({ ...deptForm, status: c.it_status, notes: c.it_notes || '', cleared_by: c.it_cleared_by || 'فريق IT' });
                         setActiveDeptModal({ clearance: c, dept: 'it' });
                       }}
-                      className="mt-3 w-full py-1.5 bg-white hover:bg-indigo-50 border border-slate-200 text-indigo-700 text-xs font-semibold rounded-lg transition"
+                      className="mt-3 w-full py-1.5 bg-white hover:bg-brand-50 border border-slate-200 text-brand-700 text-xs font-semibold rounded-lg transition"
                     >
                       {c.it_status === 'cleared' ? 'تعديل اعتماد IT' : 'اعتماد إخلاء IT'}
                     </button>
@@ -232,7 +236,7 @@ export default function ExitClearanceView() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                          <CreditCard className="w-4 h-4 text-indigo-600" />
+                          <CreditCard className="w-4 h-4 text-brand-600" />
                           2. الإدارة المالية
                         </span>
                         {c.finance_status === 'cleared' ? (
@@ -249,7 +253,7 @@ export default function ExitClearanceView() {
                         setDeptForm({ ...deptForm, status: c.finance_status, notes: c.finance_notes || '', loans_settled: c.finance_loans_settled === 1, custody_settled: c.finance_custody_settled === 1 });
                         setActiveDeptModal({ clearance: c, dept: 'finance' });
                       }}
-                      className="mt-3 w-full py-1.5 bg-white hover:bg-indigo-50 border border-slate-200 text-indigo-700 text-xs font-semibold rounded-lg transition"
+                      className="mt-3 w-full py-1.5 bg-white hover:bg-brand-50 border border-slate-200 text-brand-700 text-xs font-semibold rounded-lg transition"
                     >
                       {c.finance_status === 'cleared' ? 'تعديل اعتماد المالية' : 'اعتماد المالية'}
                     </button>
@@ -260,7 +264,7 @@ export default function ExitClearanceView() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                          <Box className="w-4 h-4 text-indigo-600" />
+                          <Box className="w-4 h-4 text-brand-600" />
                           3. العمليات والعهد
                         </span>
                         {c.operations_status === 'cleared' ? (
@@ -277,7 +281,7 @@ export default function ExitClearanceView() {
                         setDeptForm({ ...deptForm, status: c.operations_status, notes: c.operations_notes || '', assets_returned: c.operations_assets_returned === 1 });
                         setActiveDeptModal({ clearance: c, dept: 'operations' });
                       }}
-                      className="mt-3 w-full py-1.5 bg-white hover:bg-indigo-50 border border-slate-200 text-indigo-700 text-xs font-semibold rounded-lg transition"
+                      className="mt-3 w-full py-1.5 bg-white hover:bg-brand-50 border border-slate-200 text-brand-700 text-xs font-semibold rounded-lg transition"
                     >
                       {c.operations_status === 'cleared' ? 'تعديل اعتماد العهد' : 'اعتماد العهد والأصول'}
                     </button>
@@ -288,7 +292,7 @@ export default function ExitClearanceView() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                          <UserCheck className="w-4 h-4 text-indigo-600" />
+                          <UserCheck className="w-4 h-4 text-brand-600" />
                           4. الموارد البشرية (HR)
                         </span>
                         {c.hr_status === 'cleared' ? (
@@ -310,7 +314,7 @@ export default function ExitClearanceView() {
                         });
                         setActiveDeptModal({ clearance: c, dept: 'hr' });
                       }}
-                      className="mt-3 w-full py-1.5 bg-white hover:bg-indigo-50 border border-slate-200 text-indigo-700 text-xs font-semibold rounded-lg transition"
+                      className="mt-3 w-full py-1.5 bg-white hover:bg-brand-50 border border-slate-200 text-brand-700 text-xs font-semibold rounded-lg transition"
                     >
                       {c.hr_status === 'cleared' ? 'تعديل اعتماد HR' : 'اعتماد الموارد البشرية'}
                     </button>
@@ -397,7 +401,7 @@ export default function ExitClearanceView() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700"
+                  className="px-5 py-2 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700"
                 >
                   إطلاق مسار الإخلاء
                 </button>
@@ -488,7 +492,7 @@ export default function ExitClearanceView() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700"
+                  className="px-5 py-2 bg-brand-600 text-white rounded-xl text-xs font-semibold hover:bg-brand-700"
                 >
                   حفظ الاعتماد
                 </button>
@@ -500,12 +504,12 @@ export default function ExitClearanceView() {
 
       {/* Printable Final Clearance Slip */}
       {printSlip && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8 shadow-2xl space-y-6 print:p-0">
-            <div className="flex items-center justify-between border-b pb-4 print:hidden">
+        <div className="print-modal-overlay fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="print-document bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8 shadow-2xl space-y-6 print:p-0">
+            <div className="flex items-center justify-between border-b pb-4 print:hidden no-print">
               <h3 className="font-bold text-slate-800">وثيقة إخلاء طرف نهائية رسمية</h3>
               <div className="flex gap-2">
-                <button onClick={() => window.print()} className="px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1">
+                <button onClick={() => window.print()} className="px-3 py-1.5 bg-brand-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1">
                   <Printer className="w-4 h-4" />
                   طباعة
                 </button>
@@ -517,9 +521,10 @@ export default function ExitClearanceView() {
 
             {/* Document Content */}
             <div className="border-2 border-slate-800 p-6 rounded-xl space-y-5 text-xs text-slate-800 leading-relaxed">
+              <Letterhead company={company} />
+
               <div className="text-center border-b-2 border-slate-800 pb-3">
-                <h2 className="text-lg font-bold">شركة الأنظمة المتكاملة للحلول الرقمية</h2>
-                <h3 className="text-md font-bold text-indigo-900 mt-0.5">شهادة إخلاء طرف وإبراء ذمة نهائية</h3>
+                <h3 className="text-md font-bold text-brand-900 mt-0.5">شهادة إخلاء طرف وإبراء ذمة نهائية</h3>
                 <p className="text-[11px] text-slate-500 font-mono mt-1">رقم الوثيقة: {printSlip.clearance_slip_number} | التاريخ: {printSlip.request_date}</p>
               </div>
 
@@ -551,13 +556,15 @@ export default function ExitClearanceView() {
               <div className="pt-6 grid grid-cols-2 text-center border-t">
                 <div>
                   <p className="font-bold">إدارة الموارد البشرية</p>
-                  <p className="mt-8 text-indigo-900 font-bold">معتمد وموثق رقمياً</p>
+                  <p className="mt-8 text-brand-900 font-bold">معتمد وموثق رقمياً</p>
                 </div>
                 <div>
                   <p className="font-bold">إقرار واستلام الموظف</p>
                   <p className="mt-8 text-slate-400">التوقيع: ....................</p>
                 </div>
               </div>
+
+              <DocumentFooter company={company} reference={printSlip.clearance_slip_number} />
             </div>
           </div>
         </div>

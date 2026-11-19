@@ -1,16 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { CountryRulesService } from '../CountryRulesService';
 
-const saLegacyRow = {
-  country_code: 'SA',
-  insurance_emp_rate: 9.75,
-  insurance_comp_rate: 11.75,
-  tax_type: 'none',
-  eosb_months_per_year: 0.5,
-  annual_leave_days: 21,
-  working_hours: 8,
-};
-
 const saCountryRow = {
   code: 'SA',
   name_ar: 'السعودية',
@@ -36,45 +26,29 @@ const saCountryRow = {
   wps_format: 'sama',
 };
 
-function makeMockDb(opts: {
+function makeMockDataSource(opts: {
   country?: Record<string, unknown> | null;
-  legacyRow?: Record<string, unknown>;
   rulesRows?: { rule_key: string; rule_value: string }[];
-  schemaCols?: { name: string }[];
 }) {
   return {
-    prepare(sql: string) {
-      const lower = sql.toLowerCase();
-      if (lower.includes('pragma table_info')) {
-        return { all: () => opts.schemaCols ?? [] };
-      }
-      if (lower.includes('from countries')) {
-        return { get: () => opts.country ?? undefined };
-      }
-      if (lower.includes('from tax_brackets')) {
-        return { all: () => [] };
-      }
-      if (lower.includes('from country_rules')) {
-        return {
-          all: () => opts.rulesRows ?? [],
-          get: () => opts.legacyRow ?? undefined,
-        };
-      }
-      throw new Error(`Unexpected SQL: ${sql}`);
-    },
+    getCountry: async () => opts.country ?? undefined,
+    getRules: async () => opts.rulesRows ?? [],
+    getEntityCountry: async () => undefined,
   };
 }
 
 describe('CountryRulesService', () => {
   beforeEach(() => CountryRulesService.clearCache());
 
-  it('returns correct rates from legacy flat row (no is_active column)', async () => {
-    const db = makeMockDb({
+  it('uses country rule rows for rates and leave settings', async () => {
+    const source = makeMockDataSource({
       country: saCountryRow,
-      legacyRow: saLegacyRow,
-      schemaCols: [{ name: 'id' }, { name: 'country_code' }, { name: 'insurance_emp_rate' }],
+      rulesRows: [
+        { rule_key: 'insurance_emp_rate', rule_value: '9.75' },
+        { rule_key: 'insurance_comp_rate', rule_value: '11.75' },
+      ],
     });
-    CountryRulesService.setDatabase(db);
+    CountryRulesService.setDataSource(source);
     const rules = await CountryRulesService.getRules('SA');
     expect(rules.code).toBe('SA');
     expect(rules.insurance.employeeRate).toBe(9.75);
@@ -85,16 +59,15 @@ describe('CountryRulesService', () => {
   });
 
   it('uses modern rule_key/rule_value rows when schema supports it', async () => {
-    const db = makeMockDb({
+    const source = makeMockDataSource({
       country: saCountryRow,
       rulesRows: [
         { rule_key: 'insurance_emp_rate', rule_value: '10.5' },
         { rule_key: 'insurance_comp_rate', rule_value: '12.0' },
         { rule_key: 'annual_leave_days', rule_value: '30' },
       ],
-      schemaCols: [{ name: 'rule_key' }, { name: 'rule_value' }, { name: 'is_active' }],
     });
-    CountryRulesService.setDatabase(db);
+    CountryRulesService.setDataSource(source);
     const rules = await CountryRulesService.getRules('SA');
     expect(rules.insurance.employeeRate).toBe(10.5);
     expect(rules.insurance.employerRate).toBe(12.0);
@@ -102,18 +75,15 @@ describe('CountryRulesService', () => {
   });
 
   it('throws when country is not found', async () => {
-    const db = makeMockDb({ country: null });
-    CountryRulesService.setDatabase(db);
+    CountryRulesService.setDataSource(makeMockDataSource({ country: null }));
     await expect(CountryRulesService.getRules('XX')).rejects.toThrow('Country not found: XX');
   });
 
   it('caches results and clearCache resets', async () => {
-    const db = makeMockDb({
+    const source = makeMockDataSource({
       country: saCountryRow,
-      legacyRow: saLegacyRow,
-      schemaCols: [{ name: 'id' }],
     });
-    CountryRulesService.setDatabase(db);
+    CountryRulesService.setDataSource(source);
     const first = await CountryRulesService.getRules('SA');
     const second = await CountryRulesService.getRules('SA');
     expect(first).toBe(second); // same cached object reference

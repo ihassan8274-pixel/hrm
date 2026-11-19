@@ -1,13 +1,82 @@
-import db from "../config/database";
+import db from "../config/postgres";
+import { DEFAULT_ADMIN_PASSWORD } from "../config/credentials";
+import crypto from "crypto";
+import bcrypt from "bcryptjs";
+import path from "path";
+import fs from "fs";
 
 // DDL + idempotent demo seeds for the modules that kept their schema inline after the
 // route split: EWA (13), HSE (14), Exit Interviews (16), Approval Workflows (17).
 // Kept out of the index entry so the server bootstrap stays a thin composition.
-export function seedExtendedModules() {
+// Ensure base entities exist before seeding advanced modules
+async function ensureBaseEntities() {
+  const defaultCountries = [
+    { code: 'SA', name_ar: 'السعودية', name_en: 'Saudi Arabia', currency: 'SAR', symbol_ar: 'ر.س', symbol_en: 'SAR', insurance_type: 'gosi', employee_rate: 9.75, employer_rate: 11.75, ceiling: 45000, tax_type: 'none', eos_type: 'saudi_half_month', leave_days: 21, work_days: 6, weekend: '[5,6]', wps: 'sama' },
+    { code: 'EG', name_ar: 'مصر', name_en: 'Egypt', currency: 'EGP', symbol_ar: 'ج.م', symbol_en: 'EGP', insurance_type: 'egypt_social', employee_rate: 11, employer_rate: 18.75, ceiling: 12600, tax_type: 'progressive', eos_type: 'egypt_half_month', leave_days: 21, work_days: 6, weekend: '[5]', wps: 'egypt_sif' },
+  ];
+  for (const country of defaultCountries) {
+    await db.prepare(`INSERT OR IGNORE INTO countries
+      (code, name_ar, name_en, currency, currency_symbol_ar, currency_symbol_en, insurance_type,
+       insurance_emp_rate, insurance_comp_rate, insurance_ceiling, tax_type, eos_type,
+       annual_leave_days, working_days_per_week, weekend_days_json, wps_format, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`)
+      .run(country.code, country.name_ar, country.name_en, country.currency, country.symbol_ar, country.symbol_en,
+        country.insurance_type, country.employee_rate, country.employer_rate, country.ceiling, country.tax_type,
+        country.eos_type, country.leave_days, country.work_days, country.weekend, country.wps);
+  }
+  for (const [key, value] of [
+    ['org_name', 'مؤسسة الرواتب العالمية'], ['country', 'Egypt'], ['currency', 'EGP'], ['tax_rate', '10'],
+  ]) {
+    await db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)').run(key, value);
+  }
+  let entity = await db.prepare('SELECT id FROM entities ORDER BY id LIMIT 1').get() as any;
+  if (!entity) {
+    await db.prepare(`INSERT INTO entities (name_ar, name_en, country_code, currency, tax_rate, is_active)
+      VALUES (?, ?, ?, ?, ?, 1)`).run('الشركة الرئيسية', 'Main Company', 'SA', 'SAR', 0);
+    entity = await db.prepare('SELECT id FROM entities ORDER BY id LIMIT 1').get() as any;
+  }
+  const entityId = Number(entity.id);
+
+  // Ensure at least one branch exists
+  const branchCount = await db.prepare("SELECT COUNT(*) as c FROM branches").get() as any;
+  if (branchCount.c === 0) {
+    await db.prepare(`
+      INSERT INTO branches (name, name_en, latitude, longitude, geofence_radius_m, work_start_time, work_end_time, entity_id, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run('الفرع الرئيسي - الرياض', 'Main Branch - Riyadh', 24.7136, 46.6753, 200, '08:00', '17:00', entityId, 1);
+  }
+
+  // Ensure at least one department exists
+  const deptCount = await db.prepare("SELECT COUNT(*) as c FROM departments").get() as any;
+  if (deptCount.c === 0) {
+    await db.prepare(`
+      INSERT INTO departments (name, name_en, entity_id, created_at)
+      VALUES (?, ?, ?, ?)
+    `).run('الموارد البشرية والشؤون الحكومية', 'HR & Government Affairs', entityId, new Date().toISOString());
+  }
+
+  // Ensure at least one position exists
+  const posCount = await db.prepare("SELECT COUNT(*) as c FROM positions").get() as any;
+  if (posCount.c === 0) {
+    const dept = await db.prepare("SELECT id FROM departments LIMIT 1").get() as any;
+    if (dept) {
+      await db.prepare(`
+        INSERT INTO positions (code, name_ar, name_en, department_id, is_active)
+        VALUES (?, ?, ?, ?, ?)
+      `).run('HR_SPECIALIST', 'أخصائي موارد بشرية', 'HR Specialist', dept.id, 1);
+    }
+  }
+
+  return entityId;
+}
+
+export async function seedExtendedModules() {
+  // Ensure base entities exist first
+  const entityId = await ensureBaseEntities();
   // ==========================================
   // MODULE 13: EARNED WAGE ACCESS (EWA سحب الراتب عند الطلب)
   // ==========================================
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS ewa_withdrawals (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       employee_id INTEGER NOT NULL,
@@ -23,29 +92,66 @@ export function seedExtendedModules() {
     );
   `);
 
-  // Seed sample EWA withdrawal if empty
-  const checkEwa = db.prepare("SELECT COUNT(*) as count FROM ewa_withdrawals").get() as any;
-  if (checkEwa.count === 0) {
-    const emp1 = db.prepare("SELECT id FROM employees WHERE is_saudi = 1 LIMIT 1").get() as any;
-    const emp2 = db.prepare("SELECT id FROM employees WHERE is_saudi = 0 LIMIT 1").get() as any;
-    if (emp1) {
-      db.prepare(`
-        INSERT INTO ewa_withdrawals (employee_id, request_date, earned_salary_so_far, requested_amount, fee, net_disbursed, status, disbursement_method)
-        VALUES (?, '2026-08-18', 8500, 2500, 15, 2485, 'paid', 'instant_iban')
-      `).run(emp1.id);
-    }
-    if (emp2) {
-      db.prepare(`
-        INSERT INTO ewa_withdrawals (employee_id, request_date, earned_salary_so_far, requested_amount, fee, net_disbursed, status, disbursement_method)
-        VALUES (?, '2026-08-22', 7200, 1800, 15, 1785, 'paid', 'instant_iban')
-      `).run(emp2.id);
-    }
+  // ==========================================
+  // SALARY STRUCTURE SEED DATA
+  // ==========================================
+  // Seed standard Saudi salary components
+  const saudiComponents = [
+    // Earnings - الإيرادات
+    ['BASIC', 'الراتب الأساسي', 'earning', 'basic', 'formula', 'base_salary', null, 1, 1, 1],
+    ['HOUSING', 'بدل السكن', 'earning', 'allowance', 'percentage', 'base_salary * 0.25', null, 2, 1, 1],
+    ['TRANSPORT', 'بدل النقل', 'earning', 'allowance', 'fixed', '1000', null, 3, 1, 1],
+    ['PHONE', 'بدل الهاتف', 'earning', 'allowance', 'fixed', '200', null, 4, 1, 0],
+    ['OVERTIME', 'العمل الإضافي', 'earning', 'allowance', 'formula', 'overtime_hours * hourly_rate * 1.5', null, 5, 1, 0],
+    ['COMMISSION', 'العمولات', 'earning', 'other', 'fixed', '0', null, 6, 1, 1],
+    ['BONUS', 'المكافآت', 'earning', 'other', 'fixed', '0', null, 7, 1, 1],
+    ['OTHER_ALLOW', 'بدلات أخرى', 'earning', 'allowance', 'fixed', '0', null, 8, 1, 1],
+    
+    // Deductions (Employee) - الخصومات (الموظف)
+    ['GOSI_EMP', 'التأمينات الاجتماعية (موظف)', 'deduction', 'statutory', 'formula', 'min(gosi_ceiling, gross_salary) * gosi_emp_rate', 'is_saudi == 1', 10, 1, 0],
+    ['TAX', 'ضريبة الدخل', 'deduction', 'tax', 'bracket', 'taxable_income', null, 11, 1, 0],
+    ['LOAN_INST', 'أقساط السلفيات/القروض', 'deduction', 'loan', 'fixed', 'total_installment', null, 12, 0, 0],
+    ['ABSENT_DED', 'خصم الغياب', 'deduction', 'other', 'formula', 'absent_days * daily_rate', null, 13, 0, 0],
+    ['LATE_DED', 'خصم التأخير', 'deduction', 'other', 'formula', '(late_minutes / 60) * hourly_rate', null, 14, 0, 0],
+    ['ADVANCE_DED', 'خصم السلف', 'deduction', 'loan', 'fixed', 'total_deduction', null, 15, 0, 0],
+    ['OTHER_DED', 'خصومات أخرى', 'deduction', 'other', 'fixed', '0', null, 16, 0, 0],
+    
+    // Employer Contributions - مساهمات صاحب العمل (للتقارير المحاسبية)
+    ['GOSI_COMP', 'التأمينات الاجتماعية (صاحب عمل)', 'employer_contribution', 'statutory', 'formula', 'min(gosi_ceiling, gross_salary) * gosi_comp_rate', 'is_saudi == 1', 20, 0, 0],
+    ['GOSI_EXPAT', 'مخاطر مهنية (وافدين)', 'employer_contribution', 'statutory', 'formula', 'gross_salary * expat_gosi_comp_rate', 'is_saudi == 0', 21, 0, 0],
+    ['MEDICAL_INS', 'التأمين الطبي', 'employer_contribution', 'statutory', 'fixed', 'medical_premium_per_employee', null, 22, 0, 0],
+  ];
+
+  for (const c of saudiComponents) {
+    try {
+      await db.prepare(`
+        INSERT OR IGNORE INTO salary_components (code, name_ar, type, category, calculation_type, calculation_value, condition_formula, display_order, is_taxable, is_gosi_applicable)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(...c);
+    } catch (e) {}
+  }
+
+  // Create default Saudi salary structure
+  const defaultStructure = await db.prepare("SELECT id FROM salary_structures WHERE code = 'SA_DEFAULT'").get();
+  if (!defaultStructure) {
+    const structId = (await db.prepare(`
+      INSERT INTO salary_structures (code, name_ar, name_en, entity_id, payroll_frequency, currency, country_code, is_default, is_active)
+      VALUES ('SA_DEFAULT', 'الهيكل القياسي - السعودية', 'Standard KSA Structure', ?, 'monthly', 'SAR', 'SA', 1, 1)
+    `).run(entityId)).lastInsertRowid;
+    
+    // Link all components
+    const compIds = await db.prepare("SELECT id FROM salary_components WHERE is_active = 1 ORDER BY display_order").all() as any[];
+    const insertComp = db.prepare(`
+      INSERT INTO salary_structure_components (structure_id, component_id, sequence, is_mandatory)
+      VALUES (?, ?, ?, 1)
+    `);
+    for (const [idx, c] of compIds.entries()) await insertComp.run(structId, c.id, idx);
   }
 
   // ==========================================
   // MODULE 14: HEALTH, SAFETY & ENVIRONMENT (HSE السلامة المهنية)
   // ==========================================
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS hse_inspections (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       branch_id INTEGER NOT NULL,
@@ -75,35 +181,10 @@ export function seedExtendedModules() {
     );
   `);
 
-  // Seed sample HSE data
-  const checkHse = db.prepare("SELECT COUNT(*) as count FROM hse_inspections").get() as any;
-  if (checkHse.count === 0) {
-    const b1 = db.prepare("SELECT id FROM branches LIMIT 1").get() as any;
-    const bId = b1?.id || 1;
-
-    db.prepare(`
-      INSERT INTO hse_inspections (branch_id, inspector_name, inspection_date, category, status, score, findings, corrective_actions, deadline_date)
-      VALUES 
-      (?, 'م. تركي الغامدي (مسؤول السلامة المعتمد)', '2026-08-10', 'fire_safety', 'compliant', 98, 'فحص مطافئ الحريق وصناديق الخراطيم ومضخات الرش الآلي وجميعها مجددة ومعتمدة من الدفاع المدني', 'جدولة الفحص النصف سنوي القادم', '2027-02-10'),
-      (?, 'م. تركي الغامدي', '2026-08-12', 'emergency_exits', 'needs_action', 85, 'وجود بعض الصناديق التي تعيق مسار مخرج الطوارئ الشرقي في مستودع الفرع الرئيسي', 'إزالة العوائق فوراً ووضع علامات أرضية فسفورية إرشادية مانعة للوقوف', '2026-08-30'),
-      (?, 'م. تركي الغامدي', '2026-08-15', 'first_aid', 'compliant', 95, 'اكتمال حقائب الإسعافات الأولية مع وجود مسعفين أوليين حاصلين على دورة الهلال الأحمر السعودي', 'مراجعة تواريخ انتهاء الشاش والمطهرات', '2026-11-15')
-    `).run(bId, bId, bId);
-
-    const emps = db.prepare("SELECT id FROM employees LIMIT 3").all() as any[];
-    emps.forEach((emp, idx) => {
-      db.prepare(`
-        INSERT INTO hse_ppe_logs (employee_id, item_name, item_type, issue_date, expiry_date, status, notes)
-        VALUES 
-        (?, 'خوذة أمان معتمدة ANSI Z89.1', 'helmet', '2026-01-15', '2028-01-14', 'active', 'مسلمة للعمل الميداني والتفتيش'),
-        (?, 'حذاء سلامة مقاوم للانزلاق والصدمات S3', 'shoes', '2026-01-15', '2027-01-14', 'active', 'مطابق للمواصفات السعودية SASO')
-      `).run(emp.id, emp.id);
-    });
-  }
-
   // ==========================================
   // MODULE 16: EXIT INTERVIEW & TURNOVER ANALYTICS (مقابلات الخروج)
   // ==========================================
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS exit_interviews (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       employee_id INTEGER NOT NULL,
@@ -122,24 +203,10 @@ export function seedExtendedModules() {
     );
   `);
 
-  // Seed sample exit interviews
-  const checkExits = db.prepare("SELECT COUNT(*) as count FROM exit_interviews").get() as any;
-  if (checkExits.count === 0) {
-    const emps = db.prepare("SELECT id, name FROM employees LIMIT 2").all() as any[];
-    if (emps.length > 0) {
-      db.prepare(`
-        INSERT INTO exit_interviews (employee_id, departure_date, primary_reason, reason_details, manager_rating, culture_rating, benefits_rating, would_recommend_score, retention_feedback, estimated_replacement_cost, ai_sentiment)
-        VALUES 
-        (?, '2026-07-30', 'career_growth', 'الحصول على عرض وظيفي بمسمى قيادي أعلى وحزمة تدريبية أوسع في قطاع شبه حكومي', 4, 4, 3, 8, 'الشركة بيئتها ممتازة ولكن مسارات الترقية بطيئة بعض الشيء في القسم', 32000, 'positive'),
-        (?, '2026-06-15', 'salary', 'فارق العرض المالي بنسبة 35% أعلى من الراتب الحالي بالسوق', 3, 4, 2, 7, 'ضرورة مراجعة سلالم الرواتب دورياً لمواكبة تسارع السوق السعودي ورؤية 2030', 28000, 'neutral')
-      `).run(emps[0].id, emps[1] ? emps[1].id : emps[0].id);
-    }
-  }
-
   // ==========================================
   // MODULE 17: MULTI-LEVEL APPROVAL WORKFLOWS (مسارات الاعتماد)
   // ==========================================
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS approval_workflows (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       workflow_type TEXT NOT NULL, -- leave_request, loan_advance, promotion, expense_claim, ewa_withdrawal, hiring_requisition
@@ -170,7 +237,7 @@ export function seedExtendedModules() {
   `);
 
   // Seed default workflows
-  const checkWorkflows = db.prepare("SELECT COUNT(*) as count FROM approval_workflows").get() as any;
+  const checkWorkflows = await db.prepare("SELECT COUNT(*) as count FROM approval_workflows").get() as any;
   if (checkWorkflows.count === 0) {
     const loanLevels = JSON.stringify([
       { level: 1, approver_role: 'direct_manager', approver_role_ar: 'المدير المباشر', sla_hours: 24 },
@@ -189,7 +256,23 @@ export function seedExtendedModules() {
       { level: 3, approver_role: 'ceo', approver_role_ar: 'الرئيس التنفيذي (للمبالغ فوق 10,000 ر.س)', sla_hours: 72 }
     ]);
 
-    db.prepare(`
+    // مسارات بوابة الموظف: الشكاوى والمقترحات وتوصيات تطوير سير العمل.
+    const grievanceLevels = JSON.stringify([
+      { level: 1, approver_role: 'hr_manager', approver_role_ar: 'مدير الموارد البشرية', sla_hours: 48 },
+      { level: 2, approver_role: 'ceo', approver_role_ar: 'الرئيس التنفيذي', sla_hours: 72 }
+    ]);
+
+    const suggestionLevels = JSON.stringify([
+      { level: 1, approver_role: 'hr_manager', approver_role_ar: 'مدير الموارد البشرية', sla_hours: 72 },
+      { level: 2, approver_role: 'department_head', approver_role_ar: 'رئيس القسم المعني', sla_hours: 120 }
+    ]);
+
+    const improvementLevels = JSON.stringify([
+      { level: 1, approver_role: 'hr_manager', approver_role_ar: 'مدير الموارد البشرية', sla_hours: 72 },
+      { level: 2, approver_role: 'ceo', approver_role_ar: 'الرئيس التنفيذي', sla_hours: 168 }
+    ]);
+
+    await db.prepare(`
       INSERT INTO approval_workflows (workflow_type, title, description, conditions_json, levels_json, is_active)
       VALUES 
       ('loan_advance', 'مسار اعتماد السلف والقروض الشخصية', 'اعتماد متعدد المستويات للتحقق من الملاءة المالية والمسير', '{"min_amount": 1000}', ?, 1),
@@ -197,17 +280,88 @@ export function seedExtendedModules() {
       ('expense_claim', 'مسار اعتماد العهد والمطالبات المالية', 'تدقيق الفواتير الضريبية وتوجيه المبالغ حسب الصلاحيات المالية', '{"min_amount": 500}', ?, 1)
     `).run(loanLevels, leaveLevels, expenseLevels);
 
-    // Seed sample approval request
-    const w1 = db.prepare("SELECT id FROM approval_workflows LIMIT 1").get() as any;
-    const emp1 = db.prepare("SELECT id FROM employees LIMIT 1").get() as any;
-    if (w1 && emp1) {
-      const history = JSON.stringify([
-        { level: 1, actor_name: 'المدير المباشر (م. سامي)', action: 'approved', action_date: '2026-08-24 10:30', comments: 'معتمد ومطابق لجدول المهام' }
-      ]);
-      db.prepare(`
-        INSERT INTO approval_requests (workflow_id, requester_id, request_type, request_title, amount, details, current_level, max_levels, status, approval_history_json)
-        VALUES (?, ?, 'loan_advance', 'طلب سلفة زواج / مستعجلة', 8000, 'طلب سلفة شخصية تسدد على 10 أقساط شهرية', 2, 3, 'pending', ?)
-      `).run(w1.id, emp1.id, history);
+    await db.prepare(`
+      INSERT INTO approval_workflows (workflow_type, title, description, conditions_json, levels_json, is_active)
+      VALUES 
+      ('grievance', 'مسار فحص التظلمات الإدارية (المادة 209)', 'تشكيل لجنة الفحص ثم عرض القرار على صاحب الصلاحية', '{}', ?, 1),
+      ('suggestion', 'مسار استقبال المقترحات وقياس أثرها', 'دراسة المقترح من الموارد البشرية ثم عرضه على صاحب القرار', '{}', ?, 1),
+      ('process_improvement', 'مسار مقترحات تطوير الإجراءات وسير العمل', 'توصيات تطوير الإجراءات المعتمدة ومنهجية التنفيذ', '{}', ?, 1)
+    `).run(grievanceLevels, suggestionLevels, improvementLevels);
+  }
+}
+
+/**
+ * Password seeded on first run so the operator can log in immediately.
+ *
+ * Deliberately a fixed, documented value rather than a generated one: this is
+ * an on-premise appliance the installer has to reach, often with no mail
+ * configured. The safety of a well-known default rests entirely on
+ * must_change_password, which forces a change before anything else is usable —
+ * see enforcePasswordChange below.
+ */
+/**
+ * Bootstrap: create the default admin user if no users exist.
+ *
+ * The account is created with must_change_password = 1, so ADMIN123 cannot be
+ * used past the login screen for longer than one session.
+ */
+export async function ensureBootstrapAdmin() {
+  const userCount = await db.prepare("SELECT COUNT(*) as c FROM users").get() as any;
+  if (userCount.c > 0) return;
+
+  const entity = await db.prepare("SELECT id FROM entities ORDER BY id LIMIT 1").get() as any;
+
+  const passwordHash = bcrypt.hashSync(DEFAULT_ADMIN_PASSWORD, 10);
+  await db.prepare(`
+    INSERT INTO users (username, password_hash, role, entity_id, status, must_change_password)
+    VALUES (?, ?, ?, ?, ?, 1)
+  `).run("admin", passwordHash, "admin", entity?.id ?? null, "active");
+
+  const credPath = path.join(process.cwd(), ".initial-admin-password.txt");
+  fs.writeFileSync(
+    credPath,
+    [
+      "admin / " + DEFAULT_ADMIN_PASSWORD,
+      "",
+      "IMPORTANT: this is the factory default. You will be forced to change it",
+      "immediately after the first login. Do not deploy before doing so.",
+      "",
+    ].join("\n"),
+    { mode: 0o600 }
+  );
+  try { fs.chmodSync(credPath, 0o600); } catch {}
+  console.log(
+    `[bootstrap] لا يوجد مستخدمين — تم إنشاء admin بكلمة المرور الافتراضية ` +
+      `(ADMIN123). يجب تغييرها فور أول تسجيل دخول. التفاصيل: ${credPath}`
+  );
+}
+
+// Link existing users to employees (idempotent)
+export async function linkUsersToEmployees() {
+  // Default username -> employee name/ID mapping
+  const userEmployeeMap: Record<string, { id?: number; name?: string }> = {
+    'admin': { id: 1, name: 'Ahmed Test Edited' }, // First employee
+    'hr': { name: 'Ahmed Test Edited' },
+    'finance': { name: 'Ahmed Test Edited' },
+    'branch_manager': { name: 'Test Employee' }, // Second employee
+    'employee': { name: 'Test Employee' }, // ESS user gets the second employee
+  };
+
+  const users = await db.prepare("SELECT id, username, employee_id FROM users WHERE employee_id IS NULL").all() as any[];
+  
+  for (const user of users) {
+    const mapping = userEmployeeMap[user.username];
+    if (!mapping) continue;
+    
+    let employeeId = mapping.id;
+    if (!employeeId && mapping.name) {
+      const emp = await db.prepare("SELECT id FROM employees WHERE name = ?").get(mapping.name) as any;
+      if (emp) employeeId = emp.id;
+    }
+    
+    if (employeeId) {
+      await db.prepare("UPDATE users SET employee_id = ? WHERE id = ?").run(employeeId, user.id);
+      console.log(`[link] User ${user.username} linked to employee ${employeeId}`);
     }
   }
 }

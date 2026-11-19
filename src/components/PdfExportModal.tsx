@@ -16,6 +16,8 @@ import {
   Award
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { Letterhead } from '../lib/print/letterhead';
+import { useLetterhead } from '../lib/print/use-letterhead';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -52,6 +54,8 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
   );
 
   const printRef = useRef<HTMLDivElement>(null);
+  // ترويسة موحّدة مع بقية مخرجات النظام (ورقة الشركة).
+  const company = useLetterhead();
 
   useEffect(() => {
     if (isOpen) {
@@ -262,27 +266,19 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             style={{ minHeight: '1050px', fontFamily: "'Noto Sans Arabic', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}
             dir="rtl"
           >
-            {/* 1. Official Header */}
+            {/* 1. Official Header — الترويسة الموحّدة لكل مخرجات النظام */}
+            <div className="mb-6">
+              <Letterhead company={company} />
+            </div>
+
             <div className="border-b-2 border-emerald-800 pb-4 mb-6 flex justify-between items-center">
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-800 flex items-center justify-center text-white font-black text-sm">
-                    🇸🇦
-                  </div>
-                  <h1 className="text-xl font-black text-emerald-900">{settings.org_name || 'شركة المسار الرقمي للحلول المتكاملة'}</h1>
-                </div>
-                <p className="text-[11px] text-slate-600 font-bold">
-                  المملكة العربية السعودية | س.ت: <span className="font-mono">{settings.cr_number || '1010892341'}</span> | الرقم الموحد: <span className="font-mono">{settings.unified_number_700 || '7001928374'}</span>
-                </p>
-                <p className="text-[10px] text-slate-500">
-                  رقم اشتراك التأمينات (GOSI): <span className="font-mono">{settings.gosi_establishment_id || '80923419'}</span> | ملف قوى: <span className="font-mono">{settings.mol_establishment_id || '12-98472'}</span>
-                </p>
-              </div>
-
-              <div className="text-left space-y-1">
                 <div className="inline-block bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded text-xs font-black">
                   مستند رسمي معتمد
                 </div>
+              </div>
+
+              <div className="text-left space-y-1">
                 <p className="text-[10px] text-slate-500 font-mono">المرجع: {docRefNumber}</p>
                 <p className="text-[10px] text-slate-500">التاريخ: {new Date().toLocaleDateString('ar-SA')} م</p>
               </div>
@@ -452,7 +448,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                   </div>
                   <div className="border border-slate-200 p-3 rounded-lg bg-slate-50">
                     <p className="text-slate-500 font-bold">حصة المنشأة في التأمينات (GOSI)</p>
-                    <p className="text-lg font-black text-indigo-700 font-mono mt-1">21,780 ر.س</p>
+                    <p className="text-lg font-black text-brand-700 font-mono mt-1">21,780 ر.س</p>
                   </div>
                   <div className="border border-slate-200 p-3 rounded-lg bg-slate-50">
                     <p className="text-slate-500 font-bold">مخصص مكافأة نهاية الخدمة (IAS 19)</p>

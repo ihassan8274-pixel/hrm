@@ -8,16 +8,21 @@ import type { Employee, PayrollRecord, Leave } from '../types';
 import SalaryCertificateModal from './SalaryCertificateModal';
 import { getCurrencySymbol } from '../utils/currency';
 import { useAuth } from '../context/AuthContext';
+import { Letterhead, DocumentFooter } from '../lib/print/letterhead';
+import { useLetterhead } from '../lib/print/use-letterhead';
+import EssRequestsPanel from './EssRequestsPanel';
 
 export default function ESSView() {
   const { hasRole } = useAuth();
+  // ترويسة موحّدة مع بقية مخرجات النظام (ورقة الشركة).
+  const company = useLetterhead();
   const selfServiceOnly = hasRole('employee_ess');
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [payroll, setPayroll] = useState<PayrollRecord[]>([]);
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
-  const [selectedServiceTab, setSelectedServiceTab] = useState<'payslip' | 'certificates' | 'leaves' | 'requests' | 'documents' | 'attendance'>('payslip');
+  const [selectedServiceTab, setSelectedServiceTab] = useState<'payslip' | 'certificates' | 'leaves' | 'requests' | 'documents' | 'attendance' | 'my_requests'>('payslip');
   const [currency, setCurrency] = useState('SAR');
   const [myDocs, setMyDocs] = useState<any[]>([]);
   const [myAttendance, setMyAttendance] = useState<any[]>([]);
@@ -55,7 +60,7 @@ export default function ESSView() {
         .then(data => {
           setLeaves(data.filter((l: any) => l.employee_id === selectedId));
         });
-      fetch(`/api/documents/${selectedId}`)
+      fetch(`/api/employee-documents/${selectedId}`)
         .then(res => res.json())
         .then(data => setMyDocs(Array.isArray(data) ? data : []))
         .catch(() => setMyDocs([]));
@@ -144,7 +149,7 @@ export default function ESSView() {
 
           <button
             onClick={() => setIsCertModalOpen(true)}
-            className="w-full sm:w-auto px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all whitespace-nowrap"
+            className="w-full sm:w-auto px-4 py-2.5 bg-brand-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20 transition-all whitespace-nowrap"
           >
             <Printer className="w-4 h-4" />
             <span>إصدار شهادة تعريف بالراتب</span>
@@ -165,7 +170,7 @@ export default function ESSView() {
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-          <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center mb-2">
+          <div className="w-9 h-9 rounded-xl bg-brand-50 text-brand-700 flex items-center justify-center mb-2">
             <TrendingUp className="w-5 h-5" />
           </div>
           <span className="text-xs text-slate-400 font-bold block">إجمالي البدلات المعتمدة</span>
@@ -245,12 +250,27 @@ export default function ESSView() {
         >
           سجل حضوري
         </button>
+        <button
+          onClick={() => setSelectedServiceTab('my_requests')}
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all ${
+            selectedServiceTab === 'my_requests' ? 'bg-white shadow text-slate-900' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          طلباتي (سلفة/إجازة/شكوى/مقترح)
+        </button>
       </div>
+
+      {/* Tab: طلبات الخدمة الذاتية */}
+      {selectedServiceTab === 'my_requests' && (
+        <EssRequestsPanel employeeId={selfServiceOnly ? null : selectedId} />
+      )}
 
       {/* Tab 1: Payslip View */}
       {selectedServiceTab === 'payslip' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+          <div className="print-document bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <Letterhead company={company} />
+
             <div className="flex justify-between items-center pb-3 border-b border-slate-100">
               <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
                 <FileText className="w-4 h-4 text-emerald-600" />
@@ -258,7 +278,7 @@ export default function ESSView() {
               </h3>
               <button
                 onClick={() => window.print()}
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1 transition-all"
+                className="no-print px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1 transition-all"
               >
                 <Printer className="w-3.5 h-3.5" />
                 طباعة
@@ -291,6 +311,18 @@ export default function ESSView() {
                 </span>
               </div>
             </div>
+
+            <div className="flex justify-between items-center text-[11px] text-slate-600 pt-2 border-t border-slate-100">
+              <span>
+                الموظف: <strong>{selectedEmployee?.name || '---'}</strong>
+                {selectedEmployee?.job_title ? ` — ${selectedEmployee.job_title}` : ''}
+              </span>
+              <span dir="ltr">
+                {payroll[0] ? `${payroll[0].month}/${payroll[0].year}` : new Date().toISOString().slice(0, 7)}
+              </span>
+            </div>
+
+            <DocumentFooter company={company} />
           </div>
 
           <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
@@ -327,7 +359,7 @@ export default function ESSView() {
             </div>
             <button
               onClick={() => setIsCertModalOpen(true)}
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center gap-2 shadow-md shadow-emerald-600/20 transition-all"
+              className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-black flex items-center gap-2 shadow-md shadow-brand-600/20 transition-all"
             >
               <FileCheck className="w-4 h-4" />
               تخصيص وطباعة الشهادة
@@ -340,7 +372,7 @@ export default function ESSView() {
               <p className="text-[11px] text-slate-500">لأغراض التمويل العقاري أو الشخصي وإصدار البطاقات الائتمانية مع تفصيل البدلات.</p>
               <button
                 onClick={() => setIsCertModalOpen(true)}
-                className="text-xs font-bold text-emerald-700 hover:underline pt-2 block"
+                className="text-xs font-bold text-brand-700 hover:underline pt-2 block"
               >
                 معاينة وإصدار ←
               </button>
@@ -350,7 +382,7 @@ export default function ESSView() {
               <p className="text-[11px] text-slate-500">باللغة الإنجليزية أو العربية لتقديمها للقنصليات والسفارات لإصدار تأشيرات السفر (Schengen, UK, US).</p>
               <button
                 onClick={() => setIsCertModalOpen(true)}
-                className="text-xs font-bold text-emerald-700 hover:underline pt-2 block"
+                className="text-xs font-bold text-brand-700 hover:underline pt-2 block"
               >
                 معاينة وإصدار ←
               </button>
@@ -360,7 +392,7 @@ export default function ESSView() {
               <p className="text-[11px] text-slate-500">تعهد بتحويل الراتب ومستحقات نهاية الخدمة وفق متطلبات الجهات التمويلية.</p>
               <button
                 onClick={() => setIsCertModalOpen(true)}
-                className="text-xs font-bold text-emerald-700 hover:underline pt-2 block"
+                className="text-xs font-bold text-brand-700 hover:underline pt-2 block"
               >
                 معاينة وإصدار ←
               </button>
@@ -399,7 +431,7 @@ export default function ESSView() {
         <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6 max-w-xl">
           <div>
             <h3 className="text-base font-black text-slate-800 flex items-center gap-2">
-              <Plane className="w-5 h-5 text-blue-600" />
+              <Plane className="w-5 h-5 text-brand-600" />
               طلب إصدار تأشيرة خروج وعودة (منصة مقيم / أبشر)
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -462,7 +494,7 @@ export default function ESSView() {
 
             <button
               type="submit"
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs shadow-md shadow-blue-600/20 flex items-center justify-center gap-2"
+              className="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-black text-xs shadow-md shadow-brand-600/20 flex items-center justify-center gap-2"
             >
               <Send className="w-4 h-4 rtl:rotate-180" />
               إرسال طلب التأشيرة للموارد البشرية
@@ -479,7 +511,7 @@ export default function ESSView() {
             {myDocs.map(d => (
               <div key={d.id} className="border border-slate-200 rounded-2xl p-4 bg-slate-50">
                 <div className="flex items-center gap-2 mb-2">
-                  <FileText className="w-5 h-5 text-blue-600" />
+                  <FileText className="w-5 h-5 text-brand-600" />
                   <span className="font-bold text-slate-700 text-sm">{d.doc_type}</span>
                 </div>
                 {d.doc_number && <p className="text-xs text-slate-500">رقم: {d.doc_number}</p>}

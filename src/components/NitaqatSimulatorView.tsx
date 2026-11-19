@@ -20,20 +20,20 @@ export default function NitaqatSimulatorView() {
   const runSimulation = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/nitaqat/simulate', {
+      const res = await fetch('/api/saudi/nitaqat-simulator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sector,
           current_saudis: currentSaudis,
           current_expats: currentExpats,
-          special_needs_saudis: specialNeedsSaudis,
+          special_needs_saudis: specialNeedsSaudis + addSpecialNeeds,
           add_saudis: addSaudis,
-          add_expats: addExpats,
-          add_special_needs: addSpecialNeeds
+          add_expats: addExpats
         })
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'فشل تشغيل المحاكاة');
       setSimResult(data);
     } catch (err) {
       console.error(err);
@@ -64,7 +64,7 @@ export default function NitaqatSimulatorView() {
   const getTierColor = (tier: string) => {
     switch (tier) {
       case 'platinum':
-        return { bg: 'bg-indigo-900 text-white', border: 'border-indigo-700', label: 'بلاتيني (أعلى نطاق)' };
+        return { bg: 'bg-brand-900 text-white', border: 'border-brand-700', label: 'بلاتيني (أعلى نطاق)' };
       case 'high_green':
         return { bg: 'bg-emerald-700 text-white', border: 'border-emerald-600', label: 'أخضر مرتفع' };
       case 'mid_green':
@@ -77,8 +77,8 @@ export default function NitaqatSimulatorView() {
     }
   };
 
-  const currentTierInfo = simResult ? getTierColor(simResult.current_tier) : null;
-  const simTierInfo = simResult ? getTierColor(simResult.simulated_tier) : null;
+  const currentTierInfo = simResult ? getTierColor(simResult.currentTier) : null;
+  const simTierInfo = simResult ? getTierColor(simResult.simulatedTier) : null;
 
   return (
     <div className="space-y-6">
@@ -202,7 +202,7 @@ export default function NitaqatSimulatorView() {
                 <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
                   <span className="text-xs text-slate-500 font-semibold">الوضع الحالي للمنشأة</span>
                   <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-3xl font-extrabold text-slate-800">{simResult.current_saudization_rate}%</span>
+                    <span className="text-3xl font-extrabold text-slate-800">{simResult.currentSaudizationPercentage}%</span>
                     <span className="text-xs text-slate-500">نسبة التوطين المحتسبة</span>
                   </div>
                   <div className="mt-3">
@@ -215,7 +215,7 @@ export default function NitaqatSimulatorView() {
                 <div className="p-4 rounded-xl border-2 border-teal-400 bg-teal-50/40">
                   <span className="text-xs text-teal-800 font-bold">الوضع المتوقع بعد السيناريو</span>
                   <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-3xl font-extrabold text-teal-900">{simResult.simulated_saudization_rate}%</span>
+                    <span className="text-3xl font-extrabold text-teal-900">{simResult.simulatedSaudizationPercentage}%</span>
                     <span className="text-xs text-teal-700 font-medium">نسبة التوطين الجديدة</span>
                   </div>
                   <div className="mt-3">
@@ -231,48 +231,48 @@ export default function NitaqatSimulatorView() {
                 <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs">
                   <span className="text-emerald-800 font-bold block mb-1">للترقية للنطاق الأعلى:</span>
                   <p className="text-emerald-950 font-bold text-sm">
-                    تحتاج توظيف {simResult.saudis_needed_for_next_tier} سعودي
+                    تحتاج توظيف {simResult.simulated.saudisNeededForNextTier} سعودي
                   </p>
                 </div>
 
                 <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs">
                   <span className="text-amber-800 font-bold block mb-1">هامش الأمان قبل الهبوط:</span>
                   <p className="text-amber-950 font-bold text-sm">
-                    مسموح حتى {simResult.expats_allowed_before_downgrade} وافد
+                    مسموح حتى {simResult.simulated.expatsAllowedBeforeDowngrade} وافد
                   </p>
                 </div>
 
-                <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-xl text-xs">
-                  <span className="text-indigo-800 font-bold block mb-1">رصيد التأشيرات الفورية:</span>
-                  <p className="text-indigo-950 font-bold text-sm">
-                    {simResult.visas_available} تأشيرة عمل متاحة
+                <div className="p-3.5 bg-brand-50 border border-brand-200 rounded-xl text-xs">
+                  <span className="text-brand-800 font-bold block mb-1">رصيد التأشيرات الفورية:</span>
+                  <p className="text-brand-950 font-bold text-sm">
+                    {simResult.simulated.availableVisasToIssue} تأشيرة عمل متاحة
                   </p>
                 </div>
               </div>
 
               {/* Nitaqat Tiers Scale */}
               <div className="space-y-2">
-                <span className="text-xs font-bold text-slate-700">مقياس نطاقات المطور لقطاع ({simResult.sector}):</span>
+                <span className="text-xs font-bold text-slate-700">مقياس نطاقات المطور لقطاع ({simResult.sectorName}):</span>
                 <div className="grid grid-cols-5 gap-1.5 text-center text-[11px] font-bold">
-                  <div className={`p-2.5 rounded-lg border ${simResult.simulated_tier === 'red' ? 'ring-2 ring-rose-500 scale-105' : 'opacity-70'} bg-rose-100 text-rose-800 border-rose-300`}>
+                  <div className={`p-2.5 rounded-lg border ${simResult.simulatedTier === 'red' ? 'ring-2 ring-rose-500 scale-105' : 'opacity-70'} bg-rose-100 text-rose-800 border-rose-300`}>
                     نطاق أحمر
-                    <div className="text-[9px] font-normal">&lt; {simResult.thresholds.low_green}%</div>
+                    <div className="text-[9px] font-normal">&lt; {simResult.tierThresholds.low_green}%</div>
                   </div>
-                  <div className={`p-2.5 rounded-lg border ${simResult.simulated_tier === 'low_green' ? 'ring-2 ring-lime-600 scale-105' : 'opacity-70'} bg-lime-100 text-lime-800 border-lime-300`}>
+                  <div className={`p-2.5 rounded-lg border ${simResult.simulatedTier === 'low_green' ? 'ring-2 ring-lime-600 scale-105' : 'opacity-70'} bg-lime-100 text-lime-800 border-lime-300`}>
                     أخضر منخفض
-                    <div className="text-[9px] font-normal">{simResult.thresholds.low_green}% - {simResult.thresholds.mid_green}%</div>
+                    <div className="text-[9px] font-normal">{simResult.tierThresholds.low_green}% - {simResult.tierThresholds.mid_green}%</div>
                   </div>
-                  <div className={`p-2.5 rounded-lg border ${simResult.simulated_tier === 'mid_green' ? 'ring-2 ring-emerald-600 scale-105' : 'opacity-70'} bg-emerald-100 text-emerald-800 border-emerald-300`}>
+                  <div className={`p-2.5 rounded-lg border ${simResult.simulatedTier === 'mid_green' ? 'ring-2 ring-emerald-600 scale-105' : 'opacity-70'} bg-emerald-100 text-emerald-800 border-emerald-300`}>
                     أخضر متوسط
-                    <div className="text-[9px] font-normal">{simResult.thresholds.mid_green}% - {simResult.thresholds.high_green}%</div>
+                    <div className="text-[9px] font-normal">{simResult.tierThresholds.mid_green}% - {simResult.tierThresholds.high_green}%</div>
                   </div>
-                  <div className={`p-2.5 rounded-lg border ${simResult.simulated_tier === 'high_green' ? 'ring-2 ring-teal-600 scale-105' : 'opacity-70'} bg-teal-100 text-teal-800 border-teal-300`}>
+                  <div className={`p-2.5 rounded-lg border ${simResult.simulatedTier === 'high_green' ? 'ring-2 ring-teal-600 scale-105' : 'opacity-70'} bg-teal-100 text-teal-800 border-teal-300`}>
                     أخضر مرتفع
-                    <div className="text-[9px] font-normal">{simResult.thresholds.high_green}% - {simResult.thresholds.platinum}%</div>
+                    <div className="text-[9px] font-normal">{simResult.tierThresholds.high_green}% - {simResult.tierThresholds.platinum}%</div>
                   </div>
-                  <div className={`p-2.5 rounded-lg border ${simResult.simulated_tier === 'platinum' ? 'ring-2 ring-indigo-800 scale-105' : 'opacity-70'} bg-indigo-100 text-indigo-900 border-indigo-300`}>
+                  <div className={`p-2.5 rounded-lg border ${simResult.simulatedTier === 'platinum' ? 'ring-2 ring-brand-800 scale-105' : 'opacity-70'} bg-brand-100 text-brand-900 border-brand-300`}>
                     بلاتيني
-                    <div className="text-[9px] font-normal">&gt; {simResult.thresholds.platinum}%</div>
+                    <div className="text-[9px] font-normal">&gt; {simResult.tierThresholds.platinum}%</div>
                   </div>
                 </div>
               </div>

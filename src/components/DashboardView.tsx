@@ -3,12 +3,21 @@ import { Users, Building2, BadgeDollarSign, TrendingUp, History, ShieldCheck, Ac
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import type { Stats, AuditLog } from '../types';
 import { getCurrencySymbol } from '../utils/currency';
+import { apiGet, safeArray } from '../lib/api';
 
 interface ExtendedStats extends Stats {
   payrollByDept: { name: string, value: number }[];
 }
 
-export default function DashboardView() {
+const COLORS = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+const CARD_CONFIG = [
+  { label: 'إجمالي الفروع', icon: Building2, color: 'bg-brand-500', trend: '+12% منذ الشهر الماضي', valueKey: 'totalBranches' },
+  { label: 'إجمالي الموظفين', icon: Users, color: 'bg-brand-500', trend: 'نمو مستمر', valueKey: 'totalEmployees' },
+  { label: 'رواتب الشهر الحالي', icon: BadgeDollarSign, color: 'bg-emerald-500', trend: 'بناءً على المسيرات المعتمدة', valueKey: 'totalMonthlyPayroll' },
+];
+
+function DashboardView() {
   const [stats, setStats] = useState<ExtendedStats>({
     totalBranches: 0,
     totalEmployees: 0,
@@ -17,31 +26,123 @@ export default function DashboardView() {
   });
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [currency, setCurrency] = useState('SAR');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/settings')
-      .then(res => res.json())
-      .then(data => { if (data?.currency) setCurrency(data.currency); })
-      .catch(() => {});
+    let mounted = true;
 
-    fetch('/api/stats')
-      .then(res => res.json())
-      .then(data => data && setStats(data))
-      .catch(err => console.error("Dashboard stats error:", err));
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const [settingsRes, statsRes, logsRes] = await Promise.allSettled([
+          apiGet('/api/settings'),
+          apiGet('/api/stats'),
+          apiGet('/api/audit-logs')
+        ]);
 
-    fetch('/api/audit-logs')
-      .then(res => res.json())
-      .then(data => data && Array.isArray(data) && setLogs(data.slice(0, 5)))
-      .catch(err => console.error("Dashboard logs error:", err));
+        if (!mounted) return;
+
+        if (settingsRes.status === 'fulfilled' && settingsRes.value?.currency) {
+          setCurrency(settingsRes.value.currency);
+        }
+
+        if (statsRes.status === 'fulfilled' && statsRes.value) {
+          setStats(statsRes.value);
+        }
+
+        if (logsRes.status === 'fulfilled') {
+          const logsData = logsRes.value;
+          if (Array.isArray(logsData)) {
+            setLogs(logsData.slice(0, 5));
+          }
+        }
+      } catch (err) {
+        console.error("Dashboard load error:", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    loadData();
+    return () => { mounted = false; };
   }, []);
 
   const COLORS = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-  const cards = [
-    { label: 'إجمالي الفروع', value: stats.totalBranches, icon: Building2, color: 'bg-indigo-500', trend: '+12% منذ الشهر الماضي' },
-    { label: 'إجمالي الموظفين', value: stats.totalEmployees, icon: Users, color: 'bg-blue-500', trend: 'نمو مستمر' },
-    { label: 'رواتب الشهر الحالي', value: `${(stats?.totalMonthlyPayroll || 0).toLocaleString()} ${getCurrencySymbol(currency)}`, icon: BadgeDollarSign, color: 'bg-emerald-500', trend: 'بناءً على المسيرات المعتمدة' },
+  const CARD_CONFIG = [
+    { label: 'إجمالي الفروع', icon: Building2, color: 'bg-brand-500', trend: '+12% منذ الشهر الماضي', valueKey: 'totalBranches' },
+    { label: 'إجمالي الموظفين', icon: Users, color: 'bg-brand-500', trend: 'نمو مستمر', valueKey: 'totalEmployees' },
+    { label: 'رواتب الشهر الحالي', icon: BadgeDollarSign, color: 'bg-emerald-500', trend: 'بناءً على المسيرات المعتمدة', valueKey: 'totalMonthlyPayroll' },
   ];
+
+  const cards = CARD_CONFIG.map(cfg => {
+    return {
+      label: cfg.label,
+      icon: cfg.icon,
+      color: cfg.color,
+      trend: cfg.trend,
+      value: cfg.valueKey === 'totalMonthlyPayroll' 
+        ? `${(stats?.totalMonthlyPayroll || 0).toLocaleString()} ${getCurrencySymbol(currency)}`
+        : stats?.[cfg.valueKey] || 0
+    };
+  });
+
+  if (loading) {
+    return (
+      <div className="space-y-8 font-sans">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 animate-pulse">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-slate-500 text-sm font-medium">إجمالي الفروع</p>
+                <h3 className="text-2xl font-bold mt-2 text-slate-800">—</h3>
+              </div>
+              <div className="bg-brand-500 p-3 rounded-xl">
+                <Building2 className="w-6 h-6 text-white" />
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 animate-pulse">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-slate-500 text-sm font-medium">إجمالي الموظفين</p>
+                  <h3 className="text-2xl font-bold mt-2 text-slate-800">—</h3>
+                </div>
+                <div className="bg-brand-500 p-3 rounded-xl">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 animate-pulse">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-slate-500 text-sm font-medium">رواتب الشهر الحالي</p>
+                    <h3 className="text-2xl font-bold mt-2 text-slate-800">—</h3>
+                  </div>
+                  <div className="bg-emerald-500 p-3 rounded-xl">
+                    <BadgeDollarSign className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm h-[400px]">
+                <div className="animate-pulse h-full bg-slate-50 rounded-xl" />
+              </div>
+              <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm h-[400px]">
+                <div className="animate-pulse h-full bg-slate-50 rounded-xl" />
+              </div>
+            </div>
+            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+              <div className="animate-pulse space-y-4">
+                <div className="h-16 bg-slate-50 rounded-xl" />
+                <div className="h-16 bg-slate-50 rounded-xl" />
+                <div className="h-16 bg-slate-50 rounded-xl" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 font-sans">
@@ -53,7 +154,7 @@ export default function DashboardView() {
                 <p className="text-slate-500 text-sm font-medium">{card.label}</p>
                 <h3 className="text-2xl font-bold mt-2 text-slate-800">{card.value}</h3>
               </div>
-              <div className={`${card.color} p-3 rounded-xl shadow-lg shadow-indigo-200`}>
+              <div className={`${card.color} p-3 rounded-xl shadow-lg shadow-brand-200`}>
                 <card.icon className="w-6 h-6 text-white" />
               </div>
             </div>
@@ -68,11 +169,11 @@ export default function DashboardView() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
           <h3 className="text-lg font-bold mb-6 flex items-center gap-2 text-slate-800">
-            <BarChartIcon className="w-5 h-5 text-indigo-500" />
+            <BarChartIcon className="w-5 h-5 text-brand-500" />
             توزيع الرواتب حسب الإدارات
           </h3>
           <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={300}>
               <BarChart data={stats?.payrollByDept || []} layout="vertical" margin={{ left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                 <XAxis type="number" hide />
@@ -93,7 +194,7 @@ export default function DashboardView() {
             نسبة الإنفاق عبر الإدارات
           </h3>
           <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
                   data={stats?.payrollByDept || []}
@@ -104,9 +205,9 @@ export default function DashboardView() {
                   paddingAngle={5}
                   dataKey="value"
                 >
-                  {(stats?.payrollByDept || []).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
+                  {(stats?.payrollByDept || []).map((entry, index) => {
+                    return <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />;
+                  })}
                 </Pie>
                 <Tooltip 
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
@@ -119,16 +220,16 @@ export default function DashboardView() {
 
       <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
         <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-          <Activity className="w-5 h-5 text-blue-500" />
+          <Activity className="w-5 h-5 text-brand-500" />
           آخر العمليات في النظام
         </h3>
         <div className="space-y-4">
-          {logs.map((log) => (
+          {safeArray<AuditLog>(logs).map((log) => (
             <div key={log.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-slate-100/50 transition-colors">
               <div className="flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs ${
                   log.action === 'create' ? 'bg-emerald-100 text-emerald-600' :
-                  log.action === 'update' ? 'bg-blue-100 text-blue-600' :
+                  log.action === 'update' ? 'bg-brand-100 text-brand-600' :
                   'bg-slate-100 text-slate-600'
                 }`}>
                   {log.action.slice(0, 3).toUpperCase()}
@@ -141,7 +242,7 @@ export default function DashboardView() {
                 </div>
               </div>
               <div className="flex flex-col items-end">
-                  <span className="text-[10px] font-bold text-slate-400">{log.created_by}</span>
+                <span className="text-[10px] font-bold text-slate-400">{log.created_by}</span>
               </div>
             </div>
           ))}
@@ -156,3 +257,5 @@ export default function DashboardView() {
     </div>
   );
 }
+
+export default DashboardView;

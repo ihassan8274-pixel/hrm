@@ -5,6 +5,8 @@ import {
   Printer, ArrowRight, MessageSquare, ChevronRight
 } from 'lucide-react';
 import type { CopilotMessage, SalaryCertificateData } from '../types';
+import { Letterhead, DocumentFooter } from '../lib/print/letterhead';
+import { useLetterhead } from '../lib/print/use-letterhead';
 
 interface AiHrCopilotModalProps {
   isOpen: boolean;
@@ -13,6 +15,8 @@ interface AiHrCopilotModalProps {
 }
 
 export default function AiHrCopilotModal({ isOpen, onClose, onNavigate }: AiHrCopilotModalProps) {
+  // ترويسة موحّدة مع بقية مخرجات النظام (ورقة الشركة).
+  const company = useLetterhead();
   const [messages, setMessages] = useState<CopilotMessage[]>([
     {
       id: '1',
@@ -198,7 +202,7 @@ export default function AiHrCopilotModal({ isOpen, onClose, onNavigate }: AiHrCo
                     <div className="flex gap-2 pt-1">
                       <button 
                         onClick={() => setSelectedCert(msg.quickCard.data)}
-                        className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition shadow-sm"
+                        className="flex-1 py-2 px-3 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition shadow-sm"
                       >
                         <Printer className="w-3.5 h-3.5" />
                         معاينة وطباعة الخطاب المعتمد
@@ -278,21 +282,20 @@ export default function AiHrCopilotModal({ isOpen, onClose, onNavigate }: AiHrCo
 
       {/* Salary Certificate Printable Modal */}
       {selectedCert && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/70 p-4">
-          <div className="bg-white text-slate-900 rounded-xl max-w-2xl w-full p-8 shadow-2xl space-y-6 relative print:p-0 print:shadow-none">
+        <div className="print-modal-overlay fixed inset-0 z-60 flex items-center justify-center bg-black/70 p-4">
+          <div className="print-document bg-white text-slate-900 rounded-xl max-w-2xl w-full p-8 shadow-2xl space-y-6 relative print:p-0 print:shadow-none">
             <button 
               onClick={() => setSelectedCert(null)}
-              className="absolute top-4 left-4 p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 print:hidden"
+              className="absolute top-4 left-4 p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 print:hidden no-print"
             >
               <X className="w-5 h-5" />
             </button>
 
             {/* Letterhead */}
-            <div className="flex items-center justify-between border-b-2 border-emerald-700 pb-4">
-              <div>
-                <h2 className="text-xl font-black text-emerald-800">مؤسسة الرواتب والموارد البشرية الذكية</h2>
-                <p className="text-xs text-slate-500">المملكة العربية السعودية - السجل التجاري: 1010894561</p>
-              </div>
+            <Letterhead company={company} />
+
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div className="text-xs text-slate-500">المملكة العربية السعودية - إدارة الموارد البشرية</div>
               <div className="text-left text-xs text-slate-600 font-mono">
                 <p>التاريخ: {new Date().toLocaleDateString('ar-SA')}</p>
                 <p>الرقم المرجعي: {selectedCert.qr_ref}</p>
@@ -365,8 +368,10 @@ export default function AiHrCopilotModal({ isOpen, onClose, onNavigate }: AiHrCo
               </div>
             </div>
 
+            <DocumentFooter company={company} reference={selectedCert.qr_ref} />
+
             {/* Print Action */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 print:hidden">
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 print:hidden no-print">
               <button
                 onClick={() => setSelectedCert(null)}
                 className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
@@ -375,7 +380,7 @@ export default function AiHrCopilotModal({ isOpen, onClose, onNavigate }: AiHrCo
               </button>
               <button
                 onClick={handlePrintCert}
-                className="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-lg flex items-center gap-2 shadow"
+                className="px-5 py-2 bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold rounded-lg flex items-center gap-2 shadow"
               >
                 <Printer className="w-4 h-4" />
                 طباعة الخطاب الرسمي

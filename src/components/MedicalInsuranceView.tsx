@@ -153,7 +153,7 @@ export default function MedicalInsuranceView() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowAddDepModal(true)}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition-all shadow-sm shadow-emerald-200"
+            className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition-all shadow-sm shadow-emerald-200"
           >
             <UserPlus className="w-4 h-4" />
             إضافة تابع / عائلة
@@ -187,7 +187,7 @@ export default function MedicalInsuranceView() {
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
             <div className="flex items-center justify-between text-slate-500 mb-2">
               <span className="text-sm font-medium">إجمالي قسط التأمين السنوي</span>
-              <DollarSign className="w-5 h-5 text-blue-500" />
+              <DollarSign className="w-5 h-5 text-brand-500" />
             </div>
             <div className="text-2xl font-bold text-slate-800">{summary.totalAnnualPremium?.toLocaleString()} ر.س</div>
             <div className="text-xs text-slate-400 mt-1">
@@ -293,7 +293,7 @@ export default function MedicalInsuranceView() {
 
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-blue-600" />
+              <Building2 className="w-5 h-5 text-brand-600" />
               شركات التأمين المعتمدة
             </h2>
             <div className="space-y-3">
@@ -301,7 +301,7 @@ export default function MedicalInsuranceView() {
                 <div key={pol.id} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-slate-800 text-sm">{pol.insurance_company}</span>
-                    <span className="text-xs bg-blue-100 text-blue-800 font-medium px-2 py-0.5 rounded">
+                    <span className="text-xs bg-brand-100 text-brand-800 font-medium px-2 py-0.5 rounded">
                       {pol.status === 'active' ? 'نشطة' : pol.status}
                     </span>
                   </div>
@@ -327,7 +327,7 @@ export default function MedicalInsuranceView() {
             <h2 className="font-bold text-slate-800 text-base">سجل أفراد عائلات الموظفين والتابعين المشمولين بالتأمين</h2>
             <button
               onClick={() => setShowAddDepModal(true)}
-              className="flex items-center gap-1.5 text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-1.5 rounded-lg font-semibold transition-all"
+              className="flex items-center gap-1.5 text-xs bg-emerald-50 text-brand-700 hover:bg-emerald-100 px-3 py-1.5 rounded-lg font-semibold transition-all"
             >
               <UserPlus className="w-3.5 h-3.5" />
               إضافة تابع جديد
@@ -559,7 +559,7 @@ export default function MedicalInsuranceView() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-all"
+                  className="px-4 py-2 text-sm bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-xl transition-all"
                 >
                   حفظ وتسجيل في الوثيقة
                 </button>
@@ -661,7 +661,7 @@ export default function MedicalInsuranceView() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl"
+                  className="px-4 py-2 text-sm bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-xl"
                 >
                   حفظ الوثيقة
                 </button>

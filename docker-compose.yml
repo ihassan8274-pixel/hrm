@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-payroll}
+      POSTGRES_USER: ${POSTGRES_USER:-payroll_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - payroll-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+      PGSCHEMA: ${PGSCHEMA:-payroll}
+      PG_POOL_MAX: ${PG_POOL_MAX:-12}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      - payroll-app-backups:/app/backups
+      - payroll-app-uploads:/app/uploads
+
+volumes:
+  payroll-postgres-data:
+  payroll-app-backups:
+  payroll-app-uploads:

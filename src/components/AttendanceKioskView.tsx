@@ -163,14 +163,14 @@ export default function AttendanceKioskView() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4"><Building2 className="w-5 h-5 text-blue-600" /><h3 className="font-black text-slate-800">تسجيل جهاز حضور</h3></div>
+          <div className="flex items-center gap-2 mb-4"><Building2 className="w-5 h-5 text-brand-600" /><h3 className="font-black text-slate-800">تسجيل جهاز حضور</h3></div>
           <div className="space-y-3">
             <select value={newDevice.branch_id} onChange={e => setNewDevice({ ...newDevice, branch_id: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50">
               <option value="">اختر الفرع</option>
               {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
             <input value={newDevice.device_name} onChange={e => setNewDevice({ ...newDevice, device_name: e.target.value })} placeholder="اسم الجهاز (مثال: هاتف الفرع)" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm" />
-            <button onClick={registerDevice} className="w-full bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700">تسجيل الجهاز</button>
+            <button onClick={registerDevice} className="w-full bg-brand-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-brand-700">تسجيل الجهاز</button>
           </div>
           <div className="mt-4">
             <label className="text-xs font-bold text-slate-500">رمز الجهاز (Device Token)</label>
@@ -179,8 +179,8 @@ export default function AttendanceKioskView() {
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4"><MapPin className="w-5 h-5 text-emerald-600" /><h3 className="font-black text-slate-800">التحقق من الموقع الجغرافي</h3></div>
-          <button onClick={validateGeo} disabled={loading} className="w-full bg-emerald-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-700 disabled:opacity-50">
+          <div className="flex items-center gap-2 mb-4"><MapPin className="w-5 h-5 text-brand-600" /><h3 className="font-black text-slate-800">التحقق من الموقع الجغرافي</h3></div>
+          <button onClick={validateGeo} disabled={loading} className="w-full bg-brand-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-brand-700 disabled:opacity-50">
             {loading ? 'جارٍ التحقق...' : 'التحقق أن الجهاز داخل نطاق الفرع'}
           </button>
           {geoStatus && (
@@ -193,7 +193,7 @@ export default function AttendanceKioskView() {
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4"><ScanFace className="w-5 h-5 text-indigo-600" /><h3 className="font-black text-slate-800">تسجيل الموظف</h3></div>
+          <div className="flex items-center gap-2 mb-4"><ScanFace className="w-5 h-5 text-brand-600" /><h3 className="font-black text-slate-800">تسجيل الموظف</h3></div>
           <div className="space-y-3">
             <select value={selectedEmp} onChange={e => setSelectedEmp(e.target.value)} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50">
               <option value="">اختر الموظف</option>
@@ -201,16 +201,16 @@ export default function AttendanceKioskView() {
             </select>
             <div className="flex gap-2">
               {[{ v: 'face', l: 'بصمة الوجه', i: ScanFace }, { v: 'fingerprint', l: 'بصمة الإصبع', i: Fingerprint }].map(o => (
-                <button key={o.v} onClick={() => setMethod(o.v)} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold border ${method === o.v ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+                <button key={o.v} onClick={() => setMethod(o.v)} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold border ${method === o.v ? 'bg-brand-600 text-white border-brand-600' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>
                   <o.i className="w-4 h-4" /> {o.l}
                 </button>
               ))}
             </div>
-            <button onClick={enrollBiometric} disabled={loading} className="w-full bg-indigo-50 text-indigo-700 border border-indigo-200 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-100">
+            <button onClick={enrollBiometric} disabled={loading} className="w-full bg-brand-50 text-brand-700 border border-brand-200 py-2.5 rounded-xl font-bold text-sm hover:bg-brand-100">
               تسجيل بصمة الوجه/الإصبع للموظف على هذا الجهاز
             </button>
             <div className="flex gap-2">
-              <button onClick={checkIn} disabled={loading} className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"><LogIn className="w-4 h-4" /> دخول</button>
+              <button onClick={checkIn} disabled={loading} className="flex-1 bg-brand-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-brand-700 disabled:opacity-50 flex items-center justify-center gap-2"><LogIn className="w-4 h-4" /> دخول</button>
               <button onClick={checkOut} disabled={loading} className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"><LogOut className="w-4 h-4" /> انصراف</button>
             </div>
           </div>
@@ -247,7 +247,7 @@ export default function AttendanceKioskView() {
                   <td className="py-2">
                     <div className="flex flex-wrap gap-1 items-center">
                       <button onClick={() => copyLink(d.device_token)} className="px-2 py-1 bg-slate-100 rounded-lg text-[11px] font-bold flex items-center gap-1"><Copy className="w-3 h-3" /> نسخ الرابط</button>
-                      <button onClick={() => showQr(d.device_token)} className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[11px] font-bold flex items-center gap-1"><QrCode className="w-3 h-3" /> QR</button>
+                      <button onClick={() => showQr(d.device_token)} className="px-2 py-1 bg-emerald-50 text-brand-700 rounded-lg text-[11px] font-bold flex items-center gap-1"><QrCode className="w-3 h-3" /> QR</button>
                     </div>
                     {kioskLinks[d.device_token] && (
                       <div className="mt-2">

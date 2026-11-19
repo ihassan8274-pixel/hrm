@@ -1,0 +1,664 @@
+﻿<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مساري — 6 نماذج للهوية البصرية</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+/* Each concept is scoped with --v-* variables and a .c-* class so six
+   complete design languages can live on one page. */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Cairo",sans-serif;background:#eef1f5;color:#0f172a;-webkit-font-smoothing:antialiased;line-height:1.6}
+.n{font-family:"Inter",sans-serif;font-variant-numeric:tabular-nums}
+
+.page{max-width:1560px;margin:0 auto;padding:0 30px 120px}
+.hdr{background:#fff;border-bottom:1px solid #e4e9ef;position:sticky;top:0;z-index:100}
+.hdr-in{max-width:1560px;margin:0 auto;padding:18px 30px;display:flex;align-items:center;gap:16px}
+.hdr h1{font-size:19px;font-weight:800}
+.hdr p{font-size:12.5px;color:#64748b}
+.mark{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:#0f172a;color:#fff;flex-shrink:0}
+.hdr .cnt{margin-inline-start:auto;background:#f1f5f9;color:#475569;font-size:12px;font-weight:700;padding:6px 13px;border-radius:20px}
+
+.intro{padding:52px 0 34px}
+.intro h2{font-size:38px;font-weight:900;letter-spacing:-1px;line-height:1.2}
+.intro h2 em{font-style:normal;color:#0d9488}
+.intro p{font-size:16px;color:#64748b;margin-top:14px;max-width:720px;line-height:1.75}
+
+/* comparison matrix */
+.matrix{background:#fff;border:1px solid #e4e9ef;border-radius:16px;overflow:hidden;margin-top:30px}
+.mx-row{display:grid;grid-template-columns:230px repeat(6,1fr);border-bottom:1px solid #eef2f6}
+.mx-row:last-child{border:0}
+.mx-row>div{padding:13px 15px;border-inline-start:1px solid #eef2f6;font-size:12.5px;display:flex;align-items:center}
+.mx-row>div:first-child{border:0;font-weight:700;color:#334155;font-size:12px;background:#fafbfc}
+.mx-h>div{background:#0f172a;color:#fff;font-weight:800;font-size:12px;justify-content:center;text-align:center;padding:14px 8px}
+.mx-h>div:first-child{background:#0f172a}
+.dots{display:flex;gap:3px;margin-inline-end:7px}
+.dot{width:11px;height:11px;border-radius:3px}
+.tick{color:#0d9488;font-weight:800}
+
+/* concept blocks */
+.c{margin-top:64px;background:#fff;border:1px solid #e4e9ef;border-radius:20px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,.05)}
+.c-top{padding:24px 26px;border-bottom:1px solid #eef2f6;display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap}
+.c-badge{font-family:"Inter",sans-serif;font-size:12px;font-weight:800;color:#fff;background:#0f172a;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex-shrink:0}
+.c-name h3{font-size:22px;font-weight:800;letter-spacing:-.4px}
+.c-name p{font-size:13px;color:#64748b;margin-top:2px}
+.c-tags{display:flex;gap:7px;margin-inline-start:auto;flex-wrap:wrap}
+.tg{font-size:11px;font-weight:700;padding:5px 11px;border-radius:20px;background:#f1f5f9;color:#475569}
+.c-body{padding:26px}
+
+/* shared mini-app frame */
+.app{display:flex;height:520px;border-radius:14px;overflow:hidden;border:1px solid rgba(15,23,42,.09)}
+
+/* ---------- C1: Institutional Green ---------- */
+.c1{--p:#086556;--p2:#0d9a80;--pdk:#032620;--pg:#c99733;--pa:#e6f7f2;--pn:#0f172a;--pb:#f6f8fa;--pl:#e4e9ef;--r:10px}
+.c1 .sb{width:250px;background:linear-gradient(178deg,var(--pdk),#021c17);color:#fff;display:flex;flex-direction:column;flex-shrink:0}
+.c1 .sbh{padding:17px;display:flex;gap:10px;align-items:center;border-bottom:1px solid rgba(255,255,255,.08)}
+.c1 .sbh strong{font-size:14px;font-weight:800}
+.c1 .sbh span{font-size:9.5px;color:rgba(255,255,255,.45);display:block}
+.c1 .m1{width:34px;height:34px;border-radius:9px;background:linear-gradient(145deg,var(--p2),var(--p));display:grid;place-items:center;flex-shrink:0}
+.c1 .nav{flex:1;padding:11px;overflow:hidden}
+.c1 .ns{font-size:9.5px;font-weight:800;letter-spacing:.1em;color:rgba(255,255,255,.32);padding:13px 9px 6px}
+.c1 .ni{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;color:rgba(255,255,255,.66);font-size:12.5px;font-weight:600}
+.c1 .ni svg{width:15px;height:15px;opacity:.65;flex-shrink:0}
+.c1 .ni.on{background:rgba(13,154,128,.22);color:#fff}
+.c1 .ni.on svg{color:#6fd4bd;opacity:1}
+.c1 .ct{background:#fff;flex:1;display:flex;flex-direction:column}
+.c1 .top{padding:13px 20px;border-bottom:1px solid var(--pl);display:flex;align-items:center;gap:12px}
+.c1 .top h4{font-size:15px;font-weight:800}
+.c1 .search{margin-inline-start:auto;background:#f6f8fa;border:1px solid var(--pl);border-radius:8px;padding:6px 11px;width:200px;font-size:12px;color:#94a3b8}
+.c1 .bd{padding:18px 20px;background:var(--pb);flex:1}
+.c1 .ks{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:14px}
+.c1 .k{background:#fff;border:1px solid var(--pl);border-radius:var(--r);padding:13px}
+.c1 .k span{font-size:10.5px;color:#64748b;font-weight:700}
+.c1 .k b{display:block;font-family:"Inter",sans-serif;font-size:22px;font-weight:800;margin-top:5px;letter-spacing:-.5px}
+.c1 .tb{background:#fff;border:1px solid var(--pl);border-radius:var(--r);overflow:hidden}
+.c1 .tb th{background:#fafbfc;font-size:9.5px;font-weight:800;color:#64748b;padding:8px 14px;text-align:right;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--pl)}
+.c1 .tb td{padding:9px 14px;font-size:12px;border-bottom:1px solid #f1f5f9;color:#475569}
+.c1 .tb tr:last-child td{border:0}
+
+/* ---------- C2: Corporate Navy ---------- */
+.c2{--p:#1c4b80;--p2:#2c6cb0;--pdk:#12304f;--pa:#eaf2fb;--pn:#0f172a;--pb:#f7f9fb;--pl:#dfe6ee;--r:6px}
+.c2 .sb{width:250px;background:#fff;border-inline-end:1px solid var(--pl);display:flex;flex-direction:column;flex-shrink:0}
+.c2 .sbh{padding:16px;border-bottom:1px solid var(--pl);display:flex;gap:10px;align-items:center}
+.c2 .sbh strong{font-size:14px;font-weight:800;color:#12304f}
+.c2 .sbh span{font-size:9.5px;color:#64748b;display:block}
+.c2 .m1{width:34px;height:34px;border-radius:4px;background:var(--p);display:grid;place-items:center;flex-shrink:0}
+.c2 .nav{flex:1;padding:9px}
+.c2 .ns{font-size:9.5px;font-weight:800;letter-spacing:.09em;color:#94a3b8;padding:12px 9px 6px}
+.c2 .ni{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:4px;color:#475569;font-size:12.5px;font-weight:600}
+.c2 .ni svg{width:15px;height:15px;flex-shrink:0;color:#94a3b8}
+.c2 .ni.on{background:var(--pa);color:var(--p);border-inline-start:3px solid var(--p2)}
+.c2 .ni.on svg{color:var(--p2)}
+.c2 .top{padding:13px 20px;border-bottom:1px solid var(--pl);display:flex;align-items:center;gap:12px;background:#fff}
+.c2 .top h4{font-size:15px;font-weight:800;color:#12304f}
+.c2 .search{margin-inline-start:auto;border:1px solid var(--pl);border-radius:4px;padding:6px 11px;width:200px;font-size:12px;color:#94a3b8}
+.c2 .bd{padding:18px 20px;background:var(--pb);flex:1}
+.c2 .ks{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.c2 .k{background:#fff;border:1px solid var(--pl);border-radius:4px;padding:12px;border-top:2px solid var(--p)}
+.c2 .k span{font-size:10.5px;color:#64748b;font-weight:700}
+.c2 .k b{display:block;font-family:"Inter",sans-serif;font-size:21px;font-weight:700;margin-top:5px;color:#12304f}
+.c2 .tb{background:#fff;border:1px solid var(--pl);border-radius:4px;overflow:hidden}
+.c2 .tb th{background:#f2f6fa;font-size:9.5px;font-weight:800;color:#475569;padding:8px 13px;text-align:right;border-bottom:1px solid var(--pl)}
+.c2 .tb td{padding:9px 13px;font-size:12px;border-bottom:1px solid #eef2f6;color:#475569}
+.c2 .tb tr:last-child td{border:0}
+
+/* ---------- C3: Carbon Terminal ---------- */
+.c3{--p:#e0a12e;--p2:#f5c451;--pdk:#0c0e11;--pa:#241c0d;--pn:#e8eaed;--pl:#262a31;--r:4px;--pb:#0c0e11}
+.c3 .sb{width:250px;background:#0a0c0f;border-inline-end:1px solid var(--pl);display:flex;flex-direction:column;flex-shrink:0}
+.c3 .sbh{padding:15px;border-bottom:1px solid var(--pl);display:flex;gap:10px;align-items:center}
+.c3 .sbh strong{font-size:13.5px;font-weight:700;color:#fff;font-family:"Inter",sans-serif}
+.c3 .sbh span{font-size:9px;color:#6b7280;display:block;font-family:"Inter",sans-serif}
+.c3 .m1{width:32px;height:32px;border-radius:3px;background:var(--p);display:grid;place-items:center;flex-shrink:0}
+.c3 .nav{flex:1;padding:8px}
+.c3 .ns{font-size:9px;font-weight:700;letter-spacing:.12em;color:#4b5563;padding:12px 9px 6px;font-family:"Inter",sans-serif}
+.c3 .ni{display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:3px;color:#9ca3af;font-size:12px;font-weight:500}
+.c3 .ni svg{width:14px;height:14px;flex-shrink:0;color:#6b7280}
+.c3 .ni.on{background:var(--pa);color:var(--p2);border-inline-start:2px solid var(--p)}
+.c3 .ni.on svg{color:var(--p2)}
+.c3 .ct2{background:var(--pb);flex:1;display:flex;flex-direction:column}
+.c3 .top{padding:11px 18px;border-bottom:1px solid var(--pl);display:flex;align-items:center;gap:12px;background:#0a0c0f}
+.c3 .top h4{font-size:14px;font-weight:700;color:#fff;font-family:"Inter",sans-serif}
+.c3 .search{margin-inline-start:auto;background:#14171c;border:1px solid var(--pl);border-radius:3px;padding:5px 10px;width:190px;font-size:11.5px;color:#6b7280;font-family:"Inter",sans-serif}
+.c3 .bd{padding:16px 18px;flex:1;overflow:hidden}
+.c3 .ks{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:13px}
+.c3 .k{background:#12151a;border:1px solid var(--pl);border-radius:3px;padding:11px}
+.c3 .k span{font-size:9.5px;color:#6b7280;font-family:"Inter",sans-serif}
+.c3 .k b{display:block;font-family:"Inter",sans-serif;font-size:20px;font-weight:700;margin-top:4px;color:#fff}
+.c3 .k i{font-style:normal;font-size:10px;font-family:"Inter",sans-serif;color:var(--p2)}
+.c3 .tb{background:#0a0c0f;border:1px solid var(--pl);border-radius:3px;overflow:hidden}
+.c3 .tb th{background:#12151a;font-size:9px;font-weight:700;color:#6b7280;padding:7px 13px;text-align:right;text-transform:uppercase;font-family:"Inter",sans-serif;letter-spacing:.06em}
+.c3 .tb td{padding:8px 13px;font-size:11.5px;border-bottom:1px solid #1a1d23;color:#cbd5e1;font-family:"Inter",sans-serif}
+.c3 .tb tr:last-child td{border:0}
+.c3 .up{color:#22c55e}.c3 .dn{color:#ef4444}
+
+/* ---------- C4: Swiss Minimal ---------- */
+.c4{--p:#111827;--p2:#111827;--pdk:#ffffff;--pa:#f9fafb;--pn:#111827;--pb:#ffffff;--pl:#e5e7eb;--r:2px}
+.c4 .sb{width:230px;background:#fff;border-inline-end:1px solid var(--pl);display:flex;flex-direction:column;flex-shrink:0}
+.c4 .sbh{padding:22px 20px 18px}
+.c4 .sbh strong{font-size:19px;font-weight:800;letter-spacing:-.6px;color:#111827;display:block}
+.c4 .sbh span{font-size:9.5px;color:#9ca3af;display:block;letter-spacing:.16em;text-transform:uppercase;margin-top:2px}
+.c4 .nav{flex:1;padding:0 10px}
+.c4 .ns{font-size:9px;font-weight:700;letter-spacing:.14em;color:#d1d5db;padding:16px 8px 7px;text-transform:uppercase}
+.c4 .ni{display:flex;align-items:center;gap:10px;padding:7px 8px;color:#6b7280;font-size:12.5px;font-weight:500;border-radius:2px}
+.c4 .ni svg{width:14px;height:14px;flex-shrink:0}
+.c4 .ni.on{color:#111827;font-weight:700;background:#f9fafb}
+.c4 .top{padding:18px 24px;border-bottom:1px solid var(--pl);display:flex;align-items:baseline;gap:14px}
+.c4 .top h4{font-size:24px;font-weight:700;letter-spacing:-.8px;color:#111827}
+.c4 .search{margin-inline-start:auto;border-bottom:1px solid var(--pl);padding:6px 2px;width:180px;font-size:12px;color:#9ca3af}
+.c4 .bd{padding:26px 24px;flex:1;background:#fff}
+.c4 .ks{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid #111827;margin-bottom:26px}
+.c4 .k{padding:16px 0;border-bottom:1px solid var(--pl)}
+.c4 .k:not(:last-child){border-inline-start:1px solid var(--pl);padding-inline-start:18px}
+.c4 .k span{font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+.c4 .k b{display:block;font-family:"Inter",sans-serif;font-size:30px;font-weight:600;margin-top:6px;color:#111827;letter-spacing:-1.4px}
+.c4 .tb th{font-size:9px;font-weight:700;color:#9ca3af;padding:9px 0;text-align:right;text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid #111827}
+.c4 .tb td{padding:11px 0;font-size:12.5px;border-bottom:1px solid #f3f4f6;color:#4b5563}
+.c4 .tb tr:last-child td{border:0}
+.c4 .tb b{color:#111827}
+
+/* ---------- C5: Emerald Dark ---------- */
+.c5{--p:#10b981;--p2:#34d399;--pdk:#064e3b;--pa:#053b2c;--pn:#e5e7eb;--pl:#1f2a33;--r:14px;--pb:#0d1418}
+.c5 .sb{width:252px;background:linear-gradient(180deg,#0b1519,#080f12);display:flex;flex-direction:column;flex-shrink:0}
+.c5 .sbh{padding:20px 18px;display:flex;gap:11px;align-items:center}
+.c5 .sbh strong{font-size:15px;font-weight:800;color:#fff}
+.c5 .sbh span{font-size:9.5px;color:#5eead4;opacity:.6;display:block}
+.c5 .m1{width:36px;height:36px;border-radius:10px;background:linear-gradient(145deg,var(--p2),var(--pdk));display:grid;place-items:center;flex-shrink:0}
+.c5 .nav{flex:1;padding:10px}
+.c5 .ns{font-size:9.5px;font-weight:700;letter-spacing:.1em;color:#3f5a56;padding:14px 10px 6px}
+.c5 .ni{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:10px;color:#7b8f8a;font-size:12.5px;font-weight:500}
+.c5 .ni svg{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.c5 .ni.on{background:rgba(16,185,129,.14);color:#6ee7b7;font-weight:600}
+.c5 .ni.on svg{color:var(--p2);opacity:1}
+.c5 .ct2{background:var(--pb);flex:1;display:flex;flex-direction:column}
+.c5 .top{padding:14px 20px;border-bottom:1px solid var(--pl);display:flex;align-items:center;gap:12px}
+.c5 .top h4{font-size:15px;font-weight:700;color:#fff}
+.c5 .search{margin-inline-start:auto;background:#141d22;border:1px solid var(--pl);border-radius:10px;padding:7px 12px;width:200px;font-size:12px;color:#4b5f5a}
+.c5 .bd{padding:18px 20px;flex:1;overflow:hidden}
+.c5 .ks{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:14px}
+.c5 .k{background:#121b20;border:1px solid var(--pl);border-radius:14px;padding:14px}
+.c5 .k span{font-size:10.5px;color:#6b8a84;font-weight:600}
+.c5 .k b{display:block;font-family:"Inter",sans-serif;font-size:23px;font-weight:700;margin-top:5px;color:#f0fdfa}
+.c5 .tb{background:#0b1216;border:1px solid var(--pl);border-radius:14px;overflow:hidden}
+.c5 .tb th{background:#121b20;font-size:9.5px;font-weight:700;color:#5d7b75;padding:9px 14px;text-align:right;text-transform:uppercase;letter-spacing:.05em}
+.c5 .tb td{padding:10px 14px;font-size:12px;border-bottom:1px solid #16212600;color:#c3d3cf}
+.c5 .tb tr:last-child td{border:0}
+.c5 .tb tr+tr td{border-top:1px solid #162126}
+
+/* ---------- C6: Petrol Teal ---------- */
+.c6{--p:#0f766e;--p2:#14b8a6;--pdk:#0b2e2b;--pa:#e0f5f2;--pn:#0f172a;--pb:#f5f7f9;--pl:#e2e8f0;--r:12px}
+.c6 .sb{width:252px;background:#fff;border-inline-end:1px solid var(--pl);display:flex;flex-direction:column;flex-shrink:0}
+.c6 .sbh{padding:19px 18px;display:flex;gap:11px;align-items:center;border-bottom:1px solid var(--pl)}
+.c6 .sbh strong{font-size:15px;font-weight:800;color:#0b2e2b;display:block}
+.c6 .sbh span{font-size:9.5px;color:#64748b;display:block}
+.c6 .m1{width:36px;height:36px;border-radius:12px;background:linear-gradient(145deg,var(--p2),var(--p));display:grid;place-items:center;flex-shrink:0}
+.c6 .nav{flex:1;padding:11px}
+.c6 .ns{font-size:9.5px;font-weight:800;letter-spacing:.1em;color:#94a3b8;padding:14px 10px 6px}
+.c6 .ni{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:12px;color:#475569;font-size:12.5px;font-weight:600}
+.c6 .ni svg{width:16px;height:16px;flex-shrink:0;color:#94a3b8}
+.c6 .ni.on{background:var(--pa);color:var(--pdk);font-weight:700}
+.c6 .ni.on svg{color:var(--p)}
+.c6 .top{padding:14px 20px;border-bottom:1px solid var(--pl);display:flex;align-items:center;gap:12px}
+.c6 .top h4{font-size:15px;font-weight:800;color:#0b2e2b}
+.c6 .search{margin-inline-start:auto;background:#f5f7f9;border:1px solid var(--pl);border-radius:12px;padding:7px 12px;width:200px;font-size:12px;color:#94a3b8}
+.c6 .bd{padding:18px 20px;background:var(--pb);flex:1}
+.c6 .ks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.c6 .k{background:#fff;border:1px solid var(--pl);border-radius:16px;padding:15px;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+.c6 .k span{font-size:10.5px;color:#64748b;font-weight:700}
+.c6 .k b{display:block;font-family:"Inter",sans-serif;font-size:23px;font-weight:700;margin-top:5px;color:#0b2e2b;letter-spacing:-.6px}
+.c6 .tb{background:#fff;border:1px solid var(--pl);border-radius:16px;overflow:hidden}
+.c6 .tb th{background:#fbfcfd;font-size:9.5px;font-weight:700;color:#64748b;padding:10px 15px;text-align:right;text-transform:uppercase;letter-spacing:.04em}
+.c6 .tb td{padding:11px 15px;font-size:12px;border-bottom:1px solid #f1f5f9;color:#475569}
+.c6 .tb tr:last-child td{border:0}
+
+/* swatches + notes */
+.pal{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap}
+.psw{width:62px}
+.psw div{height:52px;border-radius:9px;border:1px solid rgba(15,23,42,.07)}
+.psw b{display:block;font-size:9.5px;color:#64748b;margin-top:5px;font-weight:700}
+.notes{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}
+.note{background:#fafbfc;border:1px solid #eef2f6;border-radius:12px;padding:15px}
+.note h5{font-size:12.5px;font-weight:800;color:#334155;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.note.pro h5{color:#0f766e}
+.note.con h5{color:#b4232c}
+.note ul{padding-inline-start:17px;font-size:12.5px;color:#475569;line-height:1.9}
+.fit{background:#0f172a;color:#fff;border-radius:12px;padding:15px 18px;font-size:13px;margin-top:16px}
+.fit b{color:#5eead4}
+.rec{background:#0f172a!important;color:#fff}
+.rec .c-name h3{color:#fff}
+.rec .c-name p{color:#94a3b8}
+.rec .c-body{background:#fff}
+</style>
+</head>
+<body>
+
+<div class="hdr"><div class="hdr-in">
+  <div class="mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg></div>
+  <div><h1>مساري — نماذج الهوية البصرية</h1><p>ستة اتجاهات تصميمية متمايزة · اختر واحداً وسأطبّقه على النظام كاملاً</p></div>
+  <span class="cnt">6 نماذج</span>
+</div></div>
+
+<div class="page">
+
+  <div class="intro">
+    <h2>أي هوية تناسب <em>نظامك</em>؟</h2>
+    <p>
+      لكل نموذج طابع مختلف تماماً — من محافظ مصرفي إلى حديث تقني. الفرق في اللون والكثافة والحدود،
+      لا مجرد درجة واحدة. اختر ما يطابق جمهورك: مستثمر، وزارة، أو مستخدم يومي.
+    </p>
+  </div>
+
+  <!-- MATRIX -->
+  <div class="matrix">
+    <div class="mx-row mx-h">
+      <div></div><div>١ أخضر مؤسسي</div><div>٢ كحلي مصرفي</div><div>٣ فحمي تقني</div><div>٤ أبيض نقي</div><div>٥ أخضر داكن</div><div>٦ بترولي</div>
+    </div>
+    <div class="mx-row">
+      <div>الطابع</div>
+      <div>رسمي سعودي</div><div>محافظ بنكي</div><div>تقني حديث</div><div>راقٍ / تحريري</div><div>عصري SaaS</div><div>هادئ مهني</div>
+    </div>
+    <div class="mx-row">
+      <div>اللون الأساسي</div>
+      <div><span class="dots"><i class="dot" style="background:#086556"></i><i class="dot" style="background:#c99733"></i></span></div>
+      <div><span class="dots"><i class="dot" style="background:#1c4b80"></i><i class="dot" style="background:#2c6cb0"></i></span></div>
+      <div><span class="dots"><i class="dot" style="background:#0c0e11"></i><i class="dot" style="background:#e0a12e"></i></span></div>
+      <div><span class="dots"><i class="dot" style="background:#111827"></i><i class="dot" style="background:#f3f4f6"></i></span></div>
+      <div><span class="dots"><i class="dot" style="background:#10b981"></i><i class="dot" style="background:#064e3b"></i></span></div>
+      <div><span class="dots"><i class="dot" style="background:#0f766e"></i><i class="dot" style="background:#14b8a6"></i></span></div>
+    </div>
+    <div class="mx-row">
+      <div>الوضع</div>
+      <div>فاتح</div><div>فاتح</div><div>داكن</div><div>فاتح جداً</div><div>داكن</div><div>فاتح</div>
+    </div>
+    <div class="mx-row">
+      <div>الكثافة</div><div>عالية</div><div>عالية جداً</div><div>عالية جداً</div><div>منخفضة</div><div>متوسطة</div><div>متوسطة</div>
+    </div>
+    <div class="mx-row">
+      <div>الاستخدام الأنسب</div>
+      <div>شركات سعودية</div><div>بنوك · جهات</div><div>محلّلو بيانات</div><div>تنفيذية</div><div>شركات ناشئة</div><div>متكامل</div>
+    </div>
+    <div class="mx-row">
+      <div>الرسالة</div>
+      <div>نحول للامتثال</div><div>نحو للثقة</div><div>نحو للدقة</div><div>نحو للتميّز</div><div>نحو للمنتج</div><div>نحو للهدوء</div>
+    </div>
+  </div>
+
+  <!-- ============ 1 ============ -->
+  <div class="c c1">
+    <div class="c-top">
+      <span class="c-badge">1</span>
+      <div class="c-name"><h3>الأخضر المؤسسي</h3><p>أخضر عميق داكن + ذهبي هادئ · الأقرب للهوية السعودية</p></div>
+      <div class="c-tags"><span class="tg">موصى به</span><span class="tg">عالي الكثافة</span><span class="tg">مؤسسي</span></div>
+    </div>
+    <div class="c-body">
+      <div class="app">
+        <aside class="sb">
+          <div class="sbh"><div class="m1"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg></div><div><strong>مساري</strong><span>الموارد البشرية والرواتب</span></div></div>
+          <div class="nav">
+            <div class="ns">الرئيسية</div>
+            <div class="ni on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg> لوحة التحكم</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg> التقارير</div>
+            <div class="ns">العمليات</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> الموظفون</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> الرواتب</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> الحضور</div>
+            <div class="ns">الأنظمة السعودية</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M7 7l5-4 5 4"/></svg> حماية الأجور</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg> التأمينات</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg> نطاقات</div>
+          </div>
+        </aside>
+        <div class="ct">
+          <div class="top"><h4>لوحة التحكم العامة</h4><div class="search">ابحث…</div></div>
+          <div class="bd">
+            <div class="ks">
+              <div class="k"><span>إجمالي الموظفين</span><b class="n">1,042</b></div>
+              <div class="k"><span>نسبة التوطين</span><b class="n">38.4%</b></div>
+              <div class="k"><span>مسير الرواتب</span><b class="n">4.28M</b></div>
+            </div>
+            <div class="tb">
+              <table style="width:100%;border-collapse:collapse">
+                <tr><th>الموظف</th><th>القسم</th><th>الجنسية</th><th>الراتب</th><th>الحالة</th></tr>
+                <tr><td><b style="color:#0f172a">عبدالله الحربي</b></td><td>تقنية المعلومات</td><td>سعودي</td><td class="n">18,500</td><td><span style="background:#e6f7f2;color:#086556;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">نشط</span></td></tr>
+                <tr><td><b style="color:#0f172a">سارة القحطاني</b></td><td>الموارد البشرية</td><td>سعودي</td><td class="n">22,000</td><td><span style="background:#fdf6e7;color:#8a6116;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">إجازة</span></td></tr>
+                <tr><td><b style="color:#0f172a">Raj Patel</b></td><td>المبيعات</td><td>وافد</td><td class="n">14,200</td><td><span style="background:#f1f5f9;color:#64748b;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">نشط</span></td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pal">
+        <div class="psw"><div style="background:#032620"></div><b>950</b></div>
+        <div class="psw"><div style="background:#086556"></div><b>أساسي</b></div>
+        <div class="psw"><div style="background:#0d9a80"></div><b>500</b></div>
+        <div class="psw"><div style="background:#c99733"></div><b>ذهبي</b></div>
+        <div class="psw"><div style="background:#e6f7f2"></div><b>خلفية</b></div>
+        <div class="psw"><div style="background:#0f172a"></div><b>نص</b></div>
+      </div>
+      <div class="notes">
+        <div class="note pro"><h5>✓ المزايا</h5><ul><li>الأخضر العميق يوحي بالامتثال السعودي دون إساءة</li><li>الذهبي يبرز العناصر الحرجة فقط</li><li>التباينWCAG AA على كل النصوص</li></ul></div>
+        <div class="note con"><h5>⚠ الاعتبارات</h5><ul><li>الأخضر الداكن قد يُقرأه الجميع كـ«التمويل»</li><li>يحتاج ضبط التباين عند الطباعة</li></ul></div>
+      </div>
+      <div class="fit"><b>الأنسب لـ:</b> شركات سعودية تبيع خدمة امتثال · لأنها تحتاج تبني نظام needs تبني ثقة أمام الجهات.</div>
+    </div>
+  </div>
+
+  <!-- ============ 2 ============ -->
+  <div class="c c2">
+    <div class="c-top">
+      <span class="c-badge">2</span>
+      <div class="c-name"><h3>الكحلي المصرفي</h3><p>أزرق داكن محافظ + زوايا حادة · لغة البنوك والجهات الحكومية</p></div>
+      <div class="c-tags"><span class="tg">محافظ</span><span class="tg">رسمي جداً</span></div>
+    </div>
+    <div class="c-body">
+      <div class="app">
+        <aside class="sb">
+          <div class="sbh"><div class="m1"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg></div><div><strong>مساري</strong><span>الرواتب والموارد البشرية</span></div></div>
+          <div class="nav">
+            <div class="ns">القسم الرئيسي</div>
+            <div class="ni on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg> لوحة المعلومات</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg> الإحصائيات</div>
+            <div class="ns">شؤون الموظفين</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> ملفات الموظفين</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> كشوف الرواتب</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> سجل الحضور</div>
+            <div class="ns">الأنظمة الوطنية</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M7 7l5-4 5 4"/></svg> برنامج حماية الأجور</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg> التأمينات الاجتماعية</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg> برنامج نطاقات</div>
+          </div>
+        </aside>
+        <div class="ct">
+          <div class="top"><h4>ملفات الموظفين</h4><div class="search">بحث…</div></div>
+          <div class="bd">
+            <div class="ks">
+              <div class="k"><span>إجمالي الملفات</span><b class="n">1,042</b></div>
+              <div class="k"><span>سعودي</span><b class="n">400</b></div>
+              <div class="k"><span>وافد</span><b class="n">642</b></div>
+            </div>
+            <div class="tb">
+              <table style="width:100%;border-collapse:collapse">
+                <tr><th>الرقم</th><th>الاسم</th><th>القسم</th><th>الراتب الأساسي</th><th>الحالة</th></tr>
+                <tr><td class="n" style="font-size:11px">EMP-1042</td><td><b style="color:#12304f">عبدالله الحربي</b></td><td>تقنية المعلومات</td><td class="n">18,500</td><td style="color:#0a7d68;font-weight:700">سجل نشط</td></tr>
+                <tr><td class="n" style="font-size:11px">EMP-1041</td><td><b style="color:#12304f">سارة القحطاني</b></td><td>الموارد البشرية</td><td class="n">22,000</td><td style="color:#a97a1f;font-weight:700">إجازة سارية</td></tr>
+                <tr><td class="n" style="font-size:11px">EMP-1036</td><td><b style="color:#12304f">محمد الدوسري</b></td><td>المالية</td><td class="n">16,800</td><td style="color:#b4232c;font-weight:700">موقوف</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pal">
+        <div class="psw"><div style="background:#12304f"></div><b>كحلي داكن</b></div>
+        <div class="psw"><div style="background:#1c4b80"></div><b>أساسي</b></div>
+        <div class="psw"><div style="background:#2c6cb0"></div><b>500</b></div>
+        <div class="psw"><div style="background:#eaf2fb"></div><b>خلفية</b></div>
+        <div class="psw"><div style="background:#f2f6fa"></div><b>رأس الجدول</b></div>
+        <div class="psw"><div style="background:#dfe6ee"></div><b>حدود</b></div>
+      </div>
+      <div class="notes">
+        <div class="note pro"><h5>✓ المزايا</h5><ul><li>الأكثر تحفّظاً — لا أحد يجادّله يقبله</li><li>يعمل ممتازاً عند الطباعة على A4</li><li>لغة بصرية معروفة للجهات الحكومية</li></ul></div>
+        <div class="note con"><h5>⚠ الاعتبارات</h5><ul><li>الأزرق يُقرأ كـ«برمجي» لا كـ«مؤسسي»</li><li>الحدود الكثيرة قد تُثقل الجداول الكبيرة</li></ul></div>
+      </div>
+      <div class="fit"><b>الأنسب لـ:</b> بنوك · جهات حكومية · مناقصات رسمية تفرض صورة رسمية.</div>
+    </div>
+  </div>
+
+  <!-- ============ 3 ============ -->
+  <div class="c c3">
+    <div class="c-top">
+      <span class="c-badge">3</span>
+      <div class="c-name"><h3>الفحمي التقني</h3><p>أسود فحمي + كهرماني · وضع داكن كامل للمحلّلين</p></div>
+      <div class="c-tags"><span class="tg">داكن</span><span class="tg">عالي الكثافة</span><span class="tg">تقني</span></div>
+    </div>
+    <div class="c-body">
+      <div class="app">
+        <aside class="sb">
+          <div class="sbh"><div class="m1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0c0e11" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg></div><div><strong>MASSOBI</strong><span>HR &amp; PAYROLL OS</span></div></div>
+          <div class="nav">
+            <div class="ns">OVERVIEW</div>
+            <div class="ni on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg> Dashboard</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg> Analytics</div>
+            <div class="ns">OPERATIONS</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Employees</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> Payroll</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> Attendance</div>
+            <div class="ns">COMPLIANCE</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M7 7l5-4 5 4"/></svg> WPS / SIF</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg> GOSI</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg> Nitaqat</div>
+          </div>
+        </aside>
+        <div class="ct2">
+          <div class="top"><h4>PAYROLL OVERVIEW</h4><div class="search">search…</div></div>
+          <div class="bd">
+            <div class="ks">
+              <div class="k"><span>HEADCOUNT</span><b class="n">1,042</b><i>▲ 12 MTD</i></div>
+              <div class="k"><span>PAYROLL COST</span><b class="n">4.28M</b><i>▲ 2.4%</i></div>
+              <div class="k"><span>VIOLATIONS</span><b class="n">23</b><i class="dn">▲ 7 CRIT</i></div>
+            </div>
+            <div class="tb">
+              <table style="width:100%;border-collapse:collapse">
+                <tr><th>EMP ID</th><th>NAME</th><th>DEPT</th><th>NATIONALITY</th><th>NET</th></tr>
+                <tr><td style="font-size:11px;color:#6b7280">EMP-1042</td><td style="color:#fff">عبدالله الحربي</td><td>IT</td><td class="up">SAUDI</td><td class="n">16,420</td></tr>
+                <tr><td style="font-size:11px;color:#6b7280">EMP-1041</td><td style="color:#fff">Raj Patel</td><td>SALES</td><td class="dn">EXPAT</td><td class="n">11,980</td></tr>
+                <tr><td style="font-size:11px;color:#6b7280">EMP-1039</td><td style="color:#fff">سارة القحطاني</td><td>HR</td><td class="up">SAUDI</td><td class="n">19,240</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pal">
+        <div class="psw"><div style="background:#0c0e11"></div><b>خلفية</b></div>
+        <div class="psw"><div style="background:#12151a"></div><b>بطاقة</b></div>
+        <div class="psw"><div style="background:#262a31"></div><b>حدود</b></div>
+        <div class="psw"><div style="background:#e0a12e"></div><b>كهرماني</b></div>
+        <div class="psw"><div style="background:#22c55e"></div><b>صاعد</b></div>
+        <div class="psw"><div style="background:#ef4444"></div><b>هابط</b></div>
+      </div>
+      <div class="notes">
+        <div class="note pro"><h5>✓ المزايا</h5><ul><li>الأعلى وضوحاً للبيانات الرقمية</li><li>الوضع الداكن يقلل إجهاد العين في الجلسات الطويلة</li><li>يشعرك بـ«منتج احترافي» لا «برنامج محاسبة»</li></ul></div>
+        <div class="note con"><h5>⚠ الاعتبارات</h5><ul><li><b>لا يصلح للطباعة</b> — ألوان فاتحة على داكن</li><li>غير مناسب للمناقصات الرسمية أوأو المقابلات</li><li>خط عربي خفيف على شاشة داكنة قد يزدحم</li></ul></div>
+      </div>
+      <div class="fit"><b>الأنسب لـ:</b> محلّلو الرواتب والبيانات · مستخدمو الكومبيوتر طوال اليوم · عروض داخلية.</div>
+    </div>
+  </div>
+
+  <!-- ============ 4 ============ -->
+  <div class="c c4">
+    <div class="c-top">
+      <span class="c-badge">4</span>
+      <div class="c-name"><h3>الأبيض النقي (سويسري)</h3><p>أبيض بالكامل + حدود رفيعة + فراغ واسع · أرقى طابع</p></div>
+      <div class="c-tags"><span class="tg">راقٍ</span><span class="tg">منخفض الكثافة</span></div>
+    </div>
+    <div class="c-body">
+      <div class="app">
+        <aside class="sb">
+          <div class="sbh"><strong>مساري</strong><span>Payroll Intelligence</span></div>
+          <div class="nav">
+            <div class="ns">نظرة عامة</div>
+            <div class="ni on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg> لوحة المؤشرات</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg> التحليلات</div>
+            <div class="ns">الموارد البشرية</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> الموظفون</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> الرواتب</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> الحضور</div>
+            <div class="ns">الامتثال</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M7 7l5-4 5 4"/></svg> حماية الأجور</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg> التأمينات</div>
+          </div>
+        </aside>
+        <div class="ct" style="background:#fff">
+          <div class="top"><h4>مؤشرات الأداء</h4><div class="search">بحث</div></div>
+          <div class="bd">
+            <div class="ks">
+              <div class="k"><span>Headcount</span><b class="n">1,042</b></div>
+              <div class="k"><span>Saudization</span><b class="n">38.4%</b></div>
+              <div class="k"><span>Payroll</span><b class="n">4.28M</b></div>
+              <div class="k"><span>Compliance</span><b class="n">97%</b></div>
+            </div>
+            <div class="tb">
+              <table style="width:100%;border-collapse:collapse">
+                <tr><th>الموظف</th><th>القسم</th><th>الجنسية</th><th>الراتب الصافي</th></tr>
+                <tr><td><b>عبدالله الحربي</b></td><td>تقنية المعلومات</td><td>سعودي</td><td class="n">16,420</td></tr>
+                <tr><td><b>سارة القحطاني</b></td><td>الموارد البشرية</td><td>سعودي</td><td class="n">19,240</td></tr>
+                <tr><td><b>Raj Patel</b></td><td>المبيعات</td><td>وافد</td><td class="n">11,980</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pal">
+        <div class="psw"><div style="background:#ffffff;border:1px solid #e5e7eb"></div><b>أبيض</b></div>
+        <div class="psw"><div style="background:#f9fafb"></div><b>خلفية</b></div>
+        <div class="psw"><div style="background:#111827"></div><b>نص</b></div>
+        <div class="psw"><div style="background:#6b7280"></div><b>ثانوي</b></div>
+        <div class="psw"><div style="background:#e5e7eb"></div><b>حدود</b></div>
+        <div class="psw"><div style="background:#f3f4f6"></div><b>خفيف</b></div>
+      </div>
+      <div class="notes">
+        <div class="note pro"><h5>✓ المزايا</h5><ul><li>الأرفع مستوى بصرياً — يبدو مخصصاً لا مجمّعاً</li><li>طباعة ممتازة (أسود على أبيض)</li><li>يخفف ضغط المعلومات — مريح للعرض التنفيذي</li></ul></div>
+        <div class="note con"><h5>⚠ الاعتبارات</h5><ul><li><b>لا يصلح لنظام كثيف</b> — عدد أقل من البيانات لكل شاشة</li><li>ضعف الألوان قد يربك المستخدمين اليوميين</li><li>يحتاج إعادة تخطيط لكل شاشة على حدة</li></ul></div>
+      </div>
+      <div class="fit"><b>الأنسب لـ:</b> لوحات الإدارة والعروض التقديمية · نظام يُعرض أكثر مما يُستخدم يومياً.</div>
+    </div>
+  </div>
+
+  <!-- ============ 5 ============ -->
+  <div class="c c5">
+    <div class="c-top">
+      <span class="c-badge">5</span>
+      <div class="c-name"><h3>الأخضر الداكن الحديث</h3><p>خلفية داكنة + زمردي متوهج · طابع SaaS عصري</p></div>
+      <div class="c-tags"><span class="tg">عصري</span><span class="tg">منتج برمجي</span></div>
+    </div>
+    <div class="c-body">
+      <div class="app">
+        <aside class="sb">
+          <div class="sbh"><div class="m1"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#064e3b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg></div><div><strong>مساري</strong><span>Payroll OS</span></div></div>
+          <div class="nav">
+            <div class="ns">الرئيسية</div>
+            <div class="ni on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg> لوحة التحكم</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg> التحليلات</div>
+            <div class="ns">العمليات</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> الموظفون</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> الرواتب</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> الحضور</div>
+            <div class="ns">الامتثال</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M7 7l5-4 5 4"/></svg> حماية الأجور</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg> التأمينات</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg> نطاقات</div>
+          </div>
+        </aside>
+        <div class="ct2">
+          <div class="top"><h4>لوحة التحكم</h4><div class="search">بحث…</div></div>
+          <div class="bd">
+            <div class="ks">
+              <div class="k"><span>الموظفون</span><b class="n">1,042</b></div>
+              <div class="k"><span>التوطين</span><b class="n">38.4%</b></div>
+              <div class="k"><span>الرواتب</span><b class="n">4.28M</b></div>
+            </div>
+            <div class="tb">
+              <table style="width:100%;border-collapse:collapse">
+                <tr><th>الموظف</th><th>القسم</th><th>الجنسية</th><th>الصافي</th></tr>
+                <tr><td><b style="color:#f0fdfa">عبدالله الحربي</b></td><td>تقنية المعلومات</td><td><span style="color:#6ee7b7">سعودي</span></td><td class="n">16,420</td></tr>
+                <tr><td><b style="color:#f0fdfa">سارة القحطاني</b></td><td>الموارد البشرية</td><td><span style="color:#6ee7b7">سعودي</span></td><td class="n">19,240</td></tr>
+                <tr><td><b style="color:#f0fdfa">Raj Patel</b></td><td>المبيعات</td><td><span style="color:#fca5a5">وافد</span></td><td class="n">11,980</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pal">
+        <div class="psw"><div style="background:#0d1418"></div><b>خلفية</b></div>
+        <div class="psw"><div style="background:#121b20"></div><b>بطاقة</b></div>
+        <div class="psw"><div style="background:#1f2a33"></div><b>حدود</b></div>
+        <div class="psw"><div style="background:#10b981"></div><b>زمردي</b></div>
+        <div class="psw"><div style="background:#6ee7b7"></div><b>مضيء</b></div>
+        <div class="psw"><div style="background:#064e3b"></div><b>عميق</b></div>
+      </div>
+      <div class="notes">
+        <div class="note pro"><h5>✓ المزايا</h5><ul><li>الأنيق في الفئات الحديثة — يشعرك بشركة ناشئة</li><li>الزمردي المتوهج يعمل كـ«ضوء» في داكن</li><li>مساحات مُدوّرة 14px تعطي إحساساً سلساً</li></ul></div>
+        <div class="note con"><h5>⚠ الاعتبارات</h5><ul><li>الأقل جدية من الخمسة — قد لا يناسب مناقصة حكومية</li><li>خط عربي فاتح على داكن يحتاج ضبطاً دقيقاً</li><li>لا يصلح للطباعة على ورق</li></ul></div>
+      </div>
+      <div class="fit"><b>الأنسب لـ:</b> شركات ناشئة · منتج يُعرض على مستثمرين · مستخدمو كمبيوتر طوال اليوم.</div>
+    </div>
+  </div>
+
+  <!-- ============ 6 ============ -->
+  <div class="c c6">
+    <div class="c-top">
+      <span class="c-badge">6</span>
+      <div class="c-name"><h3>البترولي الهادئ</h3><p>أخضر بترولي فاتح + زوايا مستديرة · متوازن ومريح</p></div>
+      <div class="c-tags"><span class="tg">متوازن</span><span class="tg">الأكثر أماناً</span></div>
+    </div>
+    <div class="c-body">
+      <div class="app">
+        <aside class="sb">
+          <div class="sbh"><div class="m1"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg></div><div><strong>مساري</strong><span>الموارد البشرية والرواتب</span></div></div>
+          <div class="nav">
+            <div class="ns">الرئيسية</div>
+            <div class="ni on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg> لوحة التحكم</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg> التقارير</div>
+            <div class="ns">العمليات</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> الموظفون</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> الرواتب</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> الحضور</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4M16 2v4M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="2"/></svg> الإجازات</div>
+            <div class="ns">الأنظمة السعودية</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M7 7l5-4 5 4"/></svg> حماية الأجور</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg> التأمينات</div>
+            <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg> نطاقات</div>
+          </div>
+        </aside>
+        <div class="ct">
+          <div class="top"><h4>الموظفون</h4><div class="search">بحث…</div></div>
+          <div class="bd">
+            <div class="ks">
+              <div class="k"><span>إجمالي الموظفين</span><b class="n">1,042</b></div>
+              <div class="k"><span>نسبة التوطين</span><b class="n">38.4%</b></div>
+              <div class="k"><span>مسير الرواتب</span><b class="n">4.28M</b></div>
+            </div>
+            <div class="tb">
+              <table style="width:100%;border-collapse:collapse">
+                <tr><th>الموظف</th><th>القسم</th><th>الجنسية</th><th>الراتب</th><th>الحالة</th></tr>
+                <tr><td><b style="color:#0b2e2b">عبدالله الحربي</b></td><td>تقنية المعلومات</td><td><span style="background:#e0f5f2;color:#0f766e;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">سعودي</span></td><td class="n">18,500</td><td><span style="background:#e0f5f2;color:#0f766e;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">نشط</span></td></tr>
+                <tr><td><b style="color:#0b2e2b">سارة القحطاني</b></td><td>الموارد البشرية</td><td><span style="background:#e0f5f2;color:#0f766e;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">سعودي</span></td><td class="n">22,000</td><td><span style="background:#fef3c7;color:#8a6116;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">إجازة</span></td></tr>
+                <tr><td><b style="color:#0b2e2b">Raj Patel</b></td><td>المبيعات</td><td><span style="background:#f1f5f9;color:#64748b;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">وافد</span></td><td class="n">14,200</td><td><span style="background:#e0f5f2;color:#0f766e;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">نشط</span></td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pal">
+        <div class="psw"><div style="background:#0b2e2b"></div><b>عميق</b></div>
+        <div class="psw"><div style="background:#0f766e"></div><b>أساسي</b></div>
+        <div class="psw"><div style="background:#14b8a6"></div><b>500</b></div>
+        <div class="psw"><div style="background:#e0f5f2"></div><b>خلفية</b></div>
+        <div class="psw"><div style="background:#f5f7f9"></div><b>رمادي</b></div>
+        <div class="psw"><div style="background:#e2e8f0"></div><b>حدود</b></div>
+      </div>
+      <div class="notes">
+        <div class="note pro"><h5>✓ المزايا</h5><ul><li>الأكثر أماناً — لا يبدو غريباً ولا عابثاً契約ravage ولا عابث</li><li>التباين مريح جداً للعربية</li><li>يناسب الطباعة والعرض معاً</li><li>يمكن تطبيقه تدريجياً دون إعادة بناء الشاشات</li></ul></div>
+        <div class="note con"><h5>⚠ الاعتبارات</h5><ul><li>أقل تميّزاً — لن يتوقف أحد عن النظر</li><li>يحتاج خطاً مختلفاً ليتميّز عن الأنافر</li></ul></div>
+      </div>
+      <div class="fit"><b>الأنسب لـ:</b> نظام متكامل يُستخدم يومياً ويُطبع أحياناً · الخيار الأقل مخاطرة.</div>
+    </div>
+  </div>
+
+  <div style="margin-top:64px;background:#0f172a;color:#fff;border-radius:18px;padding:28px 30px">
+    <h3 style="font-size:21px;font-weight:800;margin-bottom:8px">كيف تختار؟</h3>
+    <p style="font-size:14px;color:#94a3b8;line-height:1.85;max-width:900px">
+      حدد جمهورك أولاً ثم اختر:<br>
+      • <b style="color:#5eead4">تبيع لجهات حكومية أو بنوك</b> → نموذج ٢ الكحلي، أو ١ الأخضر<br>
+      • <b style="color:#5eead4">شركة سعودية تريد طابعاً محلياً</b> → نموذج ١ الأخضر المؤسسي<br>
+      • <b style="color:#5eead4">مستخدمون تقنيون طول اليوم</b> → نموذج ٣ الفحمي، أو ٥ الأخضر الداكن<br>
+      • <b style="color:#5eead4">عروض لمستثمرين أو مجلس إدارة</b> → نموذج ٤ الأبيض النقي<br>
+      • <b style="color:#5eead4">مش متأكد / تريد خياراً وسطاً</b> → نموذج ٦ البترولي
+    </p>
+    <p style="font-size:13px;color:#64748b;margin-top:18px;padding-top:18px;border-top:1px solid #1e293b">
+      عند اختيارك: أستبدل متغيّرات الألوان في <code style="background:#1e293b;padding:2px 7px;border-radius:5px;font-size:12px">src/index.css</code> وأعيد بناء الشريط والقوائم في <code style="background:#1e293b;padding:2px 7px;border-radius:5px;font-size:12px">src/App.tsx</code> — دون لمس بقية الملفات. لا زيادة في حجم الحزمة.
+    </p>
+  </div>
+
+</div>
+</body>
+</html>

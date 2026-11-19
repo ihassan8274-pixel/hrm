@@ -1,70 +1,38 @@
 import { CountryConfig, InsuranceRules, TaxBracket, EOSRules, LeaveRules, WorkTimeRules, WPSRules } from './payroll-types';
+import { queryAll, queryOne } from '../../../server/config/postgres';
+
+type CountryRulesDataSource = {
+  getCountry: (code: string) => Promise<any>;
+  getRules: (code: string) => Promise<any[]>;
+  getEntityCountry: (id: number) => Promise<{ country_code: string } | undefined>;
+};
 
 export class CountryRulesService {
   private static cache: Map<string, CountryConfig> = new Map();
-  private static db: any = null;
+  private static dataSource: CountryRulesDataSource = {
+    getCountry: (code) => queryOne<any>('SELECT * FROM countries WHERE code = ? AND is_active = 1', code),
+    getRules: (code) => queryAll<any>('SELECT * FROM country_rules WHERE country_code = ? AND is_active = 1', code),
+    getEntityCountry: (id) => queryOne<{ country_code: string }>('SELECT country_code FROM entities WHERE id = ?', id),
+  };
 
-  static setDatabase(db: any) {
-    this.db = db;
+  static setDataSource(dataSource: CountryRulesDataSource) {
+    this.dataSource = dataSource;
     this.cache.clear();
   }
-
   static async getRules(countryCode: string): Promise<CountryConfig> {
     if (this.cache.has(countryCode)) {
       return this.cache.get(countryCode)!;
     }
 
-    if (!this.db) {
-      throw new Error('Database not initialized in CountryRulesService');
-    }
-
-    const country = this.db.prepare('SELECT * FROM countries WHERE code = ? AND is_active = 1').get(countryCode);
+    const country = await this.dataSource.getCountry(countryCode);
     if (!country) {
       throw new Error(`Country not found: ${countryCode}`);
     }
 
-    const config = this.buildConfigFromDb(country);
+    const customRules = await this.dataSource.getRules(country.code);
+    const config = this.buildConfig(country, customRules);
     this.cache.set(countryCode, config);
     return config;
-  }
-
-  private static buildConfigFromDb(country: any): CountryConfig {
-    const cols = (this.db.prepare('PRAGMA table_info(country_rules)').all() as { name: string }[]).map((c) => c.name);
-    const hasRuleKeyValue = cols.includes('rule_key') && cols.includes('rule_value');
-    const hasIsActive = cols.includes('is_active');
-
-    // Modern schema: rows of rule_key/rule_value (optionally filtered by is_active when the column exists)
-    if (hasRuleKeyValue) {
-      const sql = `SELECT * FROM country_rules WHERE country_code = ?${hasIsActive ? ' AND is_active = 1' : ''}`;
-      const customRules = this.db.prepare(sql).all(country.code);
-      return this.buildConfig(country, customRules as any[]);
-    }
-
-    // Legacy schema: single row of flat country fields (no rule_key/rule_value, and no is_active column)
-    const legacy = this.db.prepare('SELECT * FROM country_rules WHERE country_code = ?').get(country.code);
-    const legacyRules: { rule_key: string; rule_value: string }[] = [];
-    if (legacy) {
-      const flat: Record<string, unknown> = {
-        insurance_emp_rate: legacy.insurance_emp_rate,
-        insurance_comp_rate: legacy.insurance_comp_rate,
-        tax_type: legacy.tax_type,
-        eos_months_per_year: legacy.eosb_months_per_year,
-        annual_leave_days: legacy.annual_leave_days,
-        working_hours_per_day: legacy.working_hours,
-      };
-      for (const [k, v] of Object.entries(flat)) {
-        if (v !== null && v !== undefined && v !== '') legacyRules.push({ rule_key: k, rule_value: String(v) });
-      }
-      if (legacy.tax_type === 'progressive') {
-        const legacyBrackets = this.db.prepare(
-          'SELECT lower_bound AS min, upper_bound AS max, rate FROM tax_brackets WHERE country_code = ? ORDER BY lower_bound'
-        ).all(country.code) as { min: number; max: number | null; rate: number }[];
-        if (legacyBrackets.length) {
-          legacyRules.push({ rule_key: 'tax_brackets_json', rule_value: JSON.stringify(legacyBrackets) });
-        }
-      }
-    }
-    return this.buildConfig(country, legacyRules);
   }
 
   private static buildConfig(country: any, customRules: any[]): CountryConfig {
@@ -159,8 +127,7 @@ export class CountryRulesService {
   }
 
   static async getEntityRules(entityId: number): Promise<CountryConfig> {
-    if (!this.db) throw new Error('Database not initialized');
-    const entity = this.db.prepare('SELECT country_code FROM entities WHERE id = ?').get(entityId);
+    const entity = await this.dataSource.getEntityCountry(entityId);
     if (!entity) throw new Error(`Entity not found: ${entityId}`);
     return this.getRules(entity.country_code);
   }

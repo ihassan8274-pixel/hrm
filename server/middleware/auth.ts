@@ -2,6 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import rateLimit from "express-rate-limit";
 import { config } from "../config/env";
+import { queryOne } from "../config/postgres";
 
 export const JWT_SECRET = config.JWT_SECRET;
 export const JWT_EXPIRY = config.JWT_EXPIRY;
@@ -36,7 +37,7 @@ export const enrollLimiter = rateLimit({
 });
 
 // Auth middleware
-export const authenticateToken = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+export const authenticateToken = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -44,12 +45,64 @@ export const authenticateToken = (req: express.Request, res: express.Response, n
     return res.status(401).json({ error: "Access token required" });
   }
 
+  let decoded: any;
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    (req as any).user = decoded;
-    next();
-  } catch (err) {
+    decoded = jwt.verify(token, JWT_SECRET) as any;
+  } catch {
     return res.status(403).json({ error: "Invalid or expired token" });
+  }
+  try {
+    // Verify token exists in sessions table (revocation check)
+    const session = await queryOne("SELECT 1 FROM sessions WHERE token = ? AND user_id = ?", token, decoded.id);
+    if (!session) return res.status(403).json({ error: "Token revoked" });
+    const account = await queryOne("SELECT id, username, role, entity_id, employee_id FROM users WHERE id = ? AND status = 'active'", decoded.id);
+    if (!account) return res.status(403).json({ error: "Account inactive" });
+    (req as any).user = { ...decoded, ...account };
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Endpoints an account may still reach while it runs on its factory-default
+ * password. Everything else is refused so the default cannot be used to read
+ * or change real data.
+ */
+export const PASSWORD_CHANGE_ALLOWLIST = [
+  "/api/auth/change-password",
+  "/api/auth/me",
+  "/api/auth/logout",
+];
+
+/**
+ * Blocks API traffic for accounts that still need a password change.
+ *
+ * The UI already gates on must_change_password, but the API has to enforce it
+ * too: otherwise the known default password is enough to drive every endpoint
+ * directly with curl.
+ */
+export const enforcePasswordChange = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const url = normalizeApiUrl(req.originalUrl || req.path);
+  if (!url.startsWith("/api")) return next();
+  if (PASSWORD_CHANGE_ALLOWLIST.some((p) => url === p)) return next();
+  if (PASSWORD_CHANGE_ALLOWLIST.some((p) => url.startsWith(p + "/"))) return next();
+
+  const user = (req as any).user;
+  if (!user?.id) return next();
+
+  try {
+    const row = await queryOne("SELECT must_change_password FROM users WHERE id = ?", user.id) as any;
+    if (row?.must_change_password === 1) {
+      return res.status(403).json({
+        error: "يجب تغيير كلمة المرور الافتراضية قبل استخدام النظام",
+        code: "PASSWORD_CHANGE_REQUIRED",
+        must_change_password: true,
+      });
+    }
+    next();
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -75,6 +128,12 @@ export const normalizeApiUrl = (raw: string) => {
 
 export const openApi = [
   "/api/auth/login",
+  // The federated login carries a Cloudflare Access assertion instead of a local
+  // token, so it has to be reachable before any session exists. Its own signature
+  // check is the gate — see server/lib/cloudflare-access.ts.
+  "/api/auth/sso-login",
+  "/api/auth/sso-config",
+  "/api/auth/bootstrap-status",
   "/api/kiosk",
   "/api/attendance/pair-phone",
   "/api/attendance/geo-validate",
@@ -85,6 +144,11 @@ export const openApi = [
   // and must carry a token — see the BIOMETRIC_ENROLL rule in ROUTE_PERMISSIONS below.
   "/api/webauthn/login/options",
   "/api/webauthn/login",
+  // Liveness/readiness probes. Anonymous by design: orchestrators and load
+  // balancers poll these before any credential exists, and they expose only
+  // coarse status — never schema, row counts, or configuration.
+  "/api/health",
+  "/api/ready",
 ];
 
 // --- C4: central RBAC policy (single source of truth) ---
@@ -101,6 +165,9 @@ export const PERM = {
   ATTENDANCE_DEVICES_MANAGE: "attendance_devices.manage",
   AUDIT_LOGS_VIEW: "audit_logs.view",
   REPORTS_VIEW: "reports.view",
+  // Dashboard aggregates (/api/stats, /api/analytics/*): every role that renders
+  // the dashboard screen, so branch_manager keeps its scoped counts.
+  DASHBOARD_VIEW: "dashboard.view",
   WPS_VIEW: "wps.view",
   EXCEL_EXPORT: "excel.export",
   SAUDI_COMPLIANCE: "saudi.compliance",
@@ -128,6 +195,13 @@ export const PERM = {
   HR_OPERATIONS_MANAGE: "hr_operations.manage", // HR-only screens (fleet, medical, visas, ...)
   AI_TOOLS_USE: "ai.tools.use", // ai_consultant & ai_letters screens
   ALERTS_MANAGE: "alerts.manage", // expiry-alert hub, opened from the header bell
+// Salary Structure Engine
+  SALARY_STRUCTURES_MANAGE: "salary_structures.manage", // admin, hr_manager, finance (reads), admin, hr_manager (writes)
+  SALARY_COMPONENTS_MANAGE: "salary_components.manage", // admin, hr_manager
+  PAYROLL_SLIPS_MANAGE: "payroll_slips.manage", // admin, hr_manager, finance
+  // مركز النماذج والطباعة: إصدار المستندات وتحرير القوالب
+  FORMS_DOCUMENTS_ISSUE: "forms.documents.issue", // admin, hr_manager, branch_manager
+  FORMS_TEMPLATES_MANAGE: "forms.templates.manage", // admin, hr_manager
 } as const;
 
 // role -> permission keys ("*" = every screen: admin/hr_manager own all screens)
@@ -138,6 +212,7 @@ export const ROLE_PERMISSIONS: Record<string, Set<string>> = {
     PERM.ALLOWANCE_TYPES_MANAGE,
     PERM.PAYROLL_RUN,
     PERM.REPORTS_VIEW,
+    PERM.DASHBOARD_VIEW,
     PERM.WPS_VIEW,
     PERM.EXCEL_EXPORT,
     PERM.SAUDI_COMPLIANCE,
@@ -147,9 +222,13 @@ export const ROLE_PERMISSIONS: Record<string, Set<string>> = {
     PERM.LOANS_MANAGE, // loans screen: admin, hr_manager, finance
     PERM.EXPENSES_MANAGE, // expenses screen: admin, hr_manager, finance
     PERM.ALERTS_MANAGE, // expiry-alert hub is reached from the bell every role renders
+    PERM.SALARY_STRUCTURES_MANAGE, // salary structures read
+    PERM.SALARY_COMPONENTS_MANAGE, // salary components read
+    PERM.PAYROLL_SLIPS_MANAGE, // payroll slips read
   ]),
   branch_manager: new Set<string>([
     PERM.EMPLOYEES_MANAGE,
+    PERM.DASHBOARD_VIEW, // dashboard screen: scoped stats/analytics for the branch
     PERM.ATTENDANCE_DEVICES_MANAGE,
     PERM.AUDIT_LOGS_VIEW, // DashboardView reads recent activity for every dashboard role
     PERM.BIOMETRIC_ENROLL, // attendance_kiosk screen: admin, hr_manager, branch_manager
@@ -158,6 +237,7 @@ export const ROLE_PERMISSIONS: Record<string, Set<string>> = {
     PERM.WORKFLOWS_MANAGE, // approval_workflows + manager_inbox screens
     PERM.DOCUMENTS_MANAGE, // employees screen uploads attachments (EmployeesView)
     PERM.ALERTS_MANAGE, // expiry-alert hub is reached from the bell every role renders
+    PERM.FORMS_DOCUMENTS_ISSUE, // مركز النماذج: إصدار الخطابات والشهادات لموظفي الفرع
   ]),
   employee_ess: new Set<string>([PERM.ESS]),
 };
@@ -184,9 +264,17 @@ export const ROUTE_PERMISSIONS: Array<{ method: string; pattern: RegExp; perm: s
   { method: "DELETE", pattern: /^\/api\/departments\/[^/]+$/, perm: PERM.DEPARTMENTS_MANAGE },
   // payroll screen: admin, hr_manager, finance
   { method: "POST", pattern: /^\/api\/payroll\/(generate|lock|sync-attendance|batch|calculate)$/, perm: PERM.PAYROLL_RUN },
+  // off-cycle salary lines + locked-period corrections + tax exemptions: payroll documents
+  { method: "*", pattern: /^\/api\/additional-salaries(\/.*)?$/, perm: PERM.PAYROLL_RUN },
+  { method: "POST", pattern: /^\/api\/payroll\/correct$/, perm: PERM.PAYROLL_RUN },
+  { method: "GET", pattern: /^\/api\/payroll\/corrections$/, perm: PERM.PAYROLL_RUN },
+  { method: "*", pattern: /^\/api\/tax-exemptions(\/.*)?$/, perm: PERM.PAYROLL_RUN },
+  { method: "GET", pattern: /^\/api\/employees\/[^/]+\/eos$/, perm: PERM.REPORTS_VIEW },
   // attendance devices (admin ops): attendance_kiosk screen -> admin, hr_manager, branch_manager
   { method: "POST", pattern: /^\/api\/attendance\/devices(\/.*)?$/, perm: PERM.ATTENDANCE_DEVICES_MANAGE },
   { method: "DELETE", pattern: /^\/api\/attendance\/devices\/[^/]+$/, perm: PERM.ATTENDANCE_DEVICES_MANAGE },
+  // suspend/resume a kiosk without deleting it
+  { method: "PATCH", pattern: /^\/api\/attendance\/devices\/[^/]+$/, perm: PERM.ATTENDANCE_DEVICES_MANAGE },
   // biometric enrollment — replaces an employee's stored credential, so it is an
   // administrative action. Anonymous kiosk traffic stops at the login legs, which are
   // deliberately absent from this table (openApi routes carry no req.user).
@@ -201,12 +289,25 @@ export const ROUTE_PERMISSIONS: Array<{ method: string; pattern: RegExp; perm: s
   { method: "GET", pattern: /^\/api\/audit-logs$/, perm: PERM.AUDIT_LOGS_VIEW },
   // financial / compliance data
   { method: "GET", pattern: /^\/api\/reports(\/.*)?$/, perm: PERM.REPORTS_VIEW },
+  // dashboard screen: admin, hr_manager, finance, branch_manager (DashboardView, ReportsView)
+  { method: "GET", pattern: /^\/api\/stats$/, perm: PERM.DASHBOARD_VIEW },
+  { method: "GET", pattern: /^\/api\/analytics(\/.*)?$/, perm: PERM.DASHBOARD_VIEW },
+  // executive_board screen: admin, hr_manager; finance keeps API parity with the
+  // consolidated report (REPORTS_VIEW) even though the screen is not in its sidebar.
+  { method: "GET", pattern: /^\/api\/executive(\/.*)?$/, perm: PERM.REPORTS_VIEW },
   { method: "GET", pattern: /^\/api\/provisions(\/.*)?$/, perm: PERM.REPORTS_VIEW },
   { method: "GET", pattern: /^\/api\/wps(\/.*)?$/, perm: PERM.WPS_VIEW },
   { method: "GET", pattern: /^\/api\/excel(\/.*)?$/, perm: PERM.EXCEL_EXPORT },
   { method: "*", pattern: /^\/api\/saudi(\/.*)?$/, perm: PERM.SAUDI_COMPLIANCE },
   // system administration (unchanged: admin only)
   { method: "*", pattern: /^\/api\/admin(\/.*)?$/, perm: PERM.ADMIN_MANAGE },
+  // identity binding: deciding which federated address reaches which account is
+  // an administrative act, so it sits with the other admin-only rules.
+  { method: "GET", pattern: /^\/api\/auth\/users$/, perm: PERM.ADMIN_MANAGE },
+  { method: "PUT", pattern: /^\/api\/auth\/users\/[^/]+\/email$/, perm: PERM.ADMIN_MANAGE },
+  // Role, status and credential changes decide who can reach the system at all.
+  { method: "PUT", pattern: /^\/api\/auth\/users\/[^/]+$/, perm: PERM.ADMIN_MANAGE },
+  { method: "PUT", pattern: /^\/api\/auth\/users\/[^/]+\/password$/, perm: PERM.ADMIN_MANAGE },
   { method: "*", pattern: /^\/api\/backup(\/.*)?$/, perm: PERM.BACKUP_MANAGE },
   { method: "POST", pattern: /^\/api\/entities$/, perm: PERM.ENTITIES_MANAGE },
   { method: "PUT", pattern: /^\/api\/entities\/[^/]+$/, perm: PERM.ENTITIES_MANAGE },
@@ -225,6 +326,7 @@ export const ROUTE_PERMISSIONS: Array<{ method: string; pattern: RegExp; perm: s
   { method: "DELETE", pattern: /^\/api\/bonuses-penalties\/[^/]+$/, perm: PERM.BONUSES_MANAGE },
   // loans screen: admin, hr_manager, finance (src/components/LoansView.tsx:48)
   { method: "POST", pattern: /^\/api\/loans$/, perm: PERM.LOANS_MANAGE },
+  { method: "PUT", pattern: /^\/api\/loans\/[^/]+\/status$/, perm: PERM.LOANS_MANAGE },
   // expenses screen: admin, hr_manager, finance (src/components/ExpensesView.tsx:40)
   { method: "POST", pattern: /^\/api\/expenses$/, perm: PERM.EXPENSES_MANAGE },
   // attendance screen manual punch edits: admin, hr_manager, branch_manager
@@ -242,6 +344,9 @@ export const ROUTE_PERMISSIONS: Array<{ method: string; pattern: RegExp; perm: s
   // branch_manager also owns (EmployeesView.tsx:104) — admin, hr_manager, branch_manager
   { method: "POST", pattern: /^\/api\/documents$/, perm: PERM.DOCUMENTS_MANAGE },
   { method: "DELETE", pattern: /^\/api\/documents\/[^/]+$/, perm: PERM.DOCUMENTS_MANAGE },
+  // employee_documents: the richer upload flow (file validation, size limits).
+  { method: "POST", pattern: /^\/api\/employee-documents$/, perm: PERM.DOCUMENTS_MANAGE },
+  { method: "DELETE", pattern: /^\/api\/employee-documents\/[^/]+$/, perm: PERM.DOCUMENTS_MANAGE },
   // expiry-alert hub: opened from the header bell, which every signed-in operational role
   // renders (src/App.tsx:511 -> ExpiryAlertsModal.tsx:78). employee_ess stays denied here,
   // exactly as it was while the route was unclassified.
@@ -252,25 +357,66 @@ export const ROUTE_PERMISSIONS: Array<{ method: string; pattern: RegExp; perm: s
   // finance's nor branch_manager's allow-list contains (src/App.tsx:209-210).
   { method: "POST", pattern: /^\/api\/(appraisals|assets|clearances|disciplinary\/violations|ewa\/withdrawals|exit-interviews|flight-tickets|flexible\/shifts|grievances|hearings|promotions|smart-assets|telework\/permits|transfers|visas|warnings|work-injuries)$/, perm: PERM.HR_OPERATIONS_MANAGE },
   { method: "POST", pattern: /^\/api\/(fleet\/vehicles|fleet\/traffic-fines|qiwa\/contracts|qiwa\/draft-from-employees)$/, perm: PERM.HR_OPERATIONS_MANAGE },
-  { method: "POST", pattern: /^\/api\/(hse\/inspections|hse\/ppe-logs|medical\/dependents|medical\/policies)$/, perm: PERM.HR_OPERATIONS_MANAGE },
+  { method: "POST", pattern: /^\/api\/(hse\/inspections|hse\/ppe-logs|medical\/dependents|medical\/policies|health-certificates)$/, perm: PERM.HR_OPERATIONS_MANAGE },
+  // Unified Excel/CSV importer (preview parses only; commit writes in one tx)
+  { method: "POST", pattern: /^\/api\/import\/(preview|commit)$/, perm: PERM.HR_OPERATIONS_MANAGE },
   { method: "POST", pattern: /^\/api\/(recruitment\/candidates|recruitment\/jobs|talent\/assessments|talent\/succession)$/, perm: PERM.HR_OPERATIONS_MANAGE },
   { method: "POST", pattern: /^\/api\/(kudos(\/[^/]+\/like)?|rewards\/redeem)$/, perm: PERM.HR_OPERATIONS_MANAGE },
   { method: "POST", pattern: /^\/api\/overtime(\/[^/]+\/approve)?$/, perm: PERM.HR_OPERATIONS_MANAGE },
-  { method: "DELETE", pattern: /^\/api\/(fleet\/vehicles|medical\/dependents|overtime|talent\/succession)\/[^/]+$/, perm: PERM.HR_OPERATIONS_MANAGE },
+  { method: "DELETE", pattern: /^\/api\/(fleet\/vehicles|medical\/dependents|overtime|talent\/succession|health-certificates)\/[^/]+$/, perm: PERM.HR_OPERATIONS_MANAGE },
+  { method: "PUT", pattern: /^\/api\/health-certificates\/[^/]+$/, perm: PERM.HR_OPERATIONS_MANAGE },
   { method: "PUT", pattern: /^\/api\/(assets|smart-assets)\/[^/]+\/assign$/, perm: PERM.HR_OPERATIONS_MANAGE },
   { method: "PUT", pattern: /^\/api\/(clearances\/[^/]+\/department|grievances\/[^/]+\/status|policies\/ramadan)$/, perm: PERM.HR_OPERATIONS_MANAGE },
+
+  // --- Salary Structure Engine & Payroll Slips (admin, hr_manager, finance) ---
+  { method: "GET", pattern: /^\/api\/payroll\/structures$/, perm: PERM.SALARY_STRUCTURES_MANAGE },
+  { method: "GET", pattern: /^\/api\/payroll\/structures\/[^/]+$/, perm: PERM.SALARY_STRUCTURES_MANAGE },
+  { method: "POST", pattern: /^\/api\/payroll\/structures$/, perm: PERM.SALARY_STRUCTURES_MANAGE },
+  { method: "PUT", pattern: /^\/api\/payroll\/structures\/[^/]+$/, perm: PERM.SALARY_STRUCTURES_MANAGE },
+  { method: "DELETE", pattern: /^\/api\/payroll\/structures\/[^/]+$/, perm: PERM.SALARY_STRUCTURES_MANAGE },
+  { method: "GET", pattern: /^\/api\/payroll\/components$/, perm: PERM.SALARY_COMPONENTS_MANAGE },
+  { method: "POST", pattern: /^\/api\/payroll\/components$/, perm: PERM.SALARY_COMPONENTS_MANAGE },
+  { method: "PUT", pattern: /^\/api\/payroll\/components\/[^/]+$/, perm: PERM.SALARY_COMPONENTS_MANAGE },
+  { method: "POST", pattern: /^\/api\/payroll\/calculate-slip$/, perm: PERM.PAYROLL_SLIPS_MANAGE },
+  { method: "POST", pattern: /^\/api\/payroll\/save-slip$/, perm: PERM.PAYROLL_SLIPS_MANAGE },
+  { method: "GET", pattern: /^\/api\/payroll\/slips$/, perm: PERM.PAYROLL_SLIPS_MANAGE },
+  { method: "GET", pattern: /^\/api\/payroll\/slips\/[^/]+$/, perm: PERM.PAYROLL_SLIPS_MANAGE },
+  { method: "POST", pattern: /^\/api\/payroll\/slips\/[^/]+\/approve$/, perm: PERM.PAYROLL_SLIPS_MANAGE },
+  { method: "POST", pattern: /^\/api\/payroll\/slips\/[^/]+\/cancel$/, perm: PERM.PAYROLL_SLIPS_MANAGE },
+  { method: "GET", pattern: /^\/api\/payroll\/slips\/employee\/[^/]+$/, perm: PERM.PAYROLL_SLIPS_MANAGE },
+
+  // --- System administration (admin only) ---
+  { method: "POST", pattern: /^\/api\/auth\/register$/, perm: PERM.AUTH_REGISTER },
+  { method: "*", pattern: /^\/api\/admin(\/.*)?$/, perm: PERM.ADMIN_MANAGE },
+  { method: "*", pattern: /^\/api\/backup(\/.*)?$/, perm: PERM.BACKUP_MANAGE },
+  { method: "PUT", pattern: /^\/api\/countries\/[^/]+\/rules$/, perm: PERM.ADMIN_MANAGE },
+  { method: "POST", pattern: /^\/api\/entities$/, perm: PERM.ENTITIES_MANAGE },
+  { method: "PUT", pattern: /^\/api\/entities\/[^/]+$/, perm: PERM.ENTITIES_MANAGE },
+  { method: "DELETE", pattern: /^\/api\/entities\/[^/]+$/, perm: PERM.ENTITIES_MANAGE },
+
+  // --- مركز النماذج والطباعة (Forms & Print Center) ---
+  // القراءة والإصدار: admin, hr_manager, branch_manager. تعديل القوالب نفسها
+  // أكبر من إصدار المستند، فله صلاحية منفصلة لا تعطى لمدير الفرع.
+  { method: "GET", pattern: /^\/api\/forms(\/.*)?$/, perm: PERM.FORMS_DOCUMENTS_ISSUE },
+  { method: "POST", pattern: /^\/api\/forms\/templates$/, perm: PERM.FORMS_TEMPLATES_MANAGE },
+  { method: "PUT", pattern: /^\/api\/forms\/templates\/[^/]+$/, perm: PERM.FORMS_TEMPLATES_MANAGE },
+  { method: "DELETE", pattern: /^\/api\/forms\/templates\/[^/]+$/, perm: PERM.FORMS_TEMPLATES_MANAGE },
+  { method: "POST", pattern: /^\/api\/forms\/documents(\/.*)?$/, perm: PERM.FORMS_DOCUMENTS_ISSUE },
+  { method: "POST", pattern: /^\/api\/forms\/preview$/, perm: PERM.FORMS_DOCUMENTS_ISSUE },
 ];
 
-// The only write routes employee_ess may call (self-service surface of src/components/ESSView.tsx
-// plus the shell actions every authenticated role needs).
-export const ESS_WRITE_ALLOWLIST: Array<{ method: string; pattern: RegExp }> = [
-  { method: "POST", pattern: /^\/api\/auth\/logout$/ },
-  { method: "PUT", pattern: /^\/api\/auth\/change-password$/ },
-  { method: "PUT", pattern: /^\/api\/notifications\/read-all$/ },
-  { method: "PUT", pattern: /^\/api\/notifications\/[^/]+\/read$/ },
-  { method: "POST", pattern: /^\/api\/salary-certificates$/ }, // ESSView -> SalaryCertificateModal (شهادة تعريف بالراتب)
-  { method: "POST", pattern: /^\/api\/visas\/exit-reentry$/ }, // ESSView tab "طلب تأشيرة خروج وعودة"
-  { method: "POST", pattern: /^\/api\/copilot\/chat$/ }, // floating AI launcher is rendered for every role (read-only on the server)
+// The only read routes employee_ess may call (minimal surface for the ESS shell).
+export const ESS_READ_ALLOWLIST: Array<{ pattern: RegExp }> = [
+  { pattern: /^\/api\/auth\/me$/ },
+  { pattern: /^\/api\/settings$/ },
+  { pattern: /^\/api\/notifications$/ },
+  { pattern: /^\/api\/employees$/ },           // own record (filtered in handler)
+  { pattern: /^\/api\/payroll/, },            // own payslips (month/year params)
+  { pattern: /^\/api\/leaves/, },             // own leaves
+  { pattern: /^\/api\/documents\/[^/]+$/, },  // own documents
+  { pattern: /^\/api\/attendance\/logs/, },   // own attendance
+  { pattern: /^\/api\/salary-certificates/, }, // own certificates
+  { pattern: /^\/api\/ess\/requests$/ },      // own self-service requests (loans/leaves/grievances/suggestions)
 ];
 
 // --- C4: operational write routes (explicit classification) ---
@@ -278,6 +424,17 @@ export const ESS_WRITE_ALLOWLIST: Array<{ method: string; pattern: RegExp }> = [
 // may call them, employee_ess stays denied. This replicates exactly what the unclassified
 // write path already did, but makes the policy explicit and removes them from the boot-time
 // coverage scan. None concern self-service (those live in ESS_WRITE_ALLOWLIST).
+export const ESS_WRITE_ALLOWLIST: Array<{ method: string; pattern: RegExp }> = [
+  { method: "POST", pattern: /^\/api\/auth\/logout$/ },
+  { method: "PUT", pattern: /^\/api\/auth\/change-password$/ },
+  { method: "PUT", pattern: /^\/api\/notifications\/read-all$/ },
+  { method: "PUT", pattern: /^\/api\/notifications\/[^/]+\/read$/ },
+  { method: "POST", pattern: /^\/api\/salary-certificates$/ }, // ESSView -> SalaryCertificateModal (شهادة تعريف بالراتب)
+  { method: "POST", pattern: /^\/api\/visas\/exit-reentry$/ }, // ESSView tab "طلب تأشيرة خروج وعودة"
+  { method: "POST", pattern: /^\/api\/ess\/requests$/ }, // ESSView tab "طلباتي" (سلفة/إجازة/شكوى/مقترح/تطوير سير العمل)
+  { method: "POST", pattern: /^\/api\/copilot\/chat$/ }, // floating AI launcher is rendered for every role (read-only on the server)
+];
+
 export const OPERATIONAL_WRITE_ALLOWLIST: Array<{ method: string; pattern: RegExp }> = [
   { method: "DELETE", pattern: /^\/api\/clearances\/[^/]+$/ },
   { method: "DELETE", pattern: /^\/api\/disciplinary\/violations\/[^/]+$/ },
@@ -336,6 +493,12 @@ const enforceRoutePermissions = (req: express.Request, res: express.Response, ne
   const rule = ROUTE_PERMISSIONS.find((r) => ruleMatches(r, method, url));
   if (rule) return requirePermission(rule.perm)(req, res, next);
 
+  // Employee ESS read restriction: only explicit allowlisted GET routes permitted
+  if (method === "GET" && String(user.role || "") === "employee_ess") {
+    const allowed = ESS_READ_ALLOWLIST.some((r) => r.pattern.test(url));
+    if (!allowed) return res.status(403).json(FORBIDDEN);
+  }
+
   if (WRITE_METHODS.has(method)) {
     if (String(user.role || "") === "employee_ess" && !ESS_WRITE_ALLOWLIST.some((r) => r.method === method && r.pattern.test(url))) {
       return res.status(403).json(FORBIDDEN);
@@ -374,6 +537,8 @@ export function setupAuthGate(app: express.Express) {
     if (openApi.some((p) => url === p || url.startsWith(p + "/"))) return next();
     return authenticateToken(req, res, next);
   });
+  // After authentication (it needs req.user) and before RBAC.
+  app.use(enforcePasswordChange);
   app.use(enforceRoutePermissions);
 }
 

@@ -23,7 +23,7 @@ export default function TrainingView() {
         </div>
         <button 
           onClick={() => setIsAddingCourse(true)}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+          className="flex items-center gap-2 bg-brand-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-brand-700 transition-all shadow-lg shadow-brand-100"
         >
           <Plus className="w-5 h-5" />
           <span>إضافة دورة تدريبية</span>
@@ -32,8 +32,8 @@ export default function TrainingView() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'دورات نشطة', value: 3, color: 'text-blue-600', icon: BookOpen },
-          { label: 'موظفون تحت التدريب', value: 25, color: 'text-indigo-600', icon: User },
+          { label: 'دورات نشطة', value: 3, color: 'text-brand-600', icon: BookOpen },
+          { label: 'موظفون تحت التدريب', value: 25, color: 'text-brand-600', icon: User },
           { label: 'شهادات مكتملة', value: 12, color: 'text-emerald-600', icon: Award },
           { label: 'ساعات تدريبية', value: 140, color: 'text-amber-600', icon: Clock },
         ].map((stat, i) => (
@@ -49,12 +49,12 @@ export default function TrainingView() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {courses.map(course => (
-          <div key={course.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm group hover:border-indigo-200 transition-all">
+          <div key={course.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm group hover:border-brand-200 transition-all">
             <div className="flex justify-between items-start mb-6">
-               <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+               <div className="p-3 bg-brand-50 text-brand-600 rounded-2xl">
                  <GraduationCap className="w-6 h-6" />
                </div>
-               <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">
+               <span className="px-3 py-1 bg-brand-50 text-brand-600 rounded-full text-[10px] font-black uppercase tracking-widest">
                  {course.status}
                </span>
             </div>

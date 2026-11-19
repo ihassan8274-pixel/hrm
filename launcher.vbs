@@ -35,7 +35,7 @@ If Not fso.FolderExists("dist") Then
 End If
 
 ' تشغيل الخادم في الخلفية بشكل صامت تماماً (بدون نافذة سوداء)
-WshShell.Run "cmd /c set PORT=8090 && npm start", 0, False
+WshShell.Run "cmd /c set PORT=8090 && set NODE_ENV=production && npm start", 0, False
 
 ' الانتظار لمدة ثانيتين لضمان إقلاع السيرفر بنجاح
 WScript.Sleep 2500

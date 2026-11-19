@@ -73,7 +73,7 @@ export default function DocumentsView() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
             <div className="flex justify-between items-start mb-4">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
                  <ShieldCheck className="w-5 h-5" />
               </div>
               <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded">رقمي مؤمن</span>
@@ -139,7 +139,7 @@ export default function DocumentsView() {
                 <tr key={doc.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                       <FileText className="w-8 h-8 text-indigo-400 p-1.5 bg-indigo-50 rounded-lg" />
+                       <FileText className="w-8 h-8 text-brand-400 p-1.5 bg-brand-50 rounded-lg" />
                        <span className="font-bold text-slate-800">{doc.name}</span>
                     </div>
                   </td>
@@ -157,7 +157,7 @@ export default function DocumentsView() {
                   </td>
                   <td className="px-6 py-4 text-center">
                     <div className="flex justify-center gap-2">
-                       <button className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"><Download className="w-4 h-4" /></button>
+                       <button className="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"><Download className="w-4 h-4" /></button>
                        <button className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </td>
@@ -184,7 +184,7 @@ export default function DocumentsView() {
                   <select 
                     value={formData.employee_id}
                     onChange={e => setFormData({ ...formData, employee_id: Number(e.target.value) })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
                   >
                     <option value="0">اختر موظفاً...</option>
                     {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
@@ -196,7 +196,7 @@ export default function DocumentsView() {
                     type="text"
                     value={formData.name}
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
                     placeholder="مثال: صورة الهوية القومية"
                   />
                 </div>
@@ -206,7 +206,7 @@ export default function DocumentsView() {
                     <select 
                       value={formData.type}
                       onChange={e => setFormData({ ...formData, type: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
                     >
                       <option value="هوية">هوية / جواز سفر</option>
                       <option value="عقد بم">عقد عمل</option>
@@ -220,7 +220,7 @@ export default function DocumentsView() {
                       type="date"
                       value={formData.expiry_date}
                       onChange={e => setFormData({ ...formData, expiry_date: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
                     />
                   </div>
                 </div>

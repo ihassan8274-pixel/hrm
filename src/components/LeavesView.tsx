@@ -77,7 +77,7 @@ export default function LeavesView() {
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+          className="flex items-center gap-2 bg-brand-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-brand-700 transition-all shadow-lg shadow-brand-100"
         >
           <Plus className="w-5 h-5" />
           <span>تقديم طلب إجازة</span>
@@ -99,7 +99,7 @@ export default function LeavesView() {
         {filteredLeaves.map((leave) => (
           <div key={leave.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-6 group">
             <div className="flex gap-4 items-center">
-              <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+              <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors">
                 <Plane className="w-7 h-7" />
               </div>
               <div>
@@ -128,7 +128,7 @@ export default function LeavesView() {
                 <div className="flex gap-2">
                   <button 
                     onClick={() => handleStatusUpdate(leave.id, 'approved')}
-                    className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                    className="p-2 bg-emerald-50 text-brand-600 rounded-xl hover:bg-brand-600 hover:text-white transition-all shadow-sm"
                   >
                     <CheckCircle className="w-5 h-5" />
                   </button>
@@ -162,7 +162,7 @@ export default function LeavesView() {
                   <select 
                     value={formData.employee_id}
                     onChange={e => setFormData({ ...formData, employee_id: Number(e.target.value) })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
                   >
                     <option value="0">اختر موظفاً...</option>
                     {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
@@ -175,7 +175,7 @@ export default function LeavesView() {
                     <select 
                       value={formData.type}
                       onChange={e => setFormData({ ...formData, type: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
                     >
                       <option value="annual">سنوية</option>
                       <option value="sick">مرضية</option>
@@ -188,7 +188,7 @@ export default function LeavesView() {
                     <select 
                       value={formData.is_paid}
                       onChange={e => setFormData({ ...formData, is_paid: Number(e.target.value) })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
                     >
                       <option value="1">مدفوعة</option>
                       <option value="0">غير مدفوعة</option>
@@ -203,7 +203,7 @@ export default function LeavesView() {
                       type="date"
                       value={formData.start_date}
                       onChange={e => setFormData({ ...formData, start_date: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
                     />
                   </div>
                   <div>
@@ -212,7 +212,7 @@ export default function LeavesView() {
                       type="date"
                       value={formData.end_date}
                       onChange={e => setFormData({ ...formData, end_date: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
                     />
                   </div>
                 </div>
@@ -222,7 +222,7 @@ export default function LeavesView() {
                   <textarea 
                     value={formData.reason}
                     onChange={e => setFormData({ ...formData, reason: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right min-h-[100px]"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right min-h-[100px]"
                     placeholder="اكتب سبب طلب الإجازة هنا..."
                   />
                 </div>
@@ -234,7 +234,7 @@ export default function LeavesView() {
                   >إلغاء</button>
                    <button 
                     onClick={handleSubmit}
-                    className="flex-[2] bg-indigo-600 text-white py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100"
+                    className="flex-[2] bg-brand-600 text-white py-4 rounded-2xl font-bold hover:bg-brand-700 transition-all shadow-xl shadow-brand-100"
                   >حفظ الطلب</button>
                 </div>
               </div>

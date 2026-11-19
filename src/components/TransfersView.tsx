@@ -44,7 +44,7 @@ export default function TransfersView() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <h3 className="font-black text-slate-800 mb-4 flex items-center gap-2"><ArrowLeftRight className="w-5 h-5 text-blue-600" /> نقل موظف</h3>
+          <h3 className="font-black text-slate-800 mb-4 flex items-center gap-2"><ArrowLeftRight className="w-5 h-5 text-brand-600" /> نقل موظف</h3>
           <div className="space-y-3">
             <select value={form.employee_id} onChange={e => setForm({ ...form, employee_id: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50">
               <option value="">اختر الموظف</option>
@@ -56,7 +56,7 @@ export default function TransfersView() {
             </select>
             <input type="date" value={form.effective_date} onChange={e => setForm({ ...form, effective_date: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm" />
             <input value={form.reason} onChange={e => setForm({ ...form, reason: e.target.value })} placeholder="سبب النقل" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm" />
-            <button onClick={submit} className="w-full bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700">تنفيذ النقل</button>
+            <button onClick={submit} className="w-full bg-brand-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-brand-700">تنفيذ النقل</button>
             <p className="text-[11px] text-slate-400">عند النقل يتغير الموقع الجغرافي المرتبط بالموظف إلى موقع الفرع الجديد لتسجيل الحضور.</p>
           </div>
         </div>

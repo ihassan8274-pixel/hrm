@@ -85,7 +85,7 @@ export default function ExitInterviewAnalyticsView() {
     <div id="exit-interview-view" className="space-y-6">
       
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-purple-800/40">
+      <div className="bg-gradient-to-r from-purple-900 via-brand-900 to-slate-900 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-purple-800/40">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
             <span className="p-2 bg-purple-500/20 backdrop-blur rounded-xl border border-purple-400/30">
@@ -146,9 +146,9 @@ export default function ExitInterviewAnalyticsView() {
           <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm space-y-1">
             <div className="flex items-center justify-between text-xs text-slate-500">
               <span>تقييم الإدارة المباشرة:</span>
-              <Star className="w-4 h-4 text-indigo-500 fill-indigo-500" />
+              <Star className="w-4 h-4 text-brand-500 fill-brand-500" />
             </div>
-            <div className="text-2xl font-black text-indigo-600 font-mono">
+            <div className="text-2xl font-black text-brand-600 font-mono">
               {analytics.avgManagerRating} / 5.0
             </div>
             <span className="text-[11px] text-slate-400">علاقات قيادية متوازنة</span>
@@ -238,7 +238,7 @@ export default function ExitInterviewAnalyticsView() {
         {/* Right: AI Synthesis & Recommendations (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
           
-          <div className="bg-gradient-to-br from-purple-50 via-indigo-50 to-slate-50 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-slate-900 border border-purple-200 dark:border-purple-800/60 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="bg-gradient-to-br from-purple-50 via-brand-50 to-slate-50 dark:from-purple-950/40 dark:via-brand-950/40 dark:to-slate-900 border border-purple-200 dark:border-purple-800/60 rounded-2xl p-6 shadow-sm space-y-4">
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               <h3 className="font-bold text-slate-800 dark:text-white text-sm">

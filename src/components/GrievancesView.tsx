@@ -21,6 +21,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { EmployeeGrievance, HearingSession, OfficialWarningNotice } from '../types';
+import { Letterhead } from '../lib/print/letterhead';
+import { useLetterhead } from '../lib/print/use-letterhead';
 
 interface GrievancesViewProps {
   onBack?: () => void;
@@ -28,6 +30,8 @@ interface GrievancesViewProps {
 
 export const GrievancesView: React.FC<GrievancesViewProps> = () => {
   const [activeTab, setActiveTab] = useState<'grievances' | 'hearings' | 'warnings'>('grievances');
+  // ترويسة موحّدة مع بقية مخرجات النظام (ورقة الشركة).
+  const company = useLetterhead();
   const [grievances, setGrievances] = useState<EmployeeGrievance[]>([]);
   const [hearings, setHearings] = useState<HearingSession[]>([]);
   const [warnings, setWarnings] = useState<OfficialWarningNotice[]>([]);
@@ -179,7 +183,7 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
         return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200"><Clock className="w-3.5 h-3.5" /> قيد المراجعة والتحقق</span>;
       case 'committee_assigned':
       case 'hearing_scheduled':
-        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200"><Scale className="w-3.5 h-3.5" /> لجنة تحقيق مشكلة</span>;
+        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-200"><Scale className="w-3.5 h-3.5" /> لجنة تحقيق مشكلة</span>;
       default:
         return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200"><Clock className="w-3.5 h-3.5" /> بانتظار الإحالة</span>;
     }
@@ -188,7 +192,7 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
   const getWarningBadge = (type: string) => {
     switch (type) {
       case 'attention_notice':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">لفت نظر إداري</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-50 text-brand-700 border border-brand-200">لفت نظر إداري</span>;
       case 'first_warning':
         return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">إنذار كتابي أول</span>;
       case 'second_warning':
@@ -206,7 +210,7 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
       <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-50 text-indigo-700 rounded-lg border border-indigo-100">
+            <div className="p-2.5 bg-brand-50 text-brand-700 rounded-lg border border-brand-100">
               <Scale className="w-6 h-6" />
             </div>
             <div>
@@ -222,7 +226,7 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
           {activeTab === 'grievances' && (
             <button
               onClick={() => setShowNewGrievance(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
             >
               <Plus className="w-4 h-4" />
               <span>تقديم تظلم إداري جديد</span>
@@ -231,7 +235,7 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
           {activeTab === 'hearings' && (
             <button
               onClick={() => setShowNewHearing(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
             >
               <Plus className="w-4 h-4" />
               <span>توثيق محضر جلسة تحقيق</span>
@@ -255,7 +259,7 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
           onClick={() => setActiveTab('grievances')}
           className={`pb-3 px-4 font-semibold text-sm transition-colors border-b-2 flex items-center gap-2 ${
             activeTab === 'grievances'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-brand-600 text-brand-600'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -269,7 +273,7 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
           onClick={() => setActiveTab('hearings')}
           className={`pb-3 px-4 font-semibold text-sm transition-colors border-b-2 flex items-center gap-2 ${
             activeTab === 'hearings'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-brand-600 text-brand-600'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -283,7 +287,7 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
           onClick={() => setActiveTab('warnings')}
           className={`pb-3 px-4 font-semibold text-sm transition-colors border-b-2 flex items-center gap-2 ${
             activeTab === 'warnings'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-brand-600 text-brand-600'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -339,8 +343,8 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
               </p>
 
               {g.committee_notes && (
-                <div className="mt-3 bg-indigo-50/70 border border-indigo-100 p-3 rounded-lg text-sm text-indigo-900">
-                  <span className="font-bold block text-xs text-indigo-700 mb-1">ملاحظات وقرار لجنة التحقيق والامتثال:</span>
+                <div className="mt-3 bg-brand-50/70 border border-brand-100 p-3 rounded-lg text-sm text-brand-900">
+                  <span className="font-bold block text-xs text-brand-700 mb-1">ملاحظات وقرار لجنة التحقيق والامتثال:</span>
                   {g.committee_notes}
                 </div>
               )}
@@ -356,13 +360,13 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
                 <div className="mt-4 flex items-center gap-2 justify-end pt-3 border-t border-slate-100">
                   <button
                     onClick={() => handleUpdateStatus(g.id, 'resolved', 'تمت التسوية باتفاق الطرفين ومطابقة اللائحة', 'تسوية نهائية معتمدة')}
-                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
                   >
                     <Check className="w-3.5 h-3.5" /> اعتماد التسوية وإغلاق التظلم
                   </button>
                   <button
                     onClick={() => handleUpdateStatus(g.id, 'committee_assigned', 'تمت إحالة التظلم إلى اللجنة القانونية لتحديد جلسة تحقيق')}
-                    className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold transition-colors"
+                    className="px-3.5 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg text-xs font-semibold transition-colors"
                   >
                     إحالة للجنة التحقيق
                   </button>
@@ -412,9 +416,9 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
                   <p className="text-sm text-slate-600 leading-relaxed">{h.statements_minutes}</p>
                 </div>
 
-                <div className="bg-indigo-50/60 border border-indigo-200 rounded-lg p-3.5">
-                  <span className="text-xs font-bold text-indigo-900 block mb-1">قرار وحكم اللجنة النظامي:</span>
-                  <p className="text-sm text-indigo-900 leading-relaxed">{h.committee_verdict}</p>
+                <div className="bg-brand-50/60 border border-brand-200 rounded-lg p-3.5">
+                  <span className="text-xs font-bold text-brand-900 block mb-1">قرار وحكم اللجنة النظامي:</span>
+                  <p className="text-sm text-brand-900 leading-relaxed">{h.committee_verdict}</p>
                 </div>
               </div>
             </div>
@@ -442,7 +446,7 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
                     {getWarningBadge(w.warning_type)}
                     <button
                       onClick={() => setSelectedWarningForPrint(w)}
-                      className="p-2 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      className="p-2 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
                       title="طباعة نموذج الإنذار الرسمي"
                     >
                       <Printer className="w-4 h-4" />
@@ -478,7 +482,7 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
           <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
-                <Scale className="w-5 h-5 text-indigo-600" />
+                <Scale className="w-5 h-5 text-brand-600" />
                 تقديم تظلم إداري (المادة 209 من نظام العمل)
               </h3>
               <button onClick={() => setShowNewGrievance(false)} className="text-slate-400 hover:text-slate-600">
@@ -495,7 +499,7 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
                   placeholder="مثال: اعتراض على تقييم الأداء أو احتساب بدلات"
                   value={newGrievance.subject}
                   onChange={(e) => setNewGrievance({ ...newGrievance, subject: e.target.value })}
-                  className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 
@@ -534,7 +538,7 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
                   placeholder="يرجى ذكر الوقائع والتواريخ والشهود إن وجدوا..."
                   value={newGrievance.details}
                   onChange={(e) => setNewGrievance({ ...newGrievance, details: e.target.value })}
-                  className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 
@@ -544,14 +548,14 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
                     type="checkbox"
                     checked={newGrievance.is_confidential === 1}
                     onChange={(e) => setNewGrievance({ ...newGrievance, is_confidential: e.target.checked ? 1 : 0 })}
-                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                   />
                   <span>معاملة التظلم بسرية تامة ومباشرة مع اللجنة القانونية</span>
                 </label>
 
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                  className="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-semibold transition-colors"
                 >
                   إرسال التظلم رسمياً
                 </button>
@@ -636,7 +640,7 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
               <div className="flex justify-end pt-3 border-t border-slate-100">
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                  className="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-semibold transition-colors"
                 >
                   حفظ المحضر واعتماده
                 </button>
@@ -725,14 +729,15 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
 
       {/* MODAL: PRINT PREVIEW */}
       {selectedWarningForPrint && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-8 shadow-2xl space-y-6 border border-slate-200">
+        <div className="print-modal-overlay fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="print-document bg-white rounded-2xl max-w-2xl w-full p-8 shadow-2xl space-y-6 border border-slate-200">
+            <Letterhead company={company} />
             <div className="flex items-center justify-between border-b pb-4">
               <div className="text-right">
                 <h2 className="text-xl font-bold text-slate-900">إشعار جزاء تأديبي رسمي</h2>
                 <p className="text-xs text-slate-500">طبقا للمادة (66) و(67) من نظام العمل السعودي ولائحة الجزاءات</p>
               </div>
-              <button onClick={() => setSelectedWarningForPrint(null)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setSelectedWarningForPrint(null)} className="no-print text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -762,7 +767,7 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
                 <p className="mt-1 font-medium">{selectedWarningForPrint.violation_clause}</p>
               </div>
 
-              <div className="border-r-4 border-indigo-500 pr-3 py-1">
+              <div className="border-r-4 border-brand-500 pr-3 py-1">
                 <span className="font-bold block text-xs text-slate-500">الجزاء المقرر:</span>
                 <p className="mt-1 font-medium">{selectedWarningForPrint.penalty_details}</p>
               </div>
@@ -779,10 +784,10 @@ export const GrievancesView: React.FC<GrievancesViewProps> = () => {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="no-print flex justify-end gap-2 pt-2">
               <button
                 onClick={() => window.print()}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-indigo-700"
+                className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-brand-700"
               >
                 <Printer className="w-4 h-4" /> طباعة الإشعار
               </button>

@@ -1,0 +1,2000 @@
+[
+  {
+    "id": "TC001",
+    "title": "Log in and reach the dashboard",
+    "description": "A user can sign in with valid credentials and land on the dashboard.",
+    "category": "Login and session",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in username with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in password with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the dashboard is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Run payroll for a selected month",
+    "description": "An admin can generate payroll for a chosen month and see payroll rows and totals appear.",
+    "category": "Monthly payroll run",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the payroll section in the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Select a month and year"
+      },
+      {
+        "type": "action",
+        "description": "Generate payroll"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payroll rows are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payroll totals are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Create a new employee record",
+    "description": "An HR user can add a new employee and see the record appear in the employee register.",
+    "category": "Employee register",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in username with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in password with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the employees screen"
+      },
+      {
+        "type": "action",
+        "description": "Open the add employee form"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the employee details with valid values"
+      },
+      {
+        "type": "action",
+        "description": "Save the employee record"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new employee appears in the register"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "Lock a completed payroll month",
+    "description": "An admin can lock a completed payroll month and see the lock status change.",
+    "category": "Monthly payroll run",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the payroll section in the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Select a month and year"
+      },
+      {
+        "type": "action",
+        "description": "Generate payroll"
+      },
+      {
+        "type": "action",
+        "description": "Lock the payroll month"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the payroll month is locked"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the lock status indicator is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "Generate and download a WPS SIF export",
+    "description": "This test verifies that a payroll month can be selected and a WPS SIF export can be generated and downloaded successfully.",
+    "category": "WPS SIF export",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the username field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the payroll audit and export section in the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Select a payroll month"
+      },
+      {
+        "type": "action",
+        "description": "Generate the SIF export"
+      },
+      {
+        "type": "action",
+        "description": "Download the export"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the SIF export is available"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a download confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "Employee can access only the self-service area",
+    "description": "This verifies that an employee can sign in and reach only the self-service experience with the ESS screen visible.",
+    "category": "Employee self-service (ESS)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the self-service screen is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify other employee management screens are not visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "Stay signed in after a page reload",
+    "description": "A successfully signed-in user remains authenticated after reloading the app.",
+    "category": "Login and session",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in username with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in password with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Wait for the dashboard to load"
+      },
+      {
+        "type": "action",
+        "description": "Reload the page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the session remains active"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the dashboard is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC008",
+    "title": "Sync attendance into payroll results",
+    "description": "An admin can sync attendance after generating payroll and see the payroll values update accordingly.",
+    "category": "Monthly payroll run",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the payroll section in the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Select a month and year"
+      },
+      {
+        "type": "action",
+        "description": "Generate payroll"
+      },
+      {
+        "type": "action",
+        "description": "Sync attendance"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payroll values are updated"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payroll rows remain displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC009",
+    "title": "Delete an employee record",
+    "description": "An HR user can delete an employee and see the record removed from the employee register.",
+    "category": "Employee register",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in username with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in password with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the employees screen"
+      },
+      {
+        "type": "action",
+        "description": "Create a new employee record"
+      },
+      {
+        "type": "action",
+        "description": "Delete the employee record"
+      },
+      {
+        "type": "action",
+        "description": "Confirm the deletion"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the employee no longer appears in the register"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC010",
+    "title": "Update an existing employee record",
+    "description": "An HR user can edit an employee and see the updated details reflected in the register.",
+    "category": "Employee register",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in username with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in password with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the employees screen"
+      },
+      {
+        "type": "action",
+        "description": "Open an existing employee record"
+      },
+      {
+        "type": "action",
+        "description": "Update the employee details with valid changes"
+      },
+      {
+        "type": "action",
+        "description": "Save the employee record"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated employee appears in the register"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC011",
+    "title": "Show only allowed screens for a finance user",
+    "description": "A finance user can sign in and see only finance-related navigation options.",
+    "category": "Role-based screen gating",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in username with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in password with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the sidebar shows finance-allowed screens"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a restricted employee management screen is not available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC012",
+    "title": "Show only allowed screens for a branch manager",
+    "description": "A branch manager can sign in and see only branch and attendance-related navigation options.",
+    "category": "Role-based screen gating",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in username with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in password with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the sidebar shows branch manager screens"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a restricted payroll compliance screen is not available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC013",
+    "title": "Show only the ESS screen for an employee",
+    "description": "An employee self-service user can sign in and access only the ESS area.",
+    "category": "Role-based screen gating",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in username with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in password with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify only the ESS screen is available in the sidebar"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a management screen is not available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC014",
+    "title": "Approve a pending request from the manager inbox",
+    "description": "This test verifies that a manager can approve a pending request and see its status update in the inbox.",
+    "category": "Approval workflows and manager inbox",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the username field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the manager inbox"
+      },
+      {
+        "type": "action",
+        "description": "Open a pending request"
+      },
+      {
+        "type": "action",
+        "description": "Approve the request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the request status is updated"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC015",
+    "title": "Reject invalid credentials",
+    "description": "The login form shows an inline error when the user submits invalid credentials.",
+    "category": "Login and session",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in username with invalid-user"
+      },
+      {
+        "type": "action",
+        "description": "Fill in password with invalid-password"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an inline login error is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC016",
+    "title": "Submit a leave request",
+    "description": "Verifies that a user can create a leave request and see it appear in the leave list.",
+    "category": "Leaves",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Log in with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Open the leave requests screen"
+      },
+      {
+        "type": "action",
+        "description": "Submit a new leave request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new leave request appears in the list"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC017",
+    "title": "Review compliance summary data",
+    "description": "Verifies that a Saudi compliance user can open the compliance hub and see compliance summary data with GOSI totals.",
+    "category": "Saudi compliance hub",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the Saudi compliance hub in the sidebar"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify compliance summary data is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify GOSI totals are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC018",
+    "title": "Add a branch with geofence coordinates",
+    "description": "An admin can add a new branch with valid location details and see it listed in the branch catalog.",
+    "category": "Branches, departments and settings",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the settings navigation item"
+      },
+      {
+        "type": "action",
+        "description": "Add a new branch with a valid name and valid latitude and longitude"
+      },
+      {
+        "type": "action",
+        "description": "Save the branch"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new branch is listed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the branch catalog reflects the saved branch"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC019",
+    "title": "Reject a pending request from the manager inbox",
+    "description": "This test verifies that a manager can reject a pending request and see its status update in the inbox.",
+    "category": "Approval workflows and manager inbox",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the username field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the manager inbox"
+      },
+      {
+        "type": "action",
+        "description": "Open a pending request"
+      },
+      {
+        "type": "action",
+        "description": "Reject the request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the request status is updated"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC020",
+    "title": "Employee can generate a salary certificate",
+    "description": "This verifies that an employee can open the salary certificate dialog and generate a certificate successfully.",
+    "category": "Employee self-service (ESS)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link or control for the self-service area"
+      },
+      {
+        "type": "action",
+        "description": "Open the salary certificate dialog"
+      },
+      {
+        "type": "action",
+        "description": "Generate the salary certificate"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a salary certificate output is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC021",
+    "title": "Review payroll without generating new results",
+    "description": "A finance user can open payroll and review existing payroll results without changing them.",
+    "category": "Monthly payroll run",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the payroll section in the sidebar"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payroll rows are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payroll totals are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC022",
+    "title": "Update a leave request status",
+    "description": "Verifies that an existing leave request can be opened and its status updated in the list.",
+    "category": "Leaves",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Log in with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Open the leave requests screen"
+      },
+      {
+        "type": "action",
+        "description": "Open an existing leave request"
+      },
+      {
+        "type": "action",
+        "description": "Update the request status"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated leave status is reflected in the list"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC023",
+    "title": "Calculate end-of-service amount",
+    "description": "Verifies that a Saudi compliance user can run an end-of-service calculation and see the calculated result.",
+    "category": "Saudi compliance hub",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the Saudi compliance hub in the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Run an end-of-service calculation"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the calculated end-of-service result is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC024",
+    "title": "Apply a disciplinary penalty to payroll",
+    "description": "Verifies that a recorded disciplinary violation can be applied to payroll and results in a payroll deduction being shown.",
+    "category": "Disciplinary matrix",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the username field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the disciplinary matrix screen"
+      },
+      {
+        "type": "action",
+        "description": "Click the first recorded violation"
+      },
+      {
+        "type": "action",
+        "description": "Apply the violation to payroll"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the payroll deduction is reflected"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the violation remains listed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC025",
+    "title": "Record a traffic fine and deduct it from payroll",
+    "description": "This test verifies that a traffic fine can be recorded for a fleet vehicle and then deducted from payroll.",
+    "category": "Assets, smart assets and fleet",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the username field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the assets screen"
+      },
+      {
+        "type": "action",
+        "description": "Record a traffic fine for a vehicle"
+      },
+      {
+        "type": "action",
+        "description": "Deduct the fine from payroll"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the fine deduction is reflected"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC026",
+    "title": "Add a department and keep it in the catalog",
+    "description": "An admin can add a department and see it persist in the department list.",
+    "category": "Branches, departments and settings",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the settings navigation item"
+      },
+      {
+        "type": "action",
+        "description": "Add a new department with a valid name"
+      },
+      {
+        "type": "action",
+        "description": "Save the department"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new department is listed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the department catalog reflects the saved department"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC027",
+    "title": "Employee can open the self-service area after login",
+    "description": "This verifies that an employee can sign in and reach the self-service area from the app shell.",
+    "category": "Employee self-service (ESS)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link or control for the self-service area"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the self-service screen is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC028",
+    "title": "Request an employee loan",
+    "description": "Verifies that a user can create a loan request and see the loan with its instalments listed.",
+    "category": "Loans",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Log in with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Open the loans screen"
+      },
+      {
+        "type": "action",
+        "description": "Request a new loan"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the loan appears in the list with instalments"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC029",
+    "title": "Keep payroll controls available for the selected period",
+    "description": "An admin can change the payroll period and still access the generate and sync actions for that period.",
+    "category": "Monthly payroll run",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the payroll section in the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Select a month and year"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payroll controls for the selected period are visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payroll rows are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC030",
+    "title": "Create an approval workflow definition",
+    "description": "This test verifies that a user can create a workflow definition and see it appear in the workflow list.",
+    "category": "Approval workflows and manager inbox",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the username field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the approval workflows screen"
+      },
+      {
+        "type": "action",
+        "description": "Create a workflow definition"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new workflow definition is listed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC031",
+    "title": "Add a bonus line",
+    "description": "Verifies that a bonus line can be added and appears in the bonuses list.",
+    "category": "Bonuses and penalties",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Log in with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Open the bonuses and penalties screen"
+      },
+      {
+        "type": "action",
+        "description": "Add a bonus line"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the bonus line appears in the list"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC032",
+    "title": "Export a report to Excel",
+    "description": "Verifies that a user can export a report and download the spreadsheet file.",
+    "category": "Reports and exports",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the username field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the reports hub"
+      },
+      {
+        "type": "action",
+        "description": "Click the action to export the current report to Excel"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a spreadsheet export is generated"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC033",
+    "title": "Add a penalty line",
+    "description": "Verifies that a penalty line can be added and appears in the bonuses and penalties list.",
+    "category": "Bonuses and penalties",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Log in with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Open the bonuses and penalties screen"
+      },
+      {
+        "type": "action",
+        "description": "Add a penalty line"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the penalty line appears in the list"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC034",
+    "title": "Generate a PDF report export",
+    "description": "Verifies that a user can open the PDF export flow and generate a downloadable PDF report.",
+    "category": "Reports and exports",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the username field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the reports hub"
+      },
+      {
+        "type": "action",
+        "description": "Open the PDF export dialog"
+      },
+      {
+        "type": "action",
+        "description": "Generate the PDF report"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a PDF export is generated"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC035",
+    "title": "Access the payroll screen as an authorized user",
+    "description": "A logged-in user with payroll access can open the payroll screen from the dashboard shell.",
+    "category": "Monthly payroll run",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the payroll section in the sidebar"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the payroll screen is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payroll rows or an empty payroll state is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC036",
+    "title": "Persist an organisation setting after reload",
+    "description": "An admin can change an organisation setting, save it, and see the saved value remain after reloading the page.",
+    "category": "Branches, departments and settings",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the settings navigation item"
+      },
+      {
+        "type": "action",
+        "description": "Change a configurable organisation setting to a valid new value"
+      },
+      {
+        "type": "action",
+        "description": "Save the settings"
+      },
+      {
+        "type": "action",
+        "description": "Wait for the page to reload"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated setting remains visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the saved organisation value persists"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC037",
+    "title": "Review report tabs in the reporting hub",
+    "description": "Verifies that a user can open the reporting hub and switch between report views successfully.",
+    "category": "Reports and exports",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the username field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the reports hub"
+      },
+      {
+        "type": "action",
+        "description": "Click a different report tab"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the selected report content is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC038",
+    "title": "Add and assign an asset to an employee",
+    "description": "This test verifies that a user can add an asset and assign it to an employee with the assignment reflected in the asset list.",
+    "category": "Assets, smart assets and fleet",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the username field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the assets screen"
+      },
+      {
+        "type": "action",
+        "description": "Add a new asset"
+      },
+      {
+        "type": "action",
+        "description": "Assign the asset to an employee"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the assigned asset is listed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC039",
+    "title": "Renew an expiring document",
+    "description": "Verifies that a Saudi compliance user can review expiring documents, renew one, and see the renewal recorded.",
+    "category": "Saudi compliance hub",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the Saudi compliance hub in the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Review the expiring documents list"
+      },
+      {
+        "type": "action",
+        "description": "Select an expiring document"
+      },
+      {
+        "type": "action",
+        "description": "Renew the selected document"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the renewal is recorded"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the document no longer appears as expiring"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC040",
+    "title": "Create a new Qiwa contract",
+    "description": "Verifies that a user can create a contract and see it listed in the contracts view.",
+    "category": "Qiwa contracts",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the username field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the Qiwa contracts screen"
+      },
+      {
+        "type": "action",
+        "description": "Click the action to start a new contract"
+      },
+      {
+        "type": "action",
+        "description": "Fill in a valid contract name into the contract name field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in a valid contract end date into the contract end date field"
+      },
+      {
+        "type": "action",
+        "description": "Save the contract"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new contract is listed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC041",
+    "title": "Delete a bonus or penalty line",
+    "description": "Verifies that an existing bonus or penalty line can be removed from the list.",
+    "category": "Bonuses and penalties",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Log in with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Open the bonuses and penalties screen"
+      },
+      {
+        "type": "action",
+        "description": "Delete an existing bonus or penalty line"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the deleted line no longer appears in the list"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC042",
+    "title": "Edit an existing Qiwa contract",
+    "description": "Verifies that a user can open an existing contract, update it, and see the saved changes reflected.",
+    "category": "Qiwa contracts",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the username field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the Qiwa contracts screen"
+      },
+      {
+        "type": "action",
+        "description": "Click the first available contract"
+      },
+      {
+        "type": "action",
+        "description": "Click the action to edit the contract"
+      },
+      {
+        "type": "action",
+        "description": "Update the contract details with valid values"
+      },
+      {
+        "type": "action",
+        "description": "Save the contract"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated contract is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC043",
+    "title": "File a grievance",
+    "description": "This test verifies that a user can file a grievance and see it added to the grievance list.",
+    "category": "Grievances and hearings",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the username field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the grievances screen"
+      },
+      {
+        "type": "action",
+        "description": "File a grievance"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new grievance appears in the list"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC044",
+    "title": "User can view expiry alerts and send a reminder",
+    "description": "This verifies that a signed-in user can open the alerts hub, review an alert group, and record a reminder action.",
+    "category": "Alerts centre",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the notification bell"
+      },
+      {
+        "type": "action",
+        "description": "Open the expiry alerts modal"
+      },
+      {
+        "type": "action",
+        "description": "Send a reminder from an alert group"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an alert group is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the reminder action is recorded"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC045",
+    "title": "Add a visa record",
+    "description": "This test verifies that a user can create a new visa record and see it listed afterward.",
+    "category": "Visas and Muqeem",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the username field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the visas and Muqeem section in the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Add a visa record"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the required visa details"
+      },
+      {
+        "type": "action",
+        "description": "Save the visa record"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new visa record is listed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the visa record appears in the register"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC046",
+    "title": "Draft Qiwa contracts from employee data",
+    "description": "Verifies that a user can draft labour contracts from the employee register and see the generated contracts appear.",
+    "category": "Qiwa contracts",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the username field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the Qiwa contracts screen"
+      },
+      {
+        "type": "action",
+        "description": "Click the action to draft contracts from the employee register"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify generated contracts are displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC047",
+    "title": "Add and edit a fleet vehicle",
+    "description": "This test verifies that a user can add a fleet vehicle, edit its details, and see the update saved.",
+    "category": "Assets, smart assets and fleet",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the username field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the assets screen"
+      },
+      {
+        "type": "action",
+        "description": "Add a fleet vehicle"
+      },
+      {
+        "type": "action",
+        "description": "Edit the fleet vehicle details"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated vehicle details are visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC048",
+    "title": "Edit an existing visa record",
+    "description": "This test verifies that an existing visa record can be opened, updated, and saved with the changes reflected in the list.",
+    "category": "Visas and Muqeem",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the username field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the visas and Muqeem section in the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Add a visa record"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the required visa details"
+      },
+      {
+        "type": "action",
+        "description": "Save the visa record"
+      },
+      {
+        "type": "action",
+        "description": "Open the created visa record for editing"
+      },
+      {
+        "type": "action",
+        "description": "Update the visa details"
+      },
+      {
+        "type": "action",
+        "description": "Save the updated visa record"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated visa record is listed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the edited details are reflected in the register"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC049",
+    "title": "Update a grievance status",
+    "description": "This test verifies that an existing grievance can be opened and its status change is reflected in the list.",
+    "category": "Grievances and hearings",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the username field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the grievances screen"
+      },
+      {
+        "type": "action",
+        "description": "Open an existing grievance"
+      },
+      {
+        "type": "action",
+        "description": "Update the grievance status"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated grievance status is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC050",
+    "title": "User can ask the AI copilot a question",
+    "description": "This verifies that a signed-in user can open the built-in AI launcher and receive a response to a question.",
+    "category": "AI assistant features",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link or control for the AI consultant area"
+      },
+      {
+        "type": "action",
+        "description": "Open the floating AI launcher"
+      },
+      {
+        "type": "action",
+        "description": "Send a question to the AI assistant"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an AI response is visible"
+      }
+    ],
+    "priority": "Medium"
+  }
+]

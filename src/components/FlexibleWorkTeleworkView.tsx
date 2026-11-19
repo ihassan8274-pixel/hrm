@@ -110,7 +110,7 @@ export default function FlexibleWorkTeleworkView() {
       case 'full_remote':
         return <span className="bg-purple-100 text-purple-800 text-xs px-2.5 py-0.5 rounded-full font-medium">عن بعد بالكامل (100%)</span>;
       case 'hybrid':
-        return <span className="bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded-full font-medium">هجين (أيام محددة)</span>;
+        return <span className="bg-brand-100 text-brand-800 text-xs px-2.5 py-0.5 rounded-full font-medium">هجين (أيام محددة)</span>;
       default:
         return <span className="bg-slate-100 text-slate-700 text-xs px-2.5 py-0.5 rounded-full font-medium">{type}</span>;
     }
@@ -189,7 +189,7 @@ export default function FlexibleWorkTeleworkView() {
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between text-slate-500 mb-2">
             <span className="text-sm font-medium">إجمالي أجور العمل المرن</span>
-            <DollarSign className="w-5 h-5 text-blue-500" />
+            <DollarSign className="w-5 h-5 text-brand-500" />
           </div>
           <div className="text-2xl font-bold text-slate-800">{flexStats.totalPaid?.toLocaleString()} ر.س</div>
           <div className="text-xs text-slate-400 mt-1">مستحقات بالساعة بدون التزامات مكافأة نهاية خدمة</div>

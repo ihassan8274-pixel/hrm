@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import type { Employee, Branch, AllowanceType, EmployeeAllowance, Department } from '../types';
 import SalaryCertificateModal from './SalaryCertificateModal';
+import { apiGet, apiMutate, safeArray } from '../lib/api';
 
 export default function EmployeesView() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -16,10 +17,15 @@ export default function EmployeesView() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [certEmployee, setCertEmployee] = useState<Employee | null>(null);
   const [activeFormTab, setActiveFormTab] = useState<'basic' | 'iqama' | 'payroll' | 'insurance'>('basic');
+  const [loading, setLoading] = useState(true);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBranch, setFilterBranch] = useState(0);
   const [filterNationality, setFilterNationality] = useState<'all' | 'saudi' | 'expat'>('all');
+  
+  useEffect(() => {
+    fetchData().finally(() => setLoading(false));
+  }, []);
   
   const initialForm = {
     name: '',
@@ -53,10 +59,14 @@ export default function EmployeesView() {
     medical_dependents_count: 0,
     saudi_iban: '',
     bank_name: 'مصرف الراجحي',
-    contract_type: 'fixed' as 'fixed' | 'indefinite' | 'temporary',
+    contract_type: 'fixed' as 'fixed' | 'unlimited',
     contract_start_date: '',
     contract_end_date: '',
-    payment_method: 'bank' as 'cash' | 'bank',
+    payment_method: 'bank' as 'cash' | 'bank' | 'split',
+    passport_number: '',
+    passport_expiry: '',
+    health_cert_number: '',
+    health_cert_expiry: '',
     allowances_list: [] as EmployeeAllowance[]
   };
 
@@ -65,20 +75,29 @@ export default function EmployeesView() {
   const [docForm, setDocForm] = useState({ doc_type: 'passport', doc_number: '', expiry_date: '', data_uri: '' });
 
   const fetchData = async () => {
-    const [empRes, branchRes, deptRes, typeRes] = await Promise.all([
-      fetch('/api/employees'),
-      fetch('/api/branches'),
-      fetch('/api/departments'),
-      fetch('/api/allowance-types')
-    ]);
-    const empData = await empRes.json();
-    const branchData = await branchRes.json();
-    const deptData = await deptRes.json();
-    const typeData = await typeRes.json();
-    setEmployees(empData);
-    setBranches(branchData);
-    setDepartments(deptData);
-    setAllowanceTypes(typeData);
+    try {
+      const [empRes, branchRes, deptRes, typeRes] = await Promise.allSettled([
+        apiGet('/api/employees'),
+        apiGet('/api/branches'),
+        apiGet('/api/departments'),
+        apiGet('/api/allowance-types')
+      ]);
+
+      if (empRes.status === 'fulfilled' && empRes.value) {
+        setEmployees(safeArray(empRes.value));
+      }
+      if (branchRes.status === 'fulfilled' && branchRes.value) {
+        setBranches(safeArray(branchRes.value));
+      }
+      if (deptRes.status === 'fulfilled' && deptRes.value) {
+        setDepartments(safeArray(deptRes.value));
+      }
+      if (typeRes.status === 'fulfilled' && typeRes.value) {
+        setAllowanceTypes(safeArray(typeRes.value));
+      }
+    } catch (err) {
+      console.error("fetchData error:", err);
+    }
   };
 
   useEffect(() => {
@@ -90,36 +109,36 @@ export default function EmployeesView() {
     const url = editingId ? `/api/employees/${editingId}` : '/api/employees';
     const method = editingId ? 'PUT' : 'POST';
 
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData)
-    });
-    const data = await res.json();
-    const employeeId = editingId || data?.id;
+    try {
+      const data = await apiMutate(url, formData, method);
+      const employeeId = editingId || data?.id;
 
-    // Upload attached documents after employee is saved
-    if (employeeId && pendingDocs.length > 0) {
-      for (const doc of pendingDocs) {
-        await fetch('/api/documents', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ employee_id: employeeId, doc_type: doc.doc_type, doc_number: doc.doc_number, expiry_date: doc.expiry_date, data_uri: doc.data_uri })
-        });
+      if (employeeId && pendingDocs.length > 0) {
+        for (const doc of pendingDocs) {
+          await apiMutate('/api/employee-documents', { employee_id: employeeId, doc_type: doc.doc_type, doc_number: doc.doc_number, expiry_date: doc.expiry_date, data_uri: doc.data_uri }, 'POST');
+        }
       }
-    }
 
-    setFormData(initialForm);
-    setPendingDocs([]);
-    setIsAdding(false);
-    setEditingId(null);
-    fetchData();
+      setFormData(initialForm);
+      setPendingDocs([]);
+      setIsAdding(false);
+      setEditingId(null);
+      fetchData();
+    } catch (err) {
+      console.error("handleSubmit error:", err);
+      alert('حدث خطأ أثناء الحفظ');
+    }
   };
 
   const handleDelete = async (id: number) => {
     if (confirm('هل أنت متأكد من حذف هذا الموظف؟')) {
-      await fetch(`/api/employees/${id}`, { method: 'DELETE' });
-      fetchData();
+      try {
+        await apiMutate(`/api/employees/${id}`, {}, 'DELETE');
+        fetchData();
+      } catch (err) {
+        console.error("handleDelete error:", err);
+        alert('حدث خطأ أثناء الحذف');
+      }
     }
   };
 
@@ -161,6 +180,10 @@ export default function EmployeesView() {
       contract_start_date: emp.contract_start_date || '',
       contract_end_date: emp.contract_end_date || '',
       payment_method: emp.payment_method || 'bank',
+      passport_number: emp.passport_number || '',
+      passport_expiry: emp.passport_expiry || '',
+      health_cert_number: emp.health_cert_number || '',
+      health_cert_expiry: emp.health_cert_expiry || '',
       allowances_list: emp.allowances_details || []
     });
     setIsAdding(true);
@@ -202,10 +225,22 @@ export default function EmployeesView() {
     return matchesSearch && matchesBranch && matchesNat;
   });
 
-  return (
+return (
     <div className="space-y-6" dir="rtl">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {loading ? (
+        <div className="space-y-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-slate-200 rounded-xl w-[75%]" />
+            <div className="h-4 bg-slate-200 rounded w-[25%]" />
+          </div>
+          <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm animate-pulse">
+            <div className="h-4 bg-slate-200 rounded w-full mb-2" />
+            <div className="h-4 bg-slate-200 rounded w-[75%]" />
+          </div>
+        </div>
+      ) : (
+        <div>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-800">إدارة الموظفين والامتثال السعودي</h1>
           <p className="text-slate-500 text-sm">بيانات الموظفين، الإقامات، رخص العمل، التأمينات GOSI، والتأمين الطبي</p>
@@ -226,18 +261,18 @@ export default function EmployeesView() {
       {/* Filter & Search Bar */}
       <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
         <div className="relative flex-1 w-full">
-          <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <Search className="absolute right-4 top-[50%] -translate-y-[50%] text-slate-400 w-5 h-5" />
           <input 
             type="text" 
             placeholder="بحث بالاسم أو رقم الهوية/الإقامة أو المسمى..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pr-12 pl-4 py-3 bg-slate-50 border border-slate-200/60 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-800"
+            className="w-full pr-12 pl-4 py-3 bg-slate-50 border border-slate-200-60 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-800"
           />
         </div>
         <div className="flex gap-2 w-full md:w-auto">
           <select 
-            className="px-4 py-3 bg-slate-50 border border-slate-200/60 rounded-2xl outline-none font-bold text-slate-700 text-xs"
+            className="px-4 py-3 bg-slate-50 border border-slate-200-60 rounded-2xl outline-none font-bold text-slate-700 text-xs"
             value={filterNationality}
             onChange={e => setFilterNationality(e.target.value as any)}
           >
@@ -247,7 +282,7 @@ export default function EmployeesView() {
           </select>
 
           <select 
-            className="px-4 py-3 bg-slate-50 border border-slate-200/60 rounded-2xl outline-none font-bold text-slate-700 text-xs"
+            className="px-4 py-3 bg-slate-50 border border-slate-200-60 rounded-2xl outline-none font-bold text-slate-700 text-xs"
             value={filterBranch}
             onChange={e => setFilterBranch(Number(e.target.value))}
           >
@@ -327,7 +362,7 @@ export default function EmployeesView() {
                   <label className="text-xs font-bold text-slate-600">الاسم الكامل (كما في الهوية/الإقامة)</label>
                   <input 
                     required
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                     value={formData.name}
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                   />
@@ -336,7 +371,7 @@ export default function EmployeesView() {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-600">الجنسية</label>
                   <select 
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                     value={formData.nationality}
                     onChange={e => {
                       const nat = e.target.value;
@@ -363,7 +398,7 @@ export default function EmployeesView() {
                     type="text"
                     maxLength={10}
                     placeholder="مثال: 1089234123"
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-mono font-bold"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-mono font-bold"
                     value={formData.national_id_iqama}
                     onChange={e => setFormData({ ...formData, national_id_iqama: e.target.value })}
                   />
@@ -374,7 +409,7 @@ export default function EmployeesView() {
                   <input 
                     type="text"
                     placeholder="مثال: 308945612"
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono"
                     value={formData.border_number}
                     onChange={e => setFormData({ ...formData, border_number: e.target.value })}
                   />
@@ -384,7 +419,7 @@ export default function EmployeesView() {
                   <label className="text-xs font-bold text-slate-600">المسمى الوظيفي الداخلي</label>
                   <input 
                     required
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                     value={formData.position}
                     onChange={e => setFormData({ ...formData, position: e.target.value, job_title: e.target.value })}
                   />
@@ -393,7 +428,7 @@ export default function EmployeesView() {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-600">المهنة المعتمدة في منصة قوى / الإقامة</label>
                   <input 
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-bold"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-bold"
                     value={formData.iqama_profession}
                     onChange={e => setFormData({ ...formData, iqama_profession: e.target.value })}
                   />
@@ -403,7 +438,7 @@ export default function EmployeesView() {
                   <label className="text-xs font-bold text-slate-600">الإدارة / القسم</label>
                   <select 
                     required
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                     value={formData.department_id}
                     onChange={e => setFormData({ ...formData, department_id: Number(e.target.value) })}
                   >
@@ -416,7 +451,7 @@ export default function EmployeesView() {
                   <label className="text-xs font-bold text-slate-600">الفرع</label>
                   <select 
                     required
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                     value={formData.branch_id}
                     onChange={e => setFormData({ ...formData, branch_id: Number(e.target.value) })}
                   >
@@ -428,7 +463,7 @@ export default function EmployeesView() {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-600">نوع عقد العمل</label>
                   <select 
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-bold"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-bold"
                     value={formData.contract_type}
                     onChange={e => setFormData({ ...formData, contract_type: e.target.value as any })}
                   >
@@ -442,7 +477,7 @@ export default function EmployeesView() {
                   <label className="text-xs font-bold text-slate-600">تاريخ بداية العقد</label>
                   <input 
                     type="date"
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono"
                     value={formData.contract_start_date}
                     onChange={e => setFormData({ ...formData, contract_start_date: e.target.value })}
                   />
@@ -452,7 +487,7 @@ export default function EmployeesView() {
                   <label className="text-xs font-bold text-slate-600">تاريخ نهاية العقد</label>
                   <input 
                     type="date"
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono"
                     value={formData.contract_end_date}
                     onChange={e => setFormData({ ...formData, contract_end_date: e.target.value })}
                   />
@@ -463,7 +498,7 @@ export default function EmployeesView() {
             {/* Tab 2: Iqama & Work Permit */}
             {activeFormTab === 'iqama' && (
               <div className="space-y-6">
-                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200/60 text-xs text-amber-900">
+                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200-60 text-xs text-amber-900">
                   <p className="font-black mb-0.5">ملاحظة تنظيمية خاصة بالوافدين:</p>
                   <span>تعتمد منصة قوى ووزارة الموارد البشرية رخص العمل السنوية بقيمة 9,600 ر.س مع 650 ر.س رسوم الجوازات.</span>
                 </div>
@@ -473,7 +508,7 @@ export default function EmployeesView() {
                     <label className="text-xs font-bold text-slate-600">تاريخ انتهاء الإقامة (ميلادي)</label>
                     <input 
                       type="date"
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono font-bold"
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono font-bold"
                       value={formData.iqama_expiry_gregorian}
                       onChange={e => setFormData({ ...formData, iqama_expiry_gregorian: e.target.value })}
                     />
@@ -484,7 +519,7 @@ export default function EmployeesView() {
                     <input 
                       type="text"
                       placeholder="1447/08/15"
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono"
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono"
                       value={formData.iqama_expiry_hijri}
                       onChange={e => setFormData({ ...formData, iqama_expiry_hijri: e.target.value })}
                     />
@@ -495,7 +530,7 @@ export default function EmployeesView() {
                     <input 
                       type="text"
                       placeholder="WP-10928374"
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono"
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono"
                       value={formData.work_permit_number}
                       onChange={e => setFormData({ ...formData, work_permit_number: e.target.value })}
                     />
@@ -505,7 +540,7 @@ export default function EmployeesView() {
                     <label className="text-xs font-bold text-slate-600">تاريخ انتهاء رخصة العمل</label>
                     <input 
                       type="date"
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono"
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono"
                       value={formData.work_permit_expiry}
                       onChange={e => setFormData({ ...formData, work_permit_expiry: e.target.value })}
                     />
@@ -515,7 +550,7 @@ export default function EmployeesView() {
                     <label className="text-xs font-bold text-slate-600">رسوم المقابل المالي السنوي (ر.س)</label>
                     <input 
                       type="number"
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono font-bold"
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono font-bold"
                       value={formData.work_permit_fee}
                       onChange={e => setFormData({ ...formData, work_permit_fee: Number(e.target.value) })}
                     />
@@ -525,22 +560,22 @@ export default function EmployeesView() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-600">رقم جواز السفر</label>
-                    <input type="text" placeholder="N1234567" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono"
+                    <input type="text" placeholder="N1234567" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono"
                       value={formData.passport_number || ''} onChange={e => setFormData({ ...formData, passport_number: e.target.value })} />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-600">تاريخ انتهاء الجواز</label>
-                    <input type="date" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono"
+                    <input type="date" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono"
                       value={formData.passport_expiry || ''} onChange={e => setFormData({ ...formData, passport_expiry: e.target.value })} />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-600">رقم الشهادة الصحية</label>
-                    <input type="text" placeholder="HC-0001" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono"
+                    <input type="text" placeholder="HC-0001" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono"
                       value={formData.health_cert_number || ''} onChange={e => setFormData({ ...formData, health_cert_number: e.target.value })} />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-600">تاريخ انتهاء الشهادة الصحية</label>
-                    <input type="date" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono"
+                    <input type="date" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono"
                       value={formData.health_cert_expiry || ''} onChange={e => setFormData({ ...formData, health_cert_expiry: e.target.value })} />
                   </div>
                 </div>
@@ -556,7 +591,7 @@ export default function EmployeesView() {
                     <input 
                       required
                       type="number"
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono font-black text-slate-800"
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono font-black text-slate-800"
                       value={formData.basic_salary}
                       onChange={e => setFormData({ ...formData, basic_salary: Number(e.target.value) })}
                     />
@@ -566,7 +601,7 @@ export default function EmployeesView() {
                     <label className="text-xs font-bold text-slate-600">بدل السكن الشهري (ر.س)</label>
                     <input 
                       type="number"
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono font-bold"
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono font-bold"
                       value={formData.housing_allowance}
                       onChange={e => setFormData({ ...formData, housing_allowance: Number(e.target.value) })}
                     />
@@ -576,7 +611,7 @@ export default function EmployeesView() {
                     <label className="text-xs font-bold text-slate-600">بدل النقل والمواصلات (ر.س)</label>
                     <input 
                       type="number"
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono font-bold"
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono font-bold"
                       value={formData.transport_allowance}
                       onChange={e => setFormData({ ...formData, transport_allowance: Number(e.target.value) })}
                     />
@@ -586,7 +621,7 @@ export default function EmployeesView() {
                     <label className="text-xs font-bold text-slate-600">رقم المشترك في التأمينات GOSI</label>
                     <input 
                       type="text"
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono font-bold"
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono font-bold"
                       value={formData.gosi_number || formData.insurance_number}
                       onChange={e => setFormData({ ...formData, gosi_number: e.target.value, insurance_number: e.target.value })}
                     />
@@ -594,14 +629,14 @@ export default function EmployeesView() {
                 </div>
 
                 {/* GOSI Computed wage summary */}
-                <div className="p-4 bg-indigo-50/60 rounded-2xl border border-indigo-100 flex justify-between items-center text-xs">
+                <div className="p-4 bg-brand-50-60 rounded-2xl border border-brand-100 flex justify-between items-center text-xs">
                   <div>
-                    <span className="font-bold text-indigo-950">الأجر الخاضع لاشتراك التأمينات الاجتماعية (الأساسي + السكن بحد أقصى 45 ألف):</span>
-                    <p className="text-indigo-700 mt-0.5">
+                    <span className="font-bold text-brand-950">الأجر الخاضع لاشتراك التأمينات الاجتماعية (الأساسي + السكن بحد أقصى 45 ألف):</span>
+                    <p className="text-brand-700 mt-0.5">
                       {formData.is_saudi ? 'يستقطع منه 9.75% من الموظف و 11.75% على صاحب العمل' : 'يتحمل صاحب العمل 2% أخطار مهنية ولا استقطاع على الوافد'}
                     </p>
                   </div>
-                  <span className="text-lg font-black font-mono text-indigo-900">
+                  <span className="text-lg font-black font-mono text-brand-900">
                     {Math.min(45000, Number(formData.basic_salary) + Number(formData.housing_allowance)).toLocaleString()} ر.س
                   </span>
                 </div>
@@ -613,7 +648,7 @@ export default function EmployeesView() {
                     <button 
                       type="button"
                       onClick={addAllowanceToForm}
-                      className="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-xl hover:bg-indigo-100 transition-colors"
+                      className="text-xs font-bold bg-brand-50 text-brand-700 px-3 py-1.5 rounded-xl hover:bg-brand-100 transition-colors"
                     >
                       + إضافة بدل آخر
                     </button>
@@ -624,7 +659,7 @@ export default function EmployeesView() {
                       <div className="flex-1 space-y-1">
                         <label className="text-[10px] font-bold text-slate-400">نوع البدل</label>
                         <select 
-                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200/80 rounded-xl outline-none text-xs font-bold"
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200-80 rounded-xl outline-none text-xs font-bold"
                           value={al.type_id}
                           onChange={e => updateAllowanceInForm(idx, 'type_id', Number(e.target.value))}
                         >
@@ -636,7 +671,7 @@ export default function EmployeesView() {
                         <label className="text-[10px] font-bold text-slate-400">القيمة (ر.س)</label>
                         <input 
                           type="number"
-                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200/80 rounded-xl outline-none text-xs font-mono font-bold"
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200-80 rounded-xl outline-none text-xs font-mono font-bold"
                           value={al.amount}
                           onChange={e => updateAllowanceInForm(idx, 'amount', Number(e.target.value))}
                         />
@@ -660,7 +695,7 @@ export default function EmployeesView() {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-600">شركة التأمين الطبي (مجلس الضمان CCHI)</label>
                   <select 
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-bold"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-bold"
                     value={formData.insurance_company}
                     onChange={e => setFormData({ ...formData, insurance_company: e.target.value })}
                   >
@@ -676,7 +711,7 @@ export default function EmployeesView() {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-600">فئة شبكة العلاج والتغطية</label>
                   <select 
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-bold"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-bold"
                     value={formData.medical_insurance_category}
                     onChange={e => setFormData({ ...formData, medical_insurance_category: e.target.value })}
                   >
@@ -693,7 +728,7 @@ export default function EmployeesView() {
                   <input 
                     type="text"
                     placeholder="POL-884920"
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono"
                     value={formData.medical_insurance_policy}
                     onChange={e => setFormData({ ...formData, medical_insurance_policy: e.target.value })}
                   />
@@ -703,7 +738,7 @@ export default function EmployeesView() {
                   <label className="text-xs font-bold text-slate-600">تاريخ انتهاء وثيقة التأمين الطبي</label>
                   <input 
                     type="date"
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono"
                     value={formData.medical_insurance_expiry}
                     onChange={e => setFormData({ ...formData, medical_insurance_expiry: e.target.value })}
                   />
@@ -714,7 +749,7 @@ export default function EmployeesView() {
                   <input 
                     type="number"
                     min={0}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono font-bold"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono font-bold"
                     value={formData.medical_dependents_count}
                     onChange={e => setFormData({ ...formData, medical_dependents_count: Number(e.target.value) })}
                   />
@@ -723,7 +758,7 @@ export default function EmployeesView() {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-600">اسم البنك المعتمد لتحويل الراتب</label>
                   <select 
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-bold"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-bold"
                     value={formData.bank_name}
                     onChange={e => setFormData({ ...formData, bank_name: e.target.value })}
                   >
@@ -742,7 +777,7 @@ export default function EmployeesView() {
                   <input 
                     type="text"
                     placeholder="SA0380000000608010167519"
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl outline-none font-mono font-bold text-slate-800"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono font-bold text-slate-800"
                     value={formData.saudi_iban || formData.bank_account}
                     onChange={e => setFormData({ ...formData, saudi_iban: e.target.value, bank_account: e.target.value })}
                   />
@@ -752,7 +787,7 @@ export default function EmployeesView() {
                   <label className="text-xs font-bold text-slate-600">طريقة دفع الراتب</label>
                   <div className="grid grid-cols-2 gap-2">
                     <button type="button" onClick={() => setFormData({ ...formData, payment_method: 'bank' })}
-                      className={`py-2.5 rounded-xl text-sm font-bold border ${formData.payment_method === 'bank' ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>بنكي (تحويل)</button>
+                      className={`py-2.5 rounded-xl text-sm font-bold border ${formData.payment_method === 'bank' ? 'bg-brand-600 text-white border-brand-600' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>بنكي (تحويل)</button>
                     <button type="button" onClick={() => setFormData({ ...formData, payment_method: 'cash' })}
                       className={`py-2.5 rounded-xl text-sm font-bold border ${formData.payment_method === 'cash' ? 'bg-amber-500 text-white border-amber-500' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>نقدي</button>
                   </div>
@@ -778,7 +813,7 @@ export default function EmployeesView() {
                 <input type="file" accept="image/*,application/pdf" onChange={e => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = () => setDocForm({ ...docForm, data_uri: String(r.result) }); r.readAsDataURL(f); } }} className="w-full text-sm" />
               </div>
               <button type="button" onClick={() => { if (docForm.data_uri || docForm.doc_number) { setPendingDocs([...pendingDocs, docForm]); setDocForm({ doc_type: 'passport', doc_number: '', expiry_date: '', data_uri: '' }); } }}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700">+ إضافة وثيقة للقائمة</button>
+                className="px-4 py-2 bg-brand-600 text-white rounded-xl text-xs font-bold hover:bg-brand-700">+ إضافة وثيقة للقائمة</button>
               {pendingDocs.length > 0 && (
                 <div className="mt-3 space-y-2">
                   {pendingDocs.map((d, i) => (
@@ -801,7 +836,7 @@ export default function EmployeesView() {
               </button>
               <button 
                 type="submit" 
-                className="px-12 py-3 rounded-2xl font-black bg-emerald-600 text-white shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-colors text-sm"
+                className="px-12 py-3 rounded-2xl font-black bg-brand-600 text-white shadow-lg shadow-emerald-200 hover:bg-brand-700 transition-colors text-sm"
               >
                 {editingId ? 'تحديث وحفظ البيانات' : 'حفظ الموظف الجديد'}
               </button>
@@ -815,7 +850,7 @@ export default function EmployeesView() {
         <div className="overflow-x-auto">
           <table className="w-full text-right border-collapse text-sm">
             <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-100 text-xs font-black text-slate-500 uppercase tracking-wider">
+              <tr className="bg-slate-50-80 border-b border-slate-100 text-xs font-black text-slate-500 uppercase tracking-wider">
                 <th className="px-6 py-4">الموظف / الهوية</th>
                 <th className="px-6 py-4 text-center">القسم / الفرع</th>
                 <th className="px-6 py-4 text-center">الإقامة / رخصة العمل</th>
@@ -829,11 +864,11 @@ export default function EmployeesView() {
               {filteredEmployees.map(emp => {
                 const isSaudi = emp.is_saudi === 1 || emp.nationality === 'سعودي' || emp.nationality === 'سعودية';
                 return (
-                  <tr key={emp.id} className="hover:bg-slate-50/60 transition-colors group">
+                  <tr key={emp.id} className="hover:bg-slate-50-60 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm ${
-                          isSaudi ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+                          isSaudi ? 'bg-emerald-100 text-emerald-800' : 'bg-brand-100 text-brand-800'
                         }`}>
                           {emp.name.charAt(0)}
                         </div>
@@ -877,7 +912,7 @@ export default function EmployeesView() {
                       {(emp.basic_salary || 0).toLocaleString()} ر.س
                     </td>
 
-                    <td className="px-6 py-4 text-center font-mono text-xs font-bold text-indigo-700">
+                    <td className="px-6 py-4 text-center font-mono text-xs font-bold text-brand-700">
                       <div>
                         <span>{((emp.housing_allowance || 0) + (emp.transport_allowance || 0) + (emp.allowances || 0)).toLocaleString()} ر.س</span>
                         {(emp.housing_allowance || 0) > 0 && (
@@ -887,7 +922,7 @@ export default function EmployeesView() {
                     </td>
 
                     <td className="px-6 py-4 text-center">
-                      <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold font-mono">
+                      <span className="px-2.5 py-1 bg-brand-50 text-brand-700 rounded-lg text-xs font-bold font-mono">
                         {emp.gosi_number || emp.insurance_number || 'مسجل'}
                       </span>
                     </td>
@@ -915,21 +950,21 @@ export default function EmployeesView() {
                               alert('تم تسجيل بصمة الموظف على هذا الجهاز');
                             } catch (e) { alert((e as Error).message); }
                           }}
-                          className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                          className="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-all"
                           title="تسجيل بصمة الوجه/الإصبع"
                         >
                           <ScanFace className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setCertEmployee(emp)}
-                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                          className="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-all"
                           title="إصدار شهادة تعريف بالراتب"
                         >
                           <Printer className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => handleEdit(emp)}
-                          className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                          className="p-2 text-slate-400 hover:text-brand-600 hover:bg-emerald-50 rounded-xl transition-all"
                           title="تعديل"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -950,14 +985,7 @@ export default function EmployeesView() {
           </table>
         </div>
       </div>
-
-      {/* Salary Certificate Modal */}
-      {certEmployee && (
-        <SalaryCertificateModal
-          employee={certEmployee}
-          isOpen={true}
-          onClose={() => setCertEmployee(null)}
-        />
+        </div>
       )}
     </div>
   );

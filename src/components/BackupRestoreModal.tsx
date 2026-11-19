@@ -156,7 +156,7 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
         {/* Header */}
         <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-md shadow-indigo-600/30">
+            <div className="p-3 bg-brand-600 text-white rounded-2xl shadow-md shadow-brand-600/30">
               <Database className="w-6 h-6" />
             </div>
             <div>
@@ -216,7 +216,7 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
           {/* Section 2: Restore Backup */}
           <div className="p-5 rounded-2xl border border-slate-200 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-indigo-100 text-indigo-700 rounded-xl">
+              <div className="p-3 bg-brand-100 text-brand-700 rounded-xl">
                 <Upload className="w-5 h-5" />
               </div>
               <div>
@@ -227,7 +227,7 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
 
             <div 
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-slate-50 hover:bg-indigo-50/30 p-6 rounded-2xl text-center cursor-pointer transition-colors"
+              className="border-2 border-dashed border-slate-300 hover:border-brand-500 bg-slate-50 hover:bg-brand-50/30 p-6 rounded-2xl text-center cursor-pointer transition-colors"
             >
               <input 
                 type="file" 
@@ -236,7 +236,7 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
                 accept=".json,application/json" 
                 className="hidden" 
               />
-              <FileJson className="w-10 h-10 text-indigo-500 mx-auto mb-2 opacity-80" />
+              <FileJson className="w-10 h-10 text-brand-500 mx-auto mb-2 opacity-80" />
               <p className="text-xs font-bold text-slate-700">
                 {selectedFile ? selectedFile.name : t('backup.drag_drop')}
               </p>
@@ -245,10 +245,10 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
 
             {/* Preview details if file parsed */}
             {parsedPreview && (
-              <div className="bg-indigo-50/70 border border-indigo-200 p-4 rounded-xl space-y-2 text-xs">
-                <div className="flex justify-between items-center text-indigo-900 font-bold">
+              <div className="bg-brand-50/70 border border-brand-200 p-4 rounded-xl space-y-2 text-xs">
+                <div className="flex justify-between items-center text-brand-900 font-bold">
                   <span>معاينة محتوى النسخة:</span>
-                  <span className="font-mono text-[11px] bg-indigo-200/60 px-2 py-0.5 rounded">v{parsedPreview.version}</span>
+                  <span className="font-mono text-[11px] bg-brand-200/60 px-2 py-0.5 rounded">v{parsedPreview.version}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-slate-600">
                   <p>عدد الجداول: <span className="font-bold text-slate-900 font-mono">{parsedPreview.tables_count}</span></p>
@@ -268,7 +268,7 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
               <button
                 onClick={handleRestoreBackup}
                 disabled={!selectedFile || isRestoring}
-                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition-all shadow-md shadow-indigo-600/20 disabled:opacity-40"
+                className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition-all shadow-md shadow-brand-600/20 disabled:opacity-40"
               >
                 <RefreshCw className={`w-4 h-4 ${isRestoring ? 'animate-spin' : ''}`} />
                 <span>{isRestoring ? 'جاري الاستعادة...' : 'تأكيد واستعادة قاعدة البيانات'}</span>

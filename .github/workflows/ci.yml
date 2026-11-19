@@ -1,0 +1,62 @@
+name: CI
+
+# Gate for the payroll system. Every job here exists because a class of defect
+# reached production silently and could not be caught by tsc or unit tests:
+#
+#   - write-path drift: INSERT naming a column the schema lacks. `SELECT *`
+#     resolves no columns, so neither type-checking nor a read-path test sees
+#     it. It surfaced only when a user pressed the button (HTTP 500).
+#   - read-path drift: a SELECT naming a column or table that does not exist.
+#   - unclassified RBAC routes: a write endpoint reachable without a policy.
+#   - validation regressions: 21 of 31 schemas used to be double-wrapped and
+#     would have rejected every request; a unit test now pins that shape.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run lint
+
+      - name: Unit + drift tests
+        run: npm run test
+
+      - name: Schema drift gates
+        # Builds a throwaway database from the migrations + the boot-time
+        # reconciliation, then fails if any INSERT/UPDATE names a column the
+        # schema lacks, or if SQL is interpolated outside the allowlist.
+        # payroll.db is git-ignored, so this is the only way these checks have
+        # a schema to resolve against on CI.
+        run: npm run check:drift
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ github.sha }}
+          path: dist/
+          retention-days: 7

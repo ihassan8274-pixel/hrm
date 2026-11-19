@@ -22,7 +22,7 @@ export default function EmployeeDocumentsView() {
   const load = async () => {
     const e = await fetch('/api/employees').then(r => r.json());
     setEmployees(e);
-    const d = await fetch('/api/documents').then(r => r.json());
+    const d = await fetch('/api/employee-documents').then(r => r.json());
     setDocs(d);
   };
   useEffect(() => { load(); }, []);
@@ -39,7 +39,7 @@ export default function EmployeeDocumentsView() {
 
   const submit = async () => {
     if (!selectedEmp) return setMessage('اختر الموظف أولاً');
-    const res = await fetch('/api/documents', {
+    const res = await fetch('/api/employee-documents', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ employee_id: Number(selectedEmp), ...upload })
     });
@@ -93,8 +93,8 @@ export default function EmployeeDocumentsView() {
             <input type="date" value={upload.expiry_date} onChange={e => setUpload({ ...upload, expiry_date: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm" />
             <input value={upload.notes} onChange={e => setUpload({ ...upload, notes: e.target.value })} placeholder="ملاحظات" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm" />
             <input type="file" accept="image/*,application/pdf" onChange={e => onFile(e.target.files?.[0])} className="w-full text-sm" />
-            {upload.data_uri && <p className="text-[11px] text-emerald-600 font-bold">تم اختيار ملف ✓</p>}
-            <button onClick={submit} className="w-full bg-emerald-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-700">حفظ الوثيقة</button>
+            {upload.data_uri && <p className="text-[11px] text-brand-600 font-bold">تم اختيار ملف ✓</p>}
+            <button onClick={submit} className="w-full bg-brand-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-brand-700">حفظ الوثيقة</button>
           </div>
         </div>
 
@@ -107,7 +107,7 @@ export default function EmployeeDocumentsView() {
               return (
                 <div key={d.id} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl bg-slate-50">
                   <div className="flex items-center gap-3">
-                    {t ? <t.i className="w-5 h-5 text-blue-600" /> : <FileText className="w-5 h-5 text-slate-400" />}
+                    {t ? <t.i className="w-5 h-5 text-brand-600" /> : <FileText className="w-5 h-5 text-slate-400" />}
                     <div>
                       <p className="font-bold text-sm text-slate-700">{t?.l || d.doc_type}</p>
                       <p className="text-[11px] text-slate-400">{d.doc_number} {d.expiry_date ? `· ينتهي ${d.expiry_date}` : ''}</p>

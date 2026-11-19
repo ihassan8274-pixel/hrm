@@ -291,7 +291,7 @@ export default function AttendanceView() {
       <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
           <div className="flex items-center gap-3 mb-1.5">
-            <div className="p-2.5 bg-indigo-50 text-indigo-700 rounded-2xl border border-indigo-100">
+            <div className="p-2.5 bg-brand-50 text-brand-700 rounded-2xl border border-brand-100">
               <Clock className="w-6 h-6" />
             </div>
             <div>
@@ -349,7 +349,7 @@ export default function AttendanceView() {
             <p className="text-[11px] font-bold text-slate-400 mb-1">إجمالي الموظفين المسجلين</p>
             <h3 className="text-2xl font-black text-slate-800">{employees.length} <span className="text-xs text-slate-400 font-normal">موظف</span></h3>
           </div>
-          <div className="w-11 h-11 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-bold">
+          <div className="w-11 h-11 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center font-bold">
             <User className="w-5 h-5" />
           </div>
         </div>
@@ -357,9 +357,9 @@ export default function AttendanceView() {
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-[11px] font-bold text-slate-400 mb-1">ساعات العمل القياسية لليوم</p>
-            <h3 className="text-2xl font-black text-indigo-600">{standardShiftHours} <span className="text-xs text-indigo-400 font-normal">ساعات / يوم</span></h3>
+            <h3 className="text-2xl font-black text-brand-600">{standardShiftHours} <span className="text-xs text-brand-400 font-normal">ساعات / يوم</span></h3>
           </div>
-          <div className="w-11 h-11 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-bold">
+          <div className="w-11 h-11 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center font-bold">
             {isRamadanMode ? <Moon className="w-5 h-5 text-amber-500" /> : <Sun className="w-5 h-5" />}
           </div>
         </div>
@@ -391,7 +391,7 @@ export default function AttendanceView() {
           onClick={() => setActiveTab('monthly')}
           className={`py-3.5 px-4 font-bold text-xs flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
             activeTab === 'monthly'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-brand-600 text-brand-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
@@ -403,7 +403,7 @@ export default function AttendanceView() {
           onClick={() => setActiveTab('live_gps')}
           className={`py-3.5 px-4 font-bold text-xs flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
             activeTab === 'live_gps'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-brand-600 text-brand-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
@@ -415,7 +415,7 @@ export default function AttendanceView() {
           onClick={() => setActiveTab('punches')}
           className={`py-3.5 px-4 font-bold text-xs flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
             activeTab === 'punches'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-brand-600 text-brand-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
@@ -427,7 +427,7 @@ export default function AttendanceView() {
           onClick={() => setActiveTab('ramadan_rules')}
           className={`py-3.5 px-4 font-bold text-xs flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
             activeTab === 'ramadan_rules'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-brand-600 text-brand-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
@@ -454,7 +454,7 @@ export default function AttendanceView() {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleAutoSyncFromPunches}
-                className="flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold hover:bg-emerald-100 transition-all text-xs"
+                className="flex items-center gap-1.5 bg-emerald-50 text-brand-800 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold hover:bg-emerald-100 transition-all text-xs"
               >
                 <RefreshCw className="w-3.5 h-3.5 text-emerald-600" />
                 <span>مزامنة تلقائية من البصمة</span>
@@ -463,7 +463,7 @@ export default function AttendanceView() {
               <button 
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-black hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50 text-xs shadow-md shadow-indigo-200"
+                className="flex items-center gap-2 bg-brand-600 text-white px-5 py-2.5 rounded-xl font-black hover:bg-brand-700 transition-all active:scale-95 disabled:opacity-50 text-xs shadow-md shadow-brand-200"
               >
                 <Save className="w-4 h-4" />
                 <span>{isSaving ? 'جاري الحفظ...' : 'حفظ التعديلات في المسير'}</span>
@@ -554,7 +554,7 @@ export default function AttendanceView() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 bg-white p-6 rounded-3xl border border-slate-100 shadow-xl space-y-5">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <Smartphone className="w-5 h-5 text-indigo-600" />
+              <Smartphone className="w-5 h-5 text-brand-600" />
               <h3 className="font-black text-slate-800 text-sm">تسجيل بصمة فورية عبر الهاتف (GPS)</h3>
             </div>
 
@@ -563,7 +563,7 @@ export default function AttendanceView() {
               <select
                 value={selectedPunchEmp}
                 onChange={e => setSelectedPunchEmp(Number(e.target.value))}
-                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 text-xs outline-none focus:ring-2 focus:ring-brand-500"
               >
                 {employees.map(e => (
                   <option key={e.id} value={e.id}>{e.name} - {e.department_name || 'عام'}</option>
@@ -576,7 +576,7 @@ export default function AttendanceView() {
               <select
                 value={punchLocation}
                 onChange={e => setPunchLocation(e.target.value as any)}
-                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 text-xs outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="riyadh_hq">المقر الرئيسي - الرياض (طريق الملك فهد)</option>
                 <option value="jeddah_branch">فرع جدة (طريق الكورنيش)</option>
@@ -629,7 +629,7 @@ export default function AttendanceView() {
 
             <button
               onClick={handleSimulateLivePunch}
-              className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-black rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 text-xs transition-all active:scale-95"
+              className="w-full py-3.5 bg-gradient-to-r from-brand-600 to-brand-600 hover:from-brand-700 hover:to-brand-700 text-white font-black rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-brand-200 text-xs transition-all active:scale-95"
             >
               <Fingerprint className="w-4 h-4" />
               <span>تأكيد تسجيل البصمة الآن</span>
@@ -644,7 +644,7 @@ export default function AttendanceView() {
                   <MapPin className="w-4 h-4 text-red-500" />
                   <span>خريطة النطاق الجغرافي للمنشأة (Geofencing Radius)</span>
                 </h3>
-                <span className="text-[10px] bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full font-bold">
+                <span className="text-[10px] bg-brand-50 text-brand-700 px-2.5 py-1 rounded-full font-bold">
                   نصف القطر المعتمد: 150 متر
                 </span>
               </div>
@@ -699,7 +699,7 @@ export default function AttendanceView() {
             </div>
             <button
               onClick={handleAutoSyncFromPunches}
-              className="flex items-center gap-1.5 bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-indigo-700 text-xs shadow-sm"
+              className="flex items-center gap-1.5 bg-brand-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-brand-700 text-xs shadow-sm"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>مزامنة السجلات مع المسير</span>
@@ -755,7 +755,7 @@ export default function AttendanceView() {
                         </span>
                       )}
                       {log.status === 'overtime' && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-full border border-brand-100">
                           <ArrowUpRight className="w-3 h-3" />
                           إضافي {log.overtime_minutes} دقيقة
                         </span>

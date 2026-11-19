@@ -129,14 +129,14 @@ export const BudgetingView: React.FC<BudgetingViewProps> = () => {
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500">نسبة استهلاك الميزانية</span>
-            <TrendingUp className="w-4 h-4 text-indigo-600" />
+            <TrendingUp className="w-4 h-4 text-brand-600" />
           </div>
           <p className="text-2xl font-black text-slate-900 mt-2 font-mono">
             {totalAllocatedAll > 0 ? Math.round((totalSpentAll / totalAllocatedAll) * 100) : 0}%
           </p>
           <div className="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden">
             <div 
-              className="bg-indigo-600 h-full rounded-full" 
+              className="bg-brand-600 h-full rounded-full" 
               style={{ width: `${Math.min(100, (totalSpentAll / (totalAllocatedAll || 1)) * 100)}%` }}
             />
           </div>
@@ -145,7 +145,7 @@ export const BudgetingView: React.FC<BudgetingViewProps> = () => {
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500">سقف القوى العاملة (Headcount Cap)</span>
-            <Users className="w-4 h-4 text-blue-600" />
+            <Users className="w-4 h-4 text-brand-600" />
           </div>
           <p className="text-2xl font-black text-slate-900 mt-2 font-mono">
             {totalCurrentHeadcount} <span className="text-sm font-normal text-slate-500">/ {totalHeadcountCap} موظف</span>
@@ -174,7 +174,7 @@ export const BudgetingView: React.FC<BudgetingViewProps> = () => {
         {/* Left 2 Cols: Departments Table */}
         <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
           <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-indigo-600" />
+            <Building2 className="w-5 h-5 text-brand-600" />
             توزيع ميزانيات الإدارات والأقسام لعام 2026
           </h3>
 
@@ -195,7 +195,7 @@ export const BudgetingView: React.FC<BudgetingViewProps> = () => {
                 {budgets.map((b) => (
                   <tr 
                     key={b.id} 
-                    className={`hover:bg-slate-50 transition-colors ${selectedDept?.id === b.id ? 'bg-indigo-50/50' : ''}`}
+                    className={`hover:bg-slate-50 transition-colors ${selectedDept?.id === b.id ? 'bg-brand-50/50' : ''}`}
                   >
                     <td className="py-3.5 px-3 font-bold text-slate-900">
                       {b.department_name || `إدارة ${b.department_id}`}
@@ -218,7 +218,7 @@ export const BudgetingView: React.FC<BudgetingViewProps> = () => {
                     <td className="py-3.5 px-3">
                       <button
                         onClick={() => setSelectedDept(b)}
-                        className="px-2.5 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded text-xs font-semibold"
+                        className="px-2.5 py-1 bg-brand-50 text-brand-700 hover:bg-brand-100 rounded text-xs font-semibold"
                       >
                         تعديل
                       </button>
@@ -231,8 +231,8 @@ export const BudgetingView: React.FC<BudgetingViewProps> = () => {
 
           {/* Edit form */}
           {selectedDept && (
-            <form onSubmit={handleUpdateDeptBudget} className="mt-4 p-4 border border-indigo-100 bg-indigo-50/30 rounded-xl space-y-3">
-              <h4 className="font-bold text-xs text-indigo-900">
+            <form onSubmit={handleUpdateDeptBudget} className="mt-4 p-4 border border-brand-100 bg-brand-50/30 rounded-xl space-y-3">
+              <h4 className="font-bold text-xs text-brand-900">
                 تعديل بنود ميزانية ({selectedDept.department_name || `إدارة ${selectedDept.department_id}`})
               </h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
@@ -313,7 +313,7 @@ export const BudgetingView: React.FC<BudgetingViewProps> = () => {
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-indigo-600 text-white rounded text-xs font-semibold flex items-center gap-1.5 hover:bg-indigo-700"
+                  className="px-4 py-1.5 bg-brand-600 text-white rounded text-xs font-semibold flex items-center gap-1.5 hover:bg-brand-700"
                 >
                   <Save className="w-3.5 h-3.5" /> حفظ التحديثات
                 </button>

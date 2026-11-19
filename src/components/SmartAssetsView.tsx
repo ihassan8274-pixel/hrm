@@ -21,12 +21,16 @@ import {
   Building2
 } from 'lucide-react';
 import { SmartAssetRecord } from '../types';
+import { Letterhead } from '../lib/print/letterhead';
+import { useLetterhead } from '../lib/print/use-letterhead';
 
 interface SmartAssetsViewProps {
   onBack?: () => void;
 }
 
 export const SmartAssetsView: React.FC<SmartAssetsViewProps> = () => {
+  // ترويسة موحّدة مع بقية مخرجات النظام (ورقة الشركة).
+  const company = useLetterhead();
   const [assets, setAssets] = useState<SmartAssetRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,10 +52,14 @@ export const SmartAssetsView: React.FC<SmartAssetsViewProps> = () => {
     condition: 'new' as const
   });
 
-  const [assignForm, setAssignForm] = useState({
+  const [assignForm, setAssignForm] = useState<{
+    employee_id: number;
+    condition: SmartAssetRecord['condition'];
+    status: SmartAssetRecord['status'];
+  }>({
     employee_id: 1,
-    condition: 'good' as const,
-    status: 'assigned' as const
+    condition: 'good',
+    status: 'assigned'
   });
 
   const fetchAssets = async () => {
@@ -131,9 +139,9 @@ export const SmartAssetsView: React.FC<SmartAssetsViewProps> = () => {
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'laptop': return <Laptop className="w-4 h-4 text-indigo-600" />;
+      case 'laptop': return <Laptop className="w-4 h-4 text-brand-600" />;
       case 'smartphone':
-      case 'tablet': return <Smartphone className="w-4 h-4 text-blue-600" />;
+      case 'tablet': return <Smartphone className="w-4 h-4 text-brand-600" />;
       case 'fuel_card': return <CreditCard className="w-4 h-4 text-amber-600" />;
       case 'access_key': return <Key className="w-4 h-4 text-purple-600" />;
       case 'vehicle': return <Car className="w-4 h-4 text-emerald-600" />;
@@ -146,7 +154,7 @@ export const SmartAssetsView: React.FC<SmartAssetsViewProps> = () => {
       case 'assigned':
         return <span className="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"><CheckCircle2 className="w-3 h-3" /> مسلم كعهدة نشطة</span>;
       case 'in_stock':
-        return <span className="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-semibold bg-blue-50 text-blue-700 border border-blue-200"><Clock className="w-3 h-3" /> متاح بالمستودع</span>;
+        return <span className="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-semibold bg-brand-50 text-brand-700 border border-brand-200"><Clock className="w-3 h-3" /> متاح بالمستودع</span>;
       case 'maintenance':
         return <span className="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-semibold bg-amber-50 text-amber-700 border border-amber-200"><AlertTriangle className="w-3 h-3" /> قيد الصيانة والإصلاح</span>;
       default:
@@ -162,7 +170,7 @@ export const SmartAssetsView: React.FC<SmartAssetsViewProps> = () => {
       {/* Header */}
       <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-blue-50 text-blue-700 rounded-lg border border-blue-100">
+          <div className="p-2.5 bg-brand-50 text-brand-700 rounded-lg border border-brand-100">
             <Laptop className="w-6 h-6" />
           </div>
           <div>
@@ -175,7 +183,7 @@ export const SmartAssetsView: React.FC<SmartAssetsViewProps> = () => {
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
           <span>تسجيل أصل أو عهدة جديدة</span>
@@ -212,7 +220,7 @@ export const SmartAssetsView: React.FC<SmartAssetsViewProps> = () => {
             placeholder="بحث برمز الأصل، الرقم التسلسلي، اسم الجهاز، أو اسم الموظف المستلم..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pr-9 pl-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+            className="w-full pr-9 pl-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500"
           />
         </div>
 
@@ -244,7 +252,7 @@ export const SmartAssetsView: React.FC<SmartAssetsViewProps> = () => {
                     {getCategoryIcon(asset.category)}
                   </div>
                   <div>
-                    <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                    <span className="font-mono text-xs font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded">
                       {asset.asset_code}
                     </span>
                     <h3 className="font-bold text-slate-900 text-sm mt-1">{asset.name}</h3>
@@ -306,7 +314,7 @@ export const SmartAssetsView: React.FC<SmartAssetsViewProps> = () => {
                     status: asset.status as any || 'assigned'
                   });
                 }}
-                className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                className="px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
               >
                 <ArrowRightLeft className="w-3.5 h-3.5" />
                 <span>{asset.status === 'assigned' ? 'نقل / استرجاع العهدة' : 'تسليم لموظف'}</span>
@@ -321,7 +329,7 @@ export const SmartAssetsView: React.FC<SmartAssetsViewProps> = () => {
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2 text-blue-700">
+              <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2 text-brand-700">
                 <Laptop className="w-5 h-5" />
                 تسجيل عهدة / أصل جديد بالمنشأة
               </h3>
@@ -398,7 +406,7 @@ export const SmartAssetsView: React.FC<SmartAssetsViewProps> = () => {
               <div className="flex justify-end pt-3 border-t border-slate-100">
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                  className="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-semibold transition-colors"
                 >
                   حفظ وتوليد رمز QR
                 </button>
@@ -470,7 +478,7 @@ export const SmartAssetsView: React.FC<SmartAssetsViewProps> = () => {
               <div className="flex justify-end pt-3 border-t border-slate-100">
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                  className="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-semibold transition-colors"
                 >
                   تحديث المحضر وإبراء الذمة
                 </button>
@@ -482,11 +490,13 @@ export const SmartAssetsView: React.FC<SmartAssetsViewProps> = () => {
 
       {/* MODAL: QR CODE & HANDOVER CERTIFICATE */}
       {selectedAssetForQR && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center border border-slate-200">
+        <div className="print-modal-overlay fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="print-document bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center border border-slate-200">
+            <Letterhead company={company} compact />
+
             <div className="flex justify-between items-center pb-2 border-b">
               <span className="text-xs font-bold text-slate-500">بطاقة العهدة الذكية</span>
-              <button onClick={() => setSelectedAssetForQR(null)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setSelectedAssetForQR(null)} className="no-print text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -509,7 +519,7 @@ export const SmartAssetsView: React.FC<SmartAssetsViewProps> = () => {
 
             <button
               onClick={() => window.print()}
-              className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-2"
+              className="no-print w-full py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-2"
             >
               <Printer className="w-4 h-4" /> طباعة ملصق الباركود / QR
             </button>

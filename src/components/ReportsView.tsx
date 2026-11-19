@@ -38,13 +38,13 @@ export default function ReportsView() {
         <div className="flex bg-slate-100 p-1.5 rounded-2xl">
            <button 
              onClick={() => setActiveTab('visual')}
-             className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${activeTab === 'visual' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}
+             className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${activeTab === 'visual' ? 'bg-white shadow-sm text-brand-600' : 'text-slate-500'}`}
            >
              رسوم بيانية
            </button>
            <button 
              onClick={() => setActiveTab('excel')}
-             className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${activeTab === 'excel' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}
+             className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${activeTab === 'excel' ? 'bg-white shadow-sm text-brand-600' : 'text-slate-500'}`}
            >
              ربط إكسيل (Direct Link)
            </button>
@@ -78,8 +78,8 @@ export default function ReportsView() {
                  <p className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-tighter">عدد الموظفين</p>
                  <div className="flex items-center justify-between">
                     <h4 className="text-xl font-bold text-slate-800">{stats?.totalEmployees || 0} <span className="text-[10px]">موظف</span></h4>
-                    <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
-                       <Users className="w-4 h-4 text-blue-500" />
+                    <div className="w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center">
+                       <Users className="w-4 h-4 text-brand-500" />
                     </div>
                  </div>
                  <p className="text-[10px] text-slate-400 mt-2 font-bold">نمو مستقر في التعيينات</p>
@@ -109,7 +109,7 @@ export default function ReportsView() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
                 <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-indigo-500" />
+                  <TrendingUp className="w-5 h-5 text-brand-500" />
                   نمو كتلة الرواتب (نصف سنوي)
                 </h3>
                 <div className="h-[300px] w-full">
@@ -130,7 +130,7 @@ export default function ReportsView() {
 
               <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
                 <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
-                  <Users className="w-5 h-5 text-blue-500" />
+                  <Users className="w-5 h-5 text-brand-500" />
                   توزيع الموظفين حسب الإدارة
                 </h3>
                 <div className="h-[300px] w-full flex items-center justify-center">
@@ -188,7 +188,7 @@ export default function ReportsView() {
               <div className="space-y-8">
                  <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
                     <h4 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
-                      <Share2 className="w-4 h-4 text-indigo-500" />
+                      <Share2 className="w-4 h-4 text-brand-500" />
                       روابط الربط (API Links)
                     </h4>
                     <div className="space-y-4">
@@ -202,7 +202,7 @@ export default function ReportsView() {
                                 navigator.clipboard.writeText(link.url);
                                 alert('تم نسخ الرابط! استخدمه في Excel: Get Data > From Web');
                               }}
-                              className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-black hover:bg-indigo-600 hover:text-white transition-all uppercase tracking-widest"
+                              className="px-4 py-2 bg-brand-50 text-brand-600 rounded-lg text-xs font-black hover:bg-brand-600 hover:text-white transition-all uppercase tracking-widest"
                             >
                               نسخ الرابط
                             </button>
@@ -219,16 +219,16 @@ export default function ReportsView() {
                     <h4 className="font-bold text-slate-800">كيفية الربط في Excel:</h4>
                     <ol className="list-decimal list-inside space-y-3 text-sm text-slate-600 font-bold">
                        <li>افتح برنامج Microsoft Excel</li>
-                       <li>انتقل إلى تبويب <span className="text-indigo-600">بيانات (Data)</span></li>
-                       <li>اضغط على <span className="text-indigo-600">الحصول على بيانات (Get Data)</span></li>
-                       <li>اختر <span className="text-indigo-600">من مصادر أخرى &gt; من الويب (From Web)</span></li>
+                       <li>انتقل إلى تبويب <span className="text-brand-600">بيانات (Data)</span></li>
+                       <li>اضغط على <span className="text-brand-600">الحصول على بيانات (Get Data)</span></li>
+                       <li>اختر <span className="text-brand-600">من مصادر أخرى &gt; من الويب (From Web)</span></li>
                        <li>الصق الرابط الذي قمت بنسخه أعلاه واضغط OK</li>
                     </ol>
                  </div>
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 p-8 rounded-3xl text-white shadow-xl flex flex-col justify-between text-right">
+            <div className="bg-gradient-to-br from-brand-600 to-brand-800 p-8 rounded-3xl text-white shadow-xl flex flex-col justify-between text-right">
                <div>
                   <h4 className="text-xl font-black mb-4">لماذا الربط المباشر؟</h4>
                   <ul className="space-y-4">
@@ -238,8 +238,8 @@ export default function ReportsView() {
                        'ربط البيانات بـ Power BI للتحليلات المتقدمة',
                        'توليد رسوم بيانية مخصصة غير محدودة'
                      ].map((point, i) => (
-                       <li key={i} className="flex gap-3 text-sm font-bold text-indigo-100 items-start">
-                         <CheckCircle2 className="w-5 h-5 text-indigo-300 shrink-0 mt-0.5" />
+                       <li key={i} className="flex gap-3 text-sm font-bold text-brand-100 items-start">
+                         <CheckCircle2 className="w-5 h-5 text-brand-300 shrink-0 mt-0.5" />
                          <span>{point}</span>
                        </li>
                      ))}

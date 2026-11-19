@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { FileText, Printer, CheckCircle, ShieldCheck, Download, X, Building2, QrCode as QrIcon } from 'lucide-react';
 import QRCode from 'qrcode';
 import type { Employee, SalaryCertificateRecord } from '../types';
+import { Letterhead } from '../lib/print/letterhead';
+import { useLetterhead } from '../lib/print/use-letterhead';
 
 interface Props {
   employee: Employee;
@@ -19,6 +21,8 @@ export default function SalaryCertificateModal({ employee, isOpen, onClose, onCe
   const [certificate, setCertificate] = useState<SalaryCertificateRecord | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const printRef = useRef<HTMLDivElement>(null);
+  // ترويسة موحّدة مع بقية مخرجات النظام (ورقة الشركة).
+  const company = useLetterhead();
 
   const purposeOptions = [
     { value: 'bank_loan', label: 'تمويل شخصي / عقاري (بنكي)' },
@@ -190,17 +194,16 @@ export default function SalaryCertificateModal({ employee, isOpen, onClose, onCe
               className="bg-white border-2 border-slate-200 rounded-2xl p-8 text-slate-800 space-y-6 print:m-0 print:border-none print:p-0"
               style={{ minHeight: '520px' }}
             >
-              {/* Certificate Header */}
-              <div className="flex justify-between items-start border-b-2 border-emerald-700 pb-4">
+              {/* Certificate Header — الترويسة الموحّدة لكل مخرجات النظام */}
+              <Letterhead company={company} />
+
+              <div className="flex justify-between items-start pb-4">
                 <div className="space-y-1">
-                  <h2 className="text-lg font-black text-slate-900">شركة المسار الرقمي للحلول المتكاملة</h2>
-                  <p className="text-[11px] text-slate-500 font-bold">سجل تجاري: 1010789456 | الرقم الموحد 700: 7001984523</p>
-                  <p className="text-[11px] text-slate-500">الرياض، المملكة العربية السعودية</p>
-                </div>
-                <div className="text-left rtl:text-right space-y-1">
                   <div className="inline-block bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-lg text-xs font-black">
                     شهادة تعريف بالراتب
                   </div>
+                </div>
+                <div className="text-left rtl:text-right space-y-1">
                   <p className="text-[10px] font-mono font-bold text-slate-600 mt-1">الرقم: {certificate.certificate_number}</p>
                   <p className="text-[10px] text-slate-500">التاريخ: {certificate.issue_date}</p>
                 </div>
@@ -215,7 +218,7 @@ export default function SalaryCertificateModal({ employee, isOpen, onClose, onCe
               {/* Body Statement */}
               <div className="text-xs leading-relaxed text-slate-700 space-y-3 text-justify font-medium">
                 <p>
-                  تشهد <strong>شركة المسار الرقمي للحلول المتكاملة</strong> بأن الموظف الموضحة بياناته أدناه يعمل لدينا وتحت كفالتنا، وما زال على رأس العمل حتى تاريخ إصدار هذا الخطاب:
+                  تشهد <strong>{company.org_name}</strong> بأن الموظف الموضحة بياناته أدناه يعمل لدينا وتحت كفالتنا، وما زال على رأس العمل حتى تاريخ إصدار هذا الخطاب:
                 </p>
 
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
@@ -277,9 +280,9 @@ export default function SalaryCertificateModal({ employee, isOpen, onClose, onCe
                 </table>
 
                 {certificate.include_bank_iban === 1 && employee.saudi_iban && (
-                  <div className="p-3 bg-blue-50/60 border border-blue-100 rounded-xl flex items-center justify-between text-xs">
-                    <span className="font-bold text-blue-900">الحساب البنكي المعتمد لتحويل الراتب (IBAN):</span>
-                    <span className="font-mono font-bold text-blue-800" dir="ltr">{employee.saudi_iban}</span>
+                  <div className="p-3 bg-brand-50/60 border border-brand-100 rounded-xl flex items-center justify-between text-xs">
+                    <span className="font-bold text-brand-900">الحساب البنكي المعتمد لتحويل الراتب (IBAN):</span>
+                    <span className="font-mono font-bold text-brand-800" dir="ltr">{employee.saudi_iban}</span>
                   </div>
                 )}
 

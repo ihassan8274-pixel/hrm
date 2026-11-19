@@ -140,7 +140,7 @@ export default function VisasMuqeemView() {
   const getVisaBadge = (type: string) => {
     switch (type) {
       case 'exit_reentry_single':
-        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">خروج وعودة مفردة (200 ر.س)</span>;
+        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-brand-50 text-brand-700 border border-brand-200">خروج وعودة مفردة (200 ر.س)</span>;
       case 'exit_reentry_multiple':
         return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">خروج وعودة متعددة (500 ر.س)</span>;
       case 'final_exit':
@@ -196,7 +196,7 @@ export default function VisasMuqeemView() {
           {activeSubTab === 'visas' && (
             <button
               onClick={() => setIsVisaModalOpen(true)}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all"
+              className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-brand-600/20 transition-all"
             >
               <Plus className="w-4 h-4" />
               إصدار تأشيرة جديدة
@@ -205,7 +205,7 @@ export default function VisasMuqeemView() {
           {activeSubTab === 'tickets' && (
             <button
               onClick={() => setIsTicketModalOpen(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-blue-600/20 transition-all"
+              className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-brand-600/20 transition-all"
             >
               <Plus className="w-4 h-4" />
               حجز تذكرة / بدل سفر
@@ -238,7 +238,7 @@ export default function VisasMuqeemView() {
             </div>
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
               <span className="text-xs font-bold text-slate-400 block">خروج وعودة مفردة / متعددة</span>
-              <h4 className="text-2xl font-black text-blue-600 mt-1">
+              <h4 className="text-2xl font-black text-brand-600 mt-1">
                 {visas.filter(v => v.visa_type.includes('exit_reentry')).length}
               </h4>
             </div>
@@ -333,7 +333,7 @@ export default function VisasMuqeemView() {
             </div>
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
               <span className="text-xs font-bold text-slate-400 block">بدل نقدي مقابل تذكرة</span>
-              <h4 className="text-2xl font-black text-blue-600 mt-1">
+              <h4 className="text-2xl font-black text-brand-600 mt-1">
                 {tickets.filter(t => t.allowance_type === 'cash_allowance').length}
               </h4>
             </div>
@@ -368,7 +368,7 @@ export default function VisasMuqeemView() {
                         <td className="p-3.5 font-bold text-slate-800">{t.employee_name}</td>
                         <td className="p-3.5 font-bold text-slate-700">{t.destination}</td>
                         <td className="p-3.5">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-brand-50 text-brand-700">
                             {t.trip_type === 'round_trip' ? 'ذهاب وعودة' : 'ذهاب فقط'}
                           </span>
                         </td>
@@ -413,7 +413,7 @@ export default function VisasMuqeemView() {
                 <div className="flex items-center gap-3 mt-1 justify-center">
                   <span className="text-sm font-black text-emerald-400">{budget.saudiCount} سعودي</span>
                   <span className="text-slate-400">|</span>
-                  <span className="text-sm font-black text-blue-300">{budget.expatCount} مقيم</span>
+                  <span className="text-sm font-black text-brand-300">{budget.expatCount} مقيم</span>
                 </div>
               </div>
             </div>
@@ -475,7 +475,7 @@ export default function VisasMuqeemView() {
                     <tr key={idx} className="hover:bg-slate-50">
                       <td className="p-3 font-bold text-slate-800">{b.branch_name}</td>
                       <td className="p-3 font-bold text-emerald-700">{b.saudi_count}</td>
-                      <td className="p-3 font-bold text-blue-700">{b.expat_count}</td>
+                      <td className="p-3 font-bold text-brand-700">{b.expat_count}</td>
                       <td className="p-3 font-black text-slate-900">{b.total_cost?.toLocaleString()} ر.س</td>
                     </tr>
                   ))}
@@ -577,7 +577,7 @@ export default function VisasMuqeemView() {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md shadow-emerald-600/20"
+                  className="px-6 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-black shadow-md shadow-brand-600/20"
                 >
                   تأكيد وإصدار
                 </button>
@@ -598,7 +598,7 @@ export default function VisasMuqeemView() {
                 <select
                   value={ticketForm.employee_id}
                   onChange={(e) => setTicketForm({ ...ticketForm, employee_id: Number(e.target.value) })}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-500 outline-none"
                   required
                 >
                   <option value="">اختر الموظف...</option>
@@ -615,7 +615,7 @@ export default function VisasMuqeemView() {
                     type="text"
                     value={ticketForm.destination}
                     onChange={(e) => setTicketForm({ ...ticketForm, destination: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-500 outline-none"
                     required
                   />
                 </div>
@@ -624,7 +624,7 @@ export default function VisasMuqeemView() {
                   <select
                     value={ticketForm.trip_type}
                     onChange={(e) => setTicketForm({ ...ticketForm, trip_type: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-500 outline-none"
                   >
                     <option value="round_trip">ذهاب وعودة</option>
                     <option value="one_way">ذهاب فقط (خروج نهائي)</option>
@@ -638,7 +638,7 @@ export default function VisasMuqeemView() {
                   <select
                     value={ticketForm.allowance_type}
                     onChange={(e) => setTicketForm({ ...ticketForm, allowance_type: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-500 outline-none"
                   >
                     <option value="ticket_issued">تذكرة سفر مصدرة رسمياً</option>
                     <option value="cash_allowance">صرف بدل نقدي مع الراتب</option>
@@ -650,7 +650,7 @@ export default function VisasMuqeemView() {
                     type="number"
                     value={ticketForm.cost}
                     onChange={(e) => setTicketForm({ ...ticketForm, cost: Number(e.target.value) })}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-500 outline-none"
                   />
                 </div>
               </div>
@@ -662,7 +662,7 @@ export default function VisasMuqeemView() {
                     type="date"
                     value={ticketForm.departure_date}
                     onChange={(e) => setTicketForm({ ...ticketForm, departure_date: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-500 outline-none"
                   />
                 </div>
                 <div>
@@ -671,7 +671,7 @@ export default function VisasMuqeemView() {
                     type="date"
                     value={ticketForm.return_date}
                     onChange={(e) => setTicketForm({ ...ticketForm, return_date: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-500 outline-none"
                   />
                 </div>
               </div>
@@ -686,7 +686,7 @@ export default function VisasMuqeemView() {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black shadow-md shadow-blue-600/20"
+                  className="px-6 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-black shadow-md shadow-brand-600/20"
                 >
                   حفظ وتأكيد التذكرة
                 </button>

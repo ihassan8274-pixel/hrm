@@ -100,13 +100,13 @@ export default function AssetsView() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredAssets.map((asset) => (
           <div key={asset.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-            <div className={`absolute left-0 top-0 w-1 h-full ${asset.status === 'assigned' ? 'bg-indigo-500' : 'bg-emerald-500'}`} />
+            <div className={`absolute left-0 top-0 w-1 h-full ${asset.status === 'assigned' ? 'bg-brand-500' : 'bg-emerald-500'}`} />
             
             <div className="flex justify-between items-start mb-6">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${asset.status === 'assigned' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}`}>
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${asset.status === 'assigned' ? 'bg-brand-50 text-brand-600' : 'bg-emerald-50 text-emerald-600'}`}>
                 {getAssetIcon(asset.type)}
               </div>
-              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${asset.status === 'assigned' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}`}>
+              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${asset.status === 'assigned' ? 'bg-brand-50 text-brand-600' : 'bg-emerald-50 text-emerald-600'}`}>
                 {asset.status === 'assigned' ? 'بعهدة موظف' : 'متاح'}
               </span>
             </div>
@@ -128,7 +128,7 @@ export default function AssetsView() {
               ) : (
                 <button 
                   onClick={() => { setSelectedAsset(asset); setIsAssignModalOpen(true); }}
-                  className="flex-1 bg-slate-50 text-slate-600 py-2 rounded-xl text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                  className="flex-1 bg-slate-50 text-slate-600 py-2 rounded-xl text-xs font-bold hover:bg-brand-600 hover:text-white transition-all flex items-center justify-center gap-2"
                 >
                   <User className="w-3 h-3" />
                   تسليم لعهدة موظف
@@ -156,7 +156,7 @@ export default function AssetsView() {
                     type="text"
                     value={formData.name}
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
                     placeholder="مثال: MacBook Pro 14"
                   />
                 </div>
@@ -165,7 +165,7 @@ export default function AssetsView() {
                   <select 
                     value={formData.type}
                     onChange={e => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
                   >
                     <option value="laptop">لابتوب / كمبيوتر</option>
                     <option value="phone">هاتف محمول</option>
@@ -179,7 +179,7 @@ export default function AssetsView() {
                     type="text"
                     value={formData.serial_number}
                     onChange={e => setFormData({ ...formData, serial_number: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-mono"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-mono"
                   />
                 </div>
                 <div className="flex gap-4">
@@ -207,7 +207,7 @@ export default function AssetsView() {
                   <select 
                     value={assignData.employee_id}
                     onChange={e => setAssignData({ ...assignData, employee_id: Number(e.target.value) })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
                   >
                     <option value="0">اختر...</option>
                     {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
@@ -215,7 +215,7 @@ export default function AssetsView() {
                 </div>
                 <button 
                   onClick={handleAssign}
-                  className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-xl shadow-indigo-100"
+                  className="w-full bg-brand-600 text-white py-4 rounded-xl font-bold shadow-xl shadow-brand-100"
                 >تأكيد العملية</button>
                 <button onClick={() => setIsAssignModalOpen(false)} className="w-full text-slate-400 font-bold text-xs uppercase">إلغاء</button>
               </div>

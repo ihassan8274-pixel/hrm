@@ -4,8 +4,12 @@ import {
   Clock, CheckCircle2, Building, RefreshCw, Printer, X
 } from 'lucide-react';
 import type { QiwaContract, Employee } from '../types';
+import { Letterhead, DocumentFooter } from '../lib/print/letterhead';
+import { useLetterhead } from '../lib/print/use-letterhead';
 
 export default function QiwaContractsView() {
+  // ترويسة موحّدة مع بقية مخرجات النظام (ورقة الشركة).
+  const company = useLetterhead();
   const [contracts, setContracts] = useState<QiwaContract[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,7 +142,7 @@ export default function QiwaContractsView() {
           </button>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition shadow-sm"
+            className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition shadow-sm"
           >
             <Plus className="w-4 h-4" />
             إنشاء عقد موحد جديد
@@ -178,10 +182,10 @@ export default function QiwaContractsView() {
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm text-slate-500 font-medium">التجديد التلقائي النشط</span>
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><RefreshCw className="w-4 h-4" /></div>
+            <div className="p-2 bg-brand-50 text-brand-600 rounded-lg"><RefreshCw className="w-4 h-4" /></div>
           </div>
-          <p className="text-2xl font-bold text-blue-700">{contracts.filter(c => c.auto_renew === 1).length}</p>
-          <span className="text-xs text-blue-600 font-medium">يُجدد تلقائياً لمدة مماثلة</span>
+          <p className="text-2xl font-bold text-brand-700">{contracts.filter(c => c.auto_renew === 1).length}</p>
+          <span className="text-xs text-brand-600 font-medium">يُجدد تلقائياً لمدة مماثلة</span>
         </div>
       </div>
 
@@ -296,7 +300,7 @@ export default function QiwaContractsView() {
                     <td className="px-4 py-3.5 text-center">
                       <button
                         onClick={() => setViewingContract(c)}
-                        className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition font-medium text-xs inline-flex items-center gap-1.5"
+                        className="p-2 text-brand-600 hover:bg-emerald-50 rounded-xl transition font-medium text-xs inline-flex items-center gap-1.5"
                       >
                         <Printer className="w-4 h-4" />
                         معاينة وطباعة
@@ -486,7 +490,7 @@ export default function QiwaContractsView() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition"
+                  className="px-5 py-2 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 transition"
                 >
                   حفظ وتوثيق العقد
                 </button>
@@ -498,9 +502,9 @@ export default function QiwaContractsView() {
 
       {/* Contract Viewer / Print Modal */}
       {viewingContract && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-8 shadow-2xl space-y-6 print:p-0">
-            <div className="flex items-center justify-between border-b pb-4 print:hidden">
+        <div className="print-modal-overlay fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="print-document bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-8 shadow-2xl space-y-6 print:p-0">
+            <div className="flex items-center justify-between border-b pb-4 print:hidden no-print">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-6 h-6 text-emerald-600" />
                 <h3 className="font-bold text-slate-800">عقد عمل موحد معتمد - منصة قوى</h3>
@@ -508,7 +512,7 @@ export default function QiwaContractsView() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => window.print()}
-                  className="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5"
+                  className="px-3 py-1.5 bg-brand-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   طباعة العقد
@@ -521,6 +525,8 @@ export default function QiwaContractsView() {
 
             {/* Official Contract Document */}
             <div className="border-2 border-slate-800 p-8 rounded-xl space-y-6 text-slate-800 text-sm leading-relaxed">
+              <Letterhead company={company} />
+
               <div className="text-center border-b-2 border-slate-800 pb-4">
                 <h2 className="text-xl font-extrabold">المملكة العربية السعودية</h2>
                 <h3 className="text-md font-bold text-emerald-800 mt-1">عقد عمل موحد (منصة قوى الإلكترونية)</h3>
@@ -530,8 +536,10 @@ export default function QiwaContractsView() {
               <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-lg border border-slate-200">
                 <div>
                   <p className="font-bold text-slate-900">الطرف الأول (صاحب العمل):</p>
-                  <p>المنشأة: شركة الأنظمة المتكاملة للحلول الرقمية</p>
-                  <p>السجل التجاري: 1010789456 | الرقم الموحد: 7001984523</p>
+                  <p>المنشأة: {company?.org_name}</p>
+                  <p>
+                    السجل التجاري: {company?.cr_number || '---'} | الرقم الموحد: {company?.unified_number_700 || '---'}
+                  </p>
                   <p>المقر: {viewingContract.work_location}</p>
                 </div>
                 <div>
@@ -561,6 +569,8 @@ export default function QiwaContractsView() {
                   <p className="mt-8 text-emerald-800 font-bold">تم القبول والمصادقة رقمياً ✓</p>
                 </div>
               </div>
+
+              <DocumentFooter company={company} reference={viewingContract.contract_number} />
             </div>
           </div>
         </div>

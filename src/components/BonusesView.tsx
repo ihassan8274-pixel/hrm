@@ -174,7 +174,7 @@ export default function BonusesView() {
               </button>
 
               <h3 className="text-xl font-bold mb-8 flex items-center gap-2">
-                 <DollarSign className="text-indigo-600" />
+                 <DollarSign className="text-brand-600" />
                  إضافة متغير مالي للشهر الحالي
               </h3>
 
@@ -182,7 +182,7 @@ export default function BonusesView() {
                 <div className="flex p-1 bg-slate-100 rounded-2xl">
                    <button 
                     onClick={() => setFormData({...formData, type: 'bonus'})}
-                    className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${formData.type === 'bonus' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}
+                    className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${formData.type === 'bonus' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-400'}`}
                    >مكافأة</button>
                    <button 
                     onClick={() => setFormData({...formData, type: 'penalty'})}
@@ -195,7 +195,7 @@ export default function BonusesView() {
                   <select 
                     value={formData.employee_id}
                     onChange={e => setFormData({ ...formData, employee_id: Number(e.target.value) })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
                   >
                     <option value="0">اختر موظفاً...</option>
                     {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
@@ -209,7 +209,7 @@ export default function BonusesView() {
                       type="number"
                       value={formData.amount}
                       onChange={e => setFormData({ ...formData, amount: Number(e.target.value) })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-mono"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-mono"
                     />
                   </div>
                   <div>
@@ -218,7 +218,7 @@ export default function BonusesView() {
                       type="text"
                       value={formData.reason}
                       onChange={e => setFormData({ ...formData, reason: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
                     />
                   </div>
                 </div>

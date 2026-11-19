@@ -32,7 +32,7 @@ export default function TasksView() {
   const getStatusColor = (status: string) => {
     switch(status) {
       case 'completed': return 'bg-emerald-50 text-emerald-600';
-      case 'in_progress': return 'bg-blue-50 text-blue-600';
+      case 'in_progress': return 'bg-brand-50 text-brand-600';
       default: return 'bg-amber-50 text-amber-600';
     }
   };
@@ -47,7 +47,7 @@ export default function TasksView() {
         <div className="flex gap-3">
             <button 
               onClick={() => setIsAddingProject(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+              className="flex items-center gap-2 bg-brand-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-brand-700 transition-all shadow-lg shadow-brand-100"
             >
               <Plus className="w-5 h-5" />
               <span>مشروع جديد</span>
@@ -59,7 +59,7 @@ export default function TasksView() {
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm">
             <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2">
-              <ClipboardList className="w-5 h-5 text-indigo-500" />
+              <ClipboardList className="w-5 h-5 text-brand-500" />
               أحدث المهام
             </h3>
             <div className="space-y-4">
@@ -102,13 +102,13 @@ export default function TasksView() {
                 {projects.map(project => (
                   <div key={project.id} className="p-5 bg-slate-50 rounded-2xl">
                      <div className="flex justify-between items-start mb-4">
-                        <span className="px-2 py-0.5 bg-indigo-100 text-indigo-600 rounded text-[10px] font-black uppercase tracking-widest">{project.department_name}</span>
+                        <span className="px-2 py-0.5 bg-brand-100 text-brand-600 rounded text-[10px] font-black uppercase tracking-widest">{project.department_name}</span>
                         <span className="text-[10px] font-bold text-slate-400">{project.status}</span>
                      </div>
                      <h4 className="font-bold text-slate-800 mb-1">{project.name}</h4>
                      <p className="text-xs text-slate-500 mb-4">بدأ في: {project.start_date}</p>
                      <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                        <div className="w-1/3 h-full bg-indigo-500 rounded-full" />
+                        <div className="w-1/3 h-full bg-brand-500 rounded-full" />
                      </div>
                   </div>
                 ))}

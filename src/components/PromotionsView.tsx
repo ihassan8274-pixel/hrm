@@ -74,7 +74,7 @@ export default function PromotionsView() {
         </div>
         <button 
           onClick={() => setIsAdding(true)}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+          className="flex items-center gap-2 bg-brand-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-brand-700 transition-all shadow-lg shadow-brand-100"
         >
           <Plus className="w-5 h-5" />
           <span>إضافة ترقية/تغيير</span>
@@ -100,14 +100,14 @@ export default function PromotionsView() {
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-400">{p.old_position}</span>
-                    <ArrowRight className="w-3 h-3 text-indigo-400" />
-                    <span className="text-sm font-bold text-indigo-600">{p.new_position}</span>
+                    <ArrowRight className="w-3 h-3 text-brand-400" />
+                    <span className="text-sm font-bold text-brand-600">{p.new_position}</span>
                   </div>
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-400">{(p.old_salary || 0).toLocaleString()}</span>
-                    <ArrowRight className="w-3 h-3 text-indigo-400" />
+                    <ArrowRight className="w-3 h-3 text-brand-400" />
                     <span className="text-sm font-black text-emerald-600">{(p.new_salary || 0).toLocaleString()}</span>
                   </div>
                 </td>
@@ -133,7 +133,7 @@ export default function PromotionsView() {
                 <label className="block text-xs font-black text-slate-400 uppercase mb-2">الموظف</label>
                 <select 
                   required
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700"
                   value={form.employee_id}
                   onChange={e => handleEmployeeChange(e.target.value)}
                 >
@@ -151,7 +151,7 @@ export default function PromotionsView() {
                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">المسمى الجديد</label>
                   <input 
                     required
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700"
                     value={form.new_position}
                     onChange={e => setForm({...form, new_position: e.target.value})}
                   />
@@ -168,7 +168,7 @@ export default function PromotionsView() {
                   <input 
                     type="number"
                     required
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700"
                     value={form.new_salary}
                     onChange={e => setForm({...form, new_salary: Number(e.target.value)})}
                   />
@@ -180,14 +180,14 @@ export default function PromotionsView() {
                 <input 
                   type="date"
                   required
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700"
                   value={form.promotion_date}
                   onChange={e => setForm({...form, promotion_date: e.target.value})}
                 />
               </div>
 
               <div className="flex gap-3 pt-6">
-                <button type="submit" className="flex-1 bg-indigo-600 text-white py-3 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">حفظ التغييرات</button>
+                <button type="submit" className="flex-1 bg-brand-600 text-white py-3 rounded-2xl font-bold hover:bg-brand-700 transition-all shadow-lg shadow-brand-100">حفظ التغييرات</button>
                 <button type="button" onClick={() => setIsAdding(false)} className="px-6 py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold">إلغاء</button>
               </div>
             </form>

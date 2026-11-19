@@ -4,11 +4,12 @@ import { PayrollInput, PayrollResult } from './payroll-types';
 export class PayrollCalculator {
   static calculate(input: PayrollInput, rules: CountryConfig): PayrollResult {
     const { basicSalary, housingAllowance, transportAllowance, otherAllowances, deductions, loanDeduction, absentDays, overtimeHours } = input;
-    
+    const additional = PayrollCalculator.aggregateAdditionalSalaries(input.additionalSalaries || []);
+
     // 1. Calculate gross earnings
     const totalAllowances = housingAllowance + transportAllowance + otherAllowances;
     const grossSalary = basicSalary + totalAllowances;
-    
+
     // 2. Daily rate (for absent deduction, EOS, leave accrual)
     const dailyRate = this.calculateDailyRate(basicSalary, housingAllowance, rules);
     
@@ -37,19 +38,22 @@ export class PayrollCalculator {
     
     // 6. Absent deduction
     const absentDeduction = absentDays * dailyRate;
+
+    // 6b. Verified income-tax exemptions reduce the taxable income (إثبات إعفاء).
+    const taxExemptions = Number(input.taxExemptions) || 0;
     
     // 7. Taxable income
-    const taxableIncome = grossSalary - insuranceEmployee - (deductions || 0);
+    const taxableIncome = Math.max(0, grossSalary - insuranceEmployee - (deductions || 0) - taxExemptions);
     const taxAmount = this.calculateTax(taxableIncome, rules);
     
     // 8. Total deductions
-    const totalDeductions = insuranceEmployee + taxAmount + (deductions || 0) + (loanDeduction || 0) + absentDeduction;
+    const totalDeductions = insuranceEmployee + taxAmount + (deductions || 0) + (loanDeduction || 0) + absentDeduction + additional.deductions;
     
     // 9. Net salary
-    const netSalary = grossSalary + overtimePay - totalDeductions;
+    const netSalary = grossSalary + overtimePay + additional.earnings - totalDeductions;
     
     // 10. Employer cost
-    const employerTotalCost = grossSalary + overtimePay + insuranceEmployer;
+    const employerTotalCost = grossSalary + overtimePay + insuranceEmployer + additional.earnings;
     
     // 11. EOS accrual (monthly)
     const eosAccrual = this.calculateMonthlyEOS(basicSalary, housingAllowance, rules);
@@ -98,7 +102,10 @@ export class PayrollCalculator {
         taxableIncome,
         dailyRate,
         insuranceCeilingApplied,
-        taxBracketsUsed: rules.tax.type === 'progressive' ? 'progressive' : rules.tax.type === 'flat' ? `flat ${rules.tax.flatRate}%` : 'none'
+        taxBracketsUsed: rules.tax.type === 'progressive' ? 'progressive' : rules.tax.type === 'flat' ? `flat ${rules.tax.flatRate}%` : 'none',
+        taxExemptions,
+        additionalEarnings: additional.earnings,
+        additionalDeductions: additional.deductions
       }
     };
   }
@@ -120,6 +127,49 @@ export class PayrollCalculator {
     
     const monthlyRate = rules.eos.monthsPerYear / 12;
     return basisSalary * monthlyRate;
+  }
+
+  // Collapses the one-off off-cycle lines for a period into net earning/deduction totals.
+  static aggregateAdditionalSalaries(rows: { type: 'earning' | 'deduction'; amount: number }[]) {
+    let earnings = 0;
+    let deductions = 0;
+    for (const row of rows || []) {
+      const amount = Math.round(Number(row.amount || 0) * 100) / 100;
+      if (row.type === 'deduction') deductions += amount;
+      else earnings += amount;
+    }
+    return { earnings: Math.round(earnings * 100) / 100, deductions: Math.round(deductions * 100) / 100 };
+  }
+
+  /**
+   * End-of-service gratuity (مكافأة نهاية الخدمة).
+   * Default 'half_month_per_year' follows the Saudi Labour Law cliff:
+   *   - < 1 year of service         -> 0
+   *   - first 5 years               -> 1/2 month of the basis salary per year
+   *   - each year beyond the 5th    -> a full month per year
+   * Other rule types use a linear monthly share (21/30 or 30/30 per year),
+   * optionally capped by rules.eos.maxYears.
+   */
+  static calculateEndOfService(serviceYears: number, monthlyBasis: number, rules: CountryConfig): number {
+    const years = Math.max(0, serviceYears);
+    if (years < 1) return 0;
+
+    const eos = rules.eos;
+    let months = 0;
+
+    if (eos.type === 'half_month_per_year') {
+      const cappedYears = eos.maxYears ? Math.min(years, eos.maxYears) : years;
+      months = Math.min(cappedYears, 5) * 0.5;
+      if (cappedYears > 5) months += cappedYears - 5;
+    } else if (eos.type === '21_days_per_year') {
+      months = Math.min(years, eos.maxYears || Number.MAX_SAFE_INTEGER) * (21 / 30);
+    } else if (eos.type === '30_days_per_year') {
+      months = Math.min(years, eos.maxYears || Number.MAX_SAFE_INTEGER);
+    } else {
+      months = Math.min(years, eos.maxYears || Number.MAX_SAFE_INTEGER) * (eos.monthsPerYear || 0);
+    }
+
+    return Math.round(monthlyBasis * months * 100) / 100;
   }
 
   private static calculateTax(taxableIncome: number, rules: CountryConfig): number {

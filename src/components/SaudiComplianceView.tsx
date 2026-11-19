@@ -4,19 +4,30 @@ import {
   Download, RefreshCw, Calculator, CreditCard, Users, Building, 
   Calendar, Check, X, Printer, Search, Filter, ArrowUpRight,
   Shield, UserCheck, Briefcase, Plus, FileCheck, Layers,
-  Plane, DollarSign, TrendingUp, Sparkles, Scale
+  Plane, DollarSign, TrendingUp, Sparkles, Scale, AlertCircle
 } from 'lucide-react';
 import type { SaudiComplianceSummary, SaudiGovernmentRenewal, EndOfServiceCalculation } from '../types';
+import { downloadProtectedFile } from '../lib/api';
 import VisasMuqeemView from './VisasMuqeemView';
 import AccountingProvisionsView from './AccountingProvisionsView';
 import TotalCostEmploymentView from './TotalCostEmploymentView';
 import OvertimeRamadanView from './OvertimeRamadanView';
 import LaborLawAiConsultantView from './LaborLawAiConsultantView';
 import SalaryCertificateModal from './SalaryCertificateModal';
+import { Letterhead, DocumentFooter } from '../lib/print/letterhead';
+import { useLetterhead } from '../lib/print/use-letterhead';
+
+function todayAsInputValue(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
+}
 
 interface ExpiringDocEmployee {
   id: number;
   name: string;
+  position?: string;
   nationality: string;
   is_saudi: number;
   national_id_iqama: string;
@@ -72,6 +83,8 @@ interface GosiRecord {
 }
 
 export default function SaudiComplianceView() {
+  // ترويسة موحّدة مع بقية مخرجات النظام (ورقة الشركة).
+  const company = useLetterhead();
   const [activeTab, setActiveTab] = useState<'overview' | 'iqama' | 'visas' | 'gosi' | 'medical' | 'eos' | 'provisions' | 'cost_employment' | 'overtime' | 'wps' | 'ai_consultant' | 'renewals'>('overview');
   const [summary, setSummary] = useState<SaudiComplianceSummary | null>(null);
   const [documents, setDocuments] = useState<ExpiringDocEmployee[]>([]);
@@ -114,6 +127,29 @@ export default function SaudiComplianceView() {
   // WPS Month/Year
   const [wpsMonth, setWpsMonth] = useState(new Date().getMonth() + 1);
   const [wpsYear, setWpsYear] = useState(new Date().getFullYear());
+  const [wpsValueDate, setWpsValueDate] = useState(todayAsInputValue);
+  const [exportingSif, setExportingSif] = useState(false);
+  const [bankProfile, setBankProfile] = useState<{ crNumber: string | null; settlementBankCode: string | null; mappedBanks: string[] } | null>(null);
+  const [exportReady, setExportReady] = useState(false);
+  const [exportBlockers, setExportBlockers] = useState<string[]>([]);
+
+  const exportSifFile = async () => {
+    setExportingSif(true);
+    try {
+      const params = new URLSearchParams({
+        month: String(wpsMonth),
+        year: String(wpsYear),
+        value_date: wpsValueDate,
+      });
+      const failure = await downloadProtectedFile(
+        `/api/saudi/wps-export?${params.toString()}`,
+        `SIF_${wpsYear}${String(wpsMonth).padStart(2, '0')}.sif`
+      );
+      if (failure) alert(failure.message);
+    } finally {
+      setExportingSif(false);
+    }
+  };
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -143,6 +179,15 @@ export default function SaudiComplianceView() {
 
   useEffect(() => {
     fetchAllData();
+    fetch('/api/wps/audit')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (!d) return;
+        if (d.bankProfile) setBankProfile(d.bankProfile);
+        setExportReady(d.exportReady === true);
+        setExportBlockers(Array.isArray(d.exportBlockers) ? d.exportBlockers : []);
+      })
+      .catch(() => {});
   }, []);
 
   // Quick Renew submit
@@ -189,6 +234,7 @@ export default function SaudiComplianceView() {
   };
 
   // Calculate EOS
+  const [eosError, setEosError] = useState<string | null>(null);
   const handleCalculateEOS = async (e: FormEvent) => {
     e.preventDefault();
     try {
@@ -198,9 +244,17 @@ export default function SaudiComplianceView() {
         body: JSON.stringify(eosForm)
       });
       const data = await res.json();
+      // ردّ خطأ ليس نتيجة: تجرّد الشاشة من بياناتها.
+      if (!res.ok || !data || typeof data.total_salary !== 'number') {
+        setEosError((data && (data.error || data.message)) || 'تعذّر احتساب مكافأة نهاية الخدمة');
+        setEosResult(null);
+        return;
+      }
+      setEosError(null);
       setEosResult(data);
     } catch (err) {
       console.error(err);
+      setEosError('تعذّر الاتصال بالخادم أثناء الاحتساب');
     }
   };
 
@@ -295,14 +349,14 @@ export default function SaudiComplianceView() {
             <span>تحديث البيانات</span>
           </button>
           
-          <a
-            href={`/api/saudi/wps-export?month=${wpsMonth}&year=${wpsYear}`}
-            download
-            className="px-5 py-3 bg-emerald-400 hover:bg-emerald-300 text-emerald-950 rounded-2xl font-black text-sm shadow-md transition-all flex items-center gap-2"
+          <button
+            onClick={exportSifFile}
+            disabled={exportingSif || !wpsValueDate}
+            className="px-5 py-3 bg-emerald-400 hover:bg-emerald-300 text-emerald-950 rounded-2xl font-black text-sm shadow-md transition-all flex items-center gap-2 disabled:opacity-50"
           >
             <Download className="w-4 h-4" />
-            <span>تصدير ملف مدد (WPS)</span>
-          </a>
+            <span>{exportingSif ? 'جارٍ التوليد...' : 'تصدير ملف الحوالات (WPS)'}</span>
+          </button>
         </div>
 
         {/* Decorative background vectors */}
@@ -348,7 +402,7 @@ export default function SaudiComplianceView() {
               : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
           }`}
         >
-          <Plane className="w-4 h-4 text-blue-600" />
+          <Plane className="w-4 h-4 text-brand-600" />
           <span>التأشيرات ومقيم</span>
         </button>
 
@@ -473,7 +527,7 @@ export default function SaudiComplianceView() {
                   <UserCheck className="w-6 h-6" />
                 </div>
                 <span className={`px-3 py-1 rounded-full text-xs font-black ${
-                  summary?.nitaqatStatus === 'platinum' ? 'bg-indigo-100 text-indigo-700' :
+                  summary?.nitaqatStatus === 'platinum' ? 'bg-brand-100 text-brand-700' :
                   summary?.nitaqatStatus === 'high_green' ? 'bg-emerald-100 text-emerald-700' :
                   summary?.nitaqatStatus === 'mid_green' ? 'bg-teal-100 text-teal-700' :
                   summary?.nitaqatStatus === 'low_green' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'
@@ -543,10 +597,10 @@ export default function SaudiComplianceView() {
             {/* Monthly GOSI Total */}
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
               <div className="flex justify-between items-start mb-3">
-                <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+                <div className="p-3 bg-brand-50 text-brand-600 rounded-2xl">
                   <Shield className="w-6 h-6" />
                 </div>
-                <span className="px-2.5 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-black">
+                <span className="px-2.5 py-1 bg-brand-100 text-brand-800 rounded-full text-xs font-black">
                   فاتورة التأمينات
                 </span>
               </div>
@@ -613,7 +667,7 @@ export default function SaudiComplianceView() {
               </div>
               <button 
                 onClick={() => setActiveTab('iqama')}
-                className="w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-black rounded-2xl text-xs transition-all text-center block"
+                className="w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 text-brand-700 font-black rounded-2xl text-xs transition-all text-center block"
               >
                 استعراض ومتابعة الإقامات
               </button>
@@ -621,7 +675,7 @@ export default function SaudiComplianceView() {
 
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-indigo-50 text-indigo-700 rounded-2xl">
+                <div className="p-3 bg-brand-50 text-brand-700 rounded-2xl">
                   <Shield className="w-5 h-5" />
                 </div>
                 <div>
@@ -632,20 +686,20 @@ export default function SaudiComplianceView() {
               <div className="space-y-2 bg-slate-50 p-4 rounded-2xl text-xs text-slate-600">
                 <div className="flex justify-between py-1 border-b border-slate-200/60">
                   <span className="font-bold">الموظف السعودي (معاشات + ساند):</span>
-                  <span className="font-black text-indigo-700 font-mono">9.75%</span>
+                  <span className="font-black text-brand-700 font-mono">9.75%</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-200/60">
                   <span className="font-bold">صاحب العمل للسعودي (معاشات + أخطار + ساند):</span>
-                  <span className="font-black text-indigo-700 font-mono">11.75%</span>
+                  <span className="font-black text-brand-700 font-mono">11.75%</span>
                 </div>
                 <div className="flex justify-between py-1.5">
                   <span className="font-bold">صاحب العمل لغير السعودي (أخطار مهنية):</span>
-                  <span className="font-black text-indigo-700 font-mono">2.00%</span>
+                  <span className="font-black text-brand-700 font-mono">2.00%</span>
                 </div>
               </div>
               <button 
                 onClick={() => setActiveTab('gosi')}
-                className="w-full py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-black rounded-2xl text-xs transition-all text-center block"
+                className="w-full py-2.5 bg-brand-50 hover:bg-brand-100 text-brand-700 font-black rounded-2xl text-xs transition-all text-center block"
               >
                 استعراض كشف التأمينات الشهري
               </button>
@@ -663,21 +717,42 @@ export default function SaudiComplianceView() {
               </div>
               <div className="space-y-2 bg-slate-50 p-4 rounded-2xl text-xs text-slate-600">
                 <div className="flex justify-between py-1 border-b border-slate-200/60">
-                  <span className="font-bold">صيغة الملف المعتمدة:</span>
-                  <span className="font-black text-slate-800 font-mono">Saudi SIF (WPS)</span>
+                  <span className="font-bold">صيغة الملف:</span>
+                  <span className="font-black text-slate-800 font-mono">SCR / EDR (قالب داخلي)</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-200/60">
-                  <span className="font-bold">التوافق البنكي:</span>
-                  <span className="font-bold text-slate-800">الراجحي، الأهلي، الإنماء، الرياض</span>
+                  <span className="font-bold">رقم السجل التجاري:</span>
+                  <span className="font-bold text-slate-800">{bankProfile?.crNumber || 'غير مُعرَّف في الإعدادات'}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-200/60">
+                  <span className="font-bold">كود بنك التسوية:</span>
+                  <span className="font-bold text-slate-800">{bankProfile?.settlementBankCode || 'غير مُعرَّف في الإعدادات'}</span>
                 </div>
                 <div className="flex justify-between py-1.5">
-                  <span className="font-bold">منصة مدد ووزارة الموارد:</span>
-                  <span className="text-emerald-600 font-black flex items-center gap-1">
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    جاهز للرفع المباشر
-                  </span>
+                  <span className="font-bold">حالة تصدير ملف البنك:</span>
+                  {exportReady ? (
+                    <span className="text-emerald-600 font-black flex items-center gap-1">
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      جاهز للتوليد
+                    </span>
+                  ) : (
+                    <span className="text-amber-700 font-black flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      محجوب — {exportBlockers.length} مانع
+                    </span>
+                  )}
                 </div>
               </div>
+              {exportBlockers.length > 0 && (
+                <ul className="space-y-1 text-xs text-amber-800">
+                  {exportBlockers.map(blocker => (
+                    <li key={blocker}>• {blocker}</li>
+                  ))}
+                </ul>
+              )}
+              <p className="text-xs text-slate-500">
+                الصيغة قالب داخلي غير معتمد من البنك، وتُراجع مواصفته لدى البنك قبل الرفع.
+              </p>
               <button 
                 onClick={() => setActiveTab('wps')}
                 className="w-full py-2.5 bg-teal-50 hover:bg-teal-100 text-teal-700 font-black rounded-2xl text-xs transition-all text-center block"
@@ -761,7 +836,7 @@ export default function SaudiComplianceView() {
                               <p className="font-bold text-slate-800">{emp.name}</p>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                                  emp.is_saudi === 1 ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'
+                                  emp.is_saudi === 1 ? 'bg-emerald-50 text-emerald-700' : 'bg-brand-50 text-brand-700'
                                 }`}>
                                   {emp.nationality || (emp.is_saudi === 1 ? 'سعودي' : 'وافد')}
                                 </span>
@@ -848,7 +923,7 @@ export default function SaudiComplianceView() {
                           {isExpat ? (
                             <button
                               onClick={() => openRenewModal(emp, 'iqama')}
-                              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition-all shadow-sm flex items-center gap-1.5 mx-auto"
+                              className="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold text-xs transition-all shadow-sm flex items-center gap-1.5 mx-auto"
                             >
                               <RefreshCw className="w-3.5 h-3.5" />
                               <span>تجديد فوري</span>
@@ -887,7 +962,7 @@ export default function SaudiComplianceView() {
             <div className="flex items-center gap-3">
               <button 
                 onClick={exportGosiCsv}
-                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs transition-all flex items-center gap-2 shadow-sm"
+                className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-2xl font-black text-xs transition-all flex items-center gap-2 shadow-sm"
               >
                 <Download className="w-4 h-4" />
                 <span>تصدير كشف GOSI (Excel/CSV)</span>
@@ -905,9 +980,9 @@ export default function SaudiComplianceView() {
                     <th className="p-4">رقم المشترك GOSI</th>
                     <th className="p-4">الأساسي</th>
                     <th className="p-4">بدل السكن</th>
-                    <th className="p-4 font-black text-indigo-900">أجر الاشتراك التأميني</th>
+                    <th className="p-4 font-black text-brand-900">أجر الاشتراك التأميني</th>
                     <th className="p-4 text-emerald-700">حصة الموظف</th>
-                    <th className="p-4 text-indigo-700">حصة المنشأة</th>
+                    <th className="p-4 text-brand-700">حصة المنشأة</th>
                     <th className="p-4 text-slate-800 font-black">إجمالي المستحق</th>
                   </tr>
                 </thead>
@@ -916,7 +991,7 @@ export default function SaudiComplianceView() {
                     <tr key={rec.employee_id} className="hover:bg-slate-50/60 transition-colors">
                       <td className="p-4">
                         <div className="flex items-center gap-2.5">
-                          <span className={`w-2.5 h-2.5 rounded-full ${rec.is_saudi === 1 ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                          <span className={`w-2.5 h-2.5 rounded-full ${rec.is_saudi === 1 ? 'bg-emerald-500' : 'bg-brand-500'}`} />
                           <div>
                             <p className="font-bold text-slate-800">{rec.name}</p>
                             <span className="text-[11px] text-slate-400">{rec.nationality} • {rec.department_name}</span>
@@ -928,7 +1003,7 @@ export default function SaudiComplianceView() {
                       <td className="p-4 font-mono font-bold text-slate-600">{rec.basic_salary.toLocaleString()} ر.س</td>
                       <td className="p-4 font-mono font-bold text-slate-600">{rec.housing_allowance.toLocaleString()} ر.س</td>
                       
-                      <td className="p-4 font-mono font-black text-indigo-900 bg-indigo-50/30">
+                      <td className="p-4 font-mono font-black text-brand-900 bg-brand-50/30">
                         {rec.contributory_salary.toLocaleString()} ر.س
                       </td>
 
@@ -943,7 +1018,7 @@ export default function SaudiComplianceView() {
                         )}
                       </td>
 
-                      <td className="p-4 font-mono font-bold text-indigo-700">
+                      <td className="p-4 font-mono font-bold text-brand-700">
                         <div>
                           <span>{rec.comp_share.toLocaleString()} ر.س</span>
                           <span className="text-[10px] text-slate-400 block">
@@ -961,13 +1036,13 @@ export default function SaudiComplianceView() {
                 <tfoot>
                   <tr className="bg-slate-100 font-black text-slate-800 border-t border-slate-200">
                     <td colSpan={4} className="p-4 text-left">إجمالي الفاتورة الشهرية لمؤسسة التأمينات الاجتماعية:</td>
-                    <td className="p-4 font-mono font-black text-indigo-900">
+                    <td className="p-4 font-mono font-black text-brand-900">
                       {gosiRecords.reduce((sum, r) => sum + r.contributory_salary, 0).toLocaleString()} ر.س
                     </td>
                     <td className="p-4 font-mono text-emerald-700">
                       {gosiRecords.reduce((sum, r) => sum + r.emp_share, 0).toLocaleString()} ر.س
                     </td>
-                    <td className="p-4 font-mono text-indigo-700">
+                    <td className="p-4 font-mono text-brand-700">
                       {gosiRecords.reduce((sum, r) => sum + r.comp_share, 0).toLocaleString()} ر.س
                     </td>
                     <td className="p-4 font-mono text-slate-900 text-base">
@@ -1002,7 +1077,7 @@ export default function SaudiComplianceView() {
                   <span className={`px-3 py-1 rounded-full text-xs font-black ${
                     emp.medical_insurance_category === 'VIP' ? 'bg-purple-100 text-purple-700' :
                     emp.medical_insurance_category === 'Class A' ? 'bg-emerald-100 text-emerald-700' :
-                    'bg-blue-100 text-blue-700'
+                    'bg-brand-100 text-brand-700'
                   }`}>
                     {emp.medical_insurance_category || 'Class A'}
                   </span>
@@ -1176,7 +1251,7 @@ export default function SaudiComplianceView() {
 
                 <button
                   type="submit"
-                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-sm shadow-md transition-all mt-4"
+                  className="w-full py-3.5 bg-brand-600 hover:bg-brand-700 text-white rounded-2xl font-black text-sm shadow-md transition-all mt-4"
                 >
                   احتساب مكافأة نهاية الخدمة وتوليد المسير
                 </button>
@@ -1186,7 +1261,9 @@ export default function SaudiComplianceView() {
             {/* Results Display */}
             <div className="lg:col-span-6 space-y-6">
               {eosResult ? (
-                <div className="bg-white p-6 md:p-8 rounded-3xl border border-emerald-100 shadow-sm space-y-6">
+                <div className="print-document bg-white p-6 md:p-8 rounded-3xl border border-emerald-100 shadow-sm space-y-6">
+                  <Letterhead company={company} />
+
                   <div className="flex justify-between items-center border-b border-slate-100 pb-4">
                     <div>
                       <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">
@@ -1196,7 +1273,7 @@ export default function SaudiComplianceView() {
                     </div>
                     <button
                       onClick={() => window.print()}
-                      className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold text-xs transition-all flex items-center gap-1.5"
+                      className="no-print p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold text-xs transition-all flex items-center gap-1.5"
                     >
                       <Printer className="w-4 h-4" />
                       <span>طباعة السند</span>
@@ -1262,6 +1339,14 @@ export default function SaudiComplianceView() {
                       </div>
                     </div>
                   </div>
+
+                  <DocumentFooter company={company} />
+                </div>
+              ) : eosError ? (
+                <div className="bg-rose-50 p-10 rounded-3xl border border-rose-200 text-center space-y-2">
+                  <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
+                  <h3 className="font-black text-rose-800 text-base">تعذّر إتمام الاحتساب</h3>
+                  <p className="text-rose-700 text-xs">{eosError}</p>
                 </div>
               ) : (
                 <div className="bg-slate-50 p-12 rounded-3xl border border-dashed border-slate-200 text-center space-y-3">
@@ -1290,7 +1375,7 @@ export default function SaudiComplianceView() {
               <div>
                 <h2 className="text-2xl font-black text-slate-800">نظام حماية الأجور السعودي (منصة مدد WPS)</h2>
                 <p className="text-slate-500 text-sm mt-1">
-                  توليد ملف صرف الرواتب القياسي (SIF) المعتمد من وزارة الموارد البشرية والتنمية الاجتماعية والبنك المركزي السعودي (ساما)
+                  توليد ملف الحوالات البنكية بصيغة SCR/EDR — قالب داخلي غير معتمد من البنك، تُراجع مواصفته لدى البنك قبل الرفع.
                 </p>
               </div>
             </div>
@@ -1302,8 +1387,8 @@ export default function SaudiComplianceView() {
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-slate-500 mb-1">الشهر</label>
-                    <select 
-                      value={wpsMonth} 
+                    <select
+                      value={wpsMonth}
                       onChange={e => setWpsMonth(Number(e.target.value))}
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200/80 rounded-2xl font-bold text-slate-800 outline-none"
                     >
@@ -1315,8 +1400,8 @@ export default function SaudiComplianceView() {
 
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-slate-500 mb-1">السنة</label>
-                    <select 
-                      value={wpsYear} 
+                    <select
+                      value={wpsYear}
                       onChange={e => setWpsYear(Number(e.target.value))}
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200/80 rounded-2xl font-bold text-slate-800 outline-none"
                     >
@@ -1327,29 +1412,52 @@ export default function SaudiComplianceView() {
                   </div>
                 </div>
 
+                <div>
+                  <label htmlFor="wps-value-date" className="block text-xs font-bold text-slate-500 mb-1">
+                    تاريخ القيمة (تاريخ صرف الحوالات) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    id="wps-value-date"
+                    type="date"
+                    value={wpsValueDate}
+                    onChange={e => setWpsValueDate(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200/80 rounded-2xl font-bold text-slate-800 outline-none"
+                  />
+                </div>
+
                 <div className="p-5 bg-slate-50 rounded-2xl space-y-3 text-xs text-slate-600 border border-slate-100">
                   <div className="flex justify-between">
                     <span className="font-bold">السجل التجاري (CR):</span>
-                    <span className="font-mono font-bold text-slate-800">1010789456</span>
+                    <span className="font-mono font-bold text-slate-800">
+                      {bankProfile?.crNumber || 'غير مُعرَّف في الإعدادات'}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="font-bold">كود البنك المعتمد:</span>
-                    <span className="font-mono font-bold text-slate-800">RJHI (مصرف الراجحي)</span>
+                    <span className="font-bold">كود بنك التسوية:</span>
+                    <span className="font-mono font-bold text-slate-800">
+                      {bankProfile?.settlementBankCode || 'غير مُعرَّف في الإعدادات'}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-bold">صيغة الملف:</span>
-                    <span className="font-mono font-bold text-emerald-700">SCR / EDR SIF Format</span>
+                    <span className="font-mono font-bold text-emerald-700">SCR / EDR (قالب داخلي)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-bold">بنوك مرتبطة بكود:</span>
+                    <span className="font-mono font-bold text-slate-800">
+                      {bankProfile?.mappedBanks?.length ? bankProfile.mappedBanks.join('، ') : 'لا يوجد'}
+                    </span>
                   </div>
                 </div>
 
-                <a
-                  href={`/api/saudi/wps-export?month=${wpsMonth}&year=${wpsYear}`}
-                  download
-                  className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 shadow-md block text-center"
+                <button
+                  onClick={exportSifFile}
+                  disabled={exportingSif || !wpsValueDate}
+                  className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 shadow-md disabled:opacity-50"
                 >
                   <Download className="w-4 h-4" />
-                  <span>تحميل ملف حماية الأجور (Mudad SIF)</span>
-                </a>
+                  <span>{exportingSif ? 'جارٍ التوليد...' : 'تحميل ملف الحوالات (WPS SIF)'}</span>
+                </button>
               </div>
 
               <div className="space-y-4">
@@ -1361,7 +1469,7 @@ export default function SaudiComplianceView() {
                   </div>
                   <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
                     <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center shrink-0">2</span>
-                    <p className="mt-0.5">اضغط على زر تحميل ملف مدد أعلاه ليتم تنزيل ملف بامتداد (.sif) متوافق مع معايير ساما.</p>
+                    <p className="mt-0.5">اضغط على زر تحميل الملف أعلاه ليتم تنزيل ملف بامتداد (.sif) بصيغة SCR/EDR.</p>
                   </div>
                   <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
                     <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center shrink-0">3</span>

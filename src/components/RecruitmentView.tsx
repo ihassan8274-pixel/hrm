@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext';
+import { Letterhead, DocumentFooter } from '../lib/print/letterhead';
+import { useLetterhead } from '../lib/print/use-letterhead';
 
 interface Job {
   id: number;
@@ -53,6 +55,8 @@ interface OnboardingJourney {
 
 export default function RecruitmentView() {
   const { t, language } = useLanguage();
+  // ترويسة موحّدة مع بقية مخرجات النظام (ورقة الشركة).
+  const company = useLetterhead();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [tab, setTab] = useState<'jobs' | 'candidates' | 'onboarding' | 'offer_letter'>('jobs');
@@ -222,7 +226,7 @@ export default function RecruitmentView() {
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white p-6 rounded-3xl shadow-sm border border-slate-100 gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-indigo-50 text-indigo-700 rounded-2xl border border-indigo-100">
+          <div className="p-3 bg-brand-50 text-brand-700 rounded-2xl border border-brand-100">
             <Briefcase className="w-6 h-6" />
           </div>
           <div>
@@ -241,7 +245,7 @@ export default function RecruitmentView() {
           {tab === 'jobs' && (
             <button 
               onClick={() => setIsAddingJob(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 text-xs"
+              className="flex items-center gap-2 bg-brand-600 text-white px-5 py-2.5 rounded-2xl font-bold hover:bg-brand-700 transition-all shadow-md shadow-brand-100 text-xs"
             >
               <Plus className="w-4 h-4" />
               <span>إضافة وظيفة شاغرة</span>
@@ -251,7 +255,7 @@ export default function RecruitmentView() {
           {tab === 'candidates' && (
             <button 
               onClick={() => setIsAddingCandidate(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 text-xs"
+              className="flex items-center gap-2 bg-brand-600 text-white px-5 py-2.5 rounded-2xl font-bold hover:bg-brand-700 transition-all shadow-md shadow-brand-100 text-xs"
             >
               <Plus className="w-4 h-4" />
               <span>إضافة مرشح جديد</span>
@@ -274,7 +278,7 @@ export default function RecruitmentView() {
       <div className="flex gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit overflow-x-auto">
         <button 
           onClick={() => setTab('jobs')}
-          className={`flex items-center gap-2 px-5 py-2 rounded-xl font-bold text-xs transition-all whitespace-nowrap ${tab === 'jobs' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          className={`flex items-center gap-2 px-5 py-2 rounded-xl font-bold text-xs transition-all whitespace-nowrap ${tab === 'jobs' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
         >
           <Briefcase className="w-4 h-4" />
           <span>الوظائف الشاغرة ({jobs.length})</span>
@@ -282,7 +286,7 @@ export default function RecruitmentView() {
 
         <button 
           onClick={() => setTab('candidates')}
-          className={`flex items-center gap-2 px-5 py-2 rounded-xl font-bold text-xs transition-all whitespace-nowrap ${tab === 'candidates' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          className={`flex items-center gap-2 px-5 py-2 rounded-xl font-bold text-xs transition-all whitespace-nowrap ${tab === 'candidates' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
         >
           <Users className="w-4 h-4" />
           <span>المرشحين ومراحل المقابلات ({candidates.length})</span>
@@ -290,7 +294,7 @@ export default function RecruitmentView() {
 
         <button 
           onClick={() => setTab('onboarding')}
-          className={`flex items-center gap-2 px-5 py-2 rounded-xl font-bold text-xs transition-all whitespace-nowrap ${tab === 'onboarding' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          className={`flex items-center gap-2 px-5 py-2 rounded-xl font-bold text-xs transition-all whitespace-nowrap ${tab === 'onboarding' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
         >
           <UserCheck className="w-4 h-4 text-emerald-600" />
           <span>رحلة الموظف الجديد وفترة التجربة ({onboardings.length})</span>
@@ -298,7 +302,7 @@ export default function RecruitmentView() {
 
         <button 
           onClick={() => setTab('offer_letter')}
-          className={`flex items-center gap-2 px-5 py-2 rounded-xl font-bold text-xs transition-all whitespace-nowrap ${tab === 'offer_letter' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          className={`flex items-center gap-2 px-5 py-2 rounded-xl font-bold text-xs transition-all whitespace-nowrap ${tab === 'offer_letter' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
         >
           <FileText className="w-4 h-4 text-amber-500" />
           <span>استوديو عروض العمل (Job Offers)</span>
@@ -314,9 +318,9 @@ export default function RecruitmentView() {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
         >
           {jobs.map(job => (
-            <div key={job.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm group hover:border-indigo-200 transition-all space-y-4">
+            <div key={job.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm group hover:border-brand-200 transition-all space-y-4">
               <div className="flex justify-between items-start">
-                <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+                <div className="p-3 bg-brand-50 text-brand-600 rounded-2xl">
                   <Briefcase className="w-6 h-6" />
                 </div>
                 <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${job.status === 'open' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-500'}`}>
@@ -341,7 +345,7 @@ export default function RecruitmentView() {
                     setTab('offer_letter');
                     setOfferDetails(prev => ({ ...prev, job_title: job.title, department: job.department_name }));
                   }}
-                  className="text-indigo-600 hover:underline font-black"
+                  className="text-brand-600 hover:underline font-black"
                 >
                   إنشاء عرض عمل
                 </button>
@@ -374,7 +378,7 @@ export default function RecruitmentView() {
                 <tr key={c.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-bold">
+                      <div className="w-9 h-9 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center font-bold">
                         {c.name[0]}
                       </div>
                       <div>
@@ -389,7 +393,7 @@ export default function RecruitmentView() {
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-[10px] font-black ${
                       c.status === 'applied' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                      c.status === 'interview' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                      c.status === 'interview' ? 'bg-brand-50 text-brand-700 border border-brand-200' :
                       c.status === 'offered' ? 'bg-purple-50 text-purple-700 border border-purple-200' :
                       c.status === 'hired' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
                       'bg-red-50 text-red-700 border border-red-200'
@@ -415,7 +419,7 @@ export default function RecruitmentView() {
                         }));
                         setTab('offer_letter');
                       }}
-                      className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-[11px] transition-colors"
+                      className="px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-xl font-bold text-[11px] transition-colors"
                     >
                       إصدار عرض عمل
                     </button>
@@ -474,7 +478,7 @@ export default function RecruitmentView() {
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                             journey.probation_status === 'passed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
                             journey.probation_status === 'extended_180' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                            'bg-blue-50 text-blue-700 border border-blue-200'
+                            'bg-brand-50 text-brand-700 border border-brand-200'
                           }`}>
                             {journey.probation_status === 'in_progress' && 'فترة تجربة نشطة (90 يوماً)'}
                             {journey.probation_status === 'extended_180' && 'ممددة لـ 180 يوماً (المادة 53)'}
@@ -491,7 +495,7 @@ export default function RecruitmentView() {
                     <div className="flex items-center gap-3">
                       <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center min-w-[120px]">
                         <p className="text-[10px] text-slate-400 font-bold">المتبقي من التجربة</p>
-                        <p className="text-sm font-black font-mono text-indigo-600">{remainingProbation} يوماً</p>
+                        <p className="text-sm font-black font-mono text-brand-600">{remainingProbation} يوماً</p>
                       </div>
 
                       {journey.probation_status === 'in_progress' && (
@@ -506,7 +510,7 @@ export default function RecruitmentView() {
                       {journey.probation_status !== 'passed' && (
                         <button
                           onClick={() => passProbation(journey.id)}
-                          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm"
+                          className="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm"
                         >
                           تثبيت التعيين
                         </button>
@@ -537,7 +541,7 @@ export default function RecruitmentView() {
                         className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 ${
                           task.is_completed 
                             ? 'bg-emerald-50/50 border-emerald-100 text-slate-800' 
-                            : 'bg-slate-50 border-slate-200/80 hover:border-indigo-300'
+                            : 'bg-slate-50 border-slate-200/80 hover:border-brand-300'
                         }`}
                       >
                         <div className={`mt-0.5 w-5 h-5 rounded-lg flex items-center justify-center border shrink-0 transition-colors ${
@@ -676,7 +680,7 @@ export default function RecruitmentView() {
 
             <button
               onClick={() => window.print()}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl flex items-center justify-center gap-2 text-xs shadow-md shadow-indigo-200 transition-all"
+              className="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-2xl flex items-center justify-center gap-2 text-xs shadow-md shadow-brand-200 transition-all"
             >
               <Printer className="w-4 h-4" />
               <span>طباعة العرض الرسمي المعتمد</span>
@@ -684,17 +688,13 @@ export default function RecruitmentView() {
           </div>
 
           {/* Offer Preview Paper */}
-          <div className="lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-200 shadow-2xl space-y-6 text-slate-800 printable-area">
+          <div className="print-document lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-200 shadow-2xl space-y-6 text-slate-800 printable-area">
             {/* Header */}
-            <div className="flex justify-between items-start pb-6 border-b-2 border-slate-900">
-              <div>
-                <h3 className="text-xl font-black text-slate-900">{offerDetails.company_name}</h3>
-                <p className="text-xs text-slate-500 font-bold">المملكة العربية السعودية - إدارة الموارد البشرية</p>
-                <p className="text-[10px] text-slate-400 font-mono mt-1">Ref: JOB-OFFER-{new Date().getFullYear()}-098</p>
-              </div>
-              <div className="w-16 h-16 bg-slate-900 text-white rounded-2xl flex items-center justify-center font-black text-xl">
-                HR
-              </div>
+            <Letterhead company={company} />
+
+            <div className="flex justify-between items-center text-[10px] text-slate-500 font-mono">
+              <span>المملكة العربية السعودية - إدارة الموارد البشرية</span>
+              <span dir="ltr">Ref: JOB-OFFER-{new Date().getFullYear()}-098</span>
             </div>
 
             {/* Title */}
@@ -709,7 +709,7 @@ export default function RecruitmentView() {
                 السيد / <strong>{offerDetails.candidate_name}</strong> المحترم،
               </p>
               <p className="text-slate-600">
-                يسر إدارة <strong>{offerDetails.company_name}</strong> أن تتقدم إليكم بهذا العرض الوظيفي للانضمام لفريق عملنا وفق الشروط والمزايا الموضحة أدناه:
+                يسر إدارة <strong>{company?.org_name || offerDetails.company_name}</strong> أن تتقدم إليكم بهذا العرض الوظيفي للانضمام لفريق عملنا وفق الشروط والمزايا الموضحة أدناه:
               </p>
             </div>
 
@@ -724,7 +724,7 @@ export default function RecruitmentView() {
               <tbody className="divide-y divide-slate-100 font-medium">
                 <tr>
                   <td className="p-3 font-bold text-slate-800">المسمى الوظيفي والإدارة</td>
-                  <td className="p-3 text-center font-bold text-indigo-700">{offerDetails.job_title} ({offerDetails.department})</td>
+                  <td className="p-3 text-center font-bold text-brand-700">{offerDetails.job_title} ({offerDetails.department})</td>
                 </tr>
                 <tr>
                   <td className="p-3">الراتب الأساسي (Basic Salary)</td>
@@ -769,6 +769,8 @@ export default function RecruitmentView() {
                 </div>
               </div>
             </div>
+
+            <DocumentFooter company={company} reference={`JOB-OFFER-${new Date().getFullYear()}-098`} />
           </div>
         </div>
       )}
@@ -787,7 +789,7 @@ export default function RecruitmentView() {
                 <label className="block text-xs font-black text-slate-400 uppercase mb-2">المسمى الوظيفي</label>
                 <input 
                   required
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 text-xs"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700 text-xs"
                   value={jobForm.title}
                   onChange={e => setJobForm({...jobForm, title: e.target.value})}
                 />
@@ -796,7 +798,7 @@ export default function RecruitmentView() {
                 <label className="block text-xs font-black text-slate-400 uppercase mb-2">الإدارة</label>
                 <select 
                   required
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 text-xs"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700 text-xs"
                   value={jobForm.department_id}
                   onChange={e => setJobForm({...jobForm, department_id: e.target.value})}
                 >
@@ -807,13 +809,13 @@ export default function RecruitmentView() {
               <div>
                 <label className="block text-xs font-black text-slate-400 uppercase mb-2">الوصف والمتطلبات</label>
                 <textarea 
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 h-28 text-xs"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700 h-28 text-xs"
                   value={jobForm.description}
                   onChange={e => setJobForm({...jobForm, description: e.target.value})}
                 />
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="submit" className="flex-1 bg-indigo-600 text-white py-3 rounded-2xl font-bold hover:bg-indigo-700 transition-all text-xs">حفظ الوظيفة</button>
+                <button type="submit" className="flex-1 bg-brand-600 text-white py-3 rounded-2xl font-bold hover:bg-brand-700 transition-all text-xs">حفظ الوظيفة</button>
                 <button type="button" onClick={() => setIsAddingJob(false)} className="px-6 py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold text-xs">إلغاء</button>
               </div>
             </form>
@@ -835,7 +837,7 @@ export default function RecruitmentView() {
                 <label className="block text-xs font-black text-slate-400 uppercase mb-2">الوظيفة المستهدفة</label>
                 <select 
                   required
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 text-xs"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700 text-xs"
                   value={candidateForm.job_id}
                   onChange={e => setCandidateForm({...candidateForm, job_id: e.target.value})}
                 >
@@ -847,7 +849,7 @@ export default function RecruitmentView() {
                 <label className="block text-xs font-black text-slate-400 uppercase mb-2">اسم المرشح</label>
                 <input 
                   required
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 text-xs"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700 text-xs"
                   value={candidateForm.name}
                   onChange={e => setCandidateForm({...candidateForm, name: e.target.value})}
                 />
@@ -857,7 +859,7 @@ export default function RecruitmentView() {
                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">البريد الإلكتروني</label>
                   <input 
                     type="email"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 text-xs"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700 text-xs"
                     value={candidateForm.email}
                     onChange={e => setCandidateForm({...candidateForm, email: e.target.value})}
                   />
@@ -865,7 +867,7 @@ export default function RecruitmentView() {
                 <div>
                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">رقم الجوال</label>
                   <input 
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 text-left text-xs"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700 text-left text-xs"
                     dir="ltr"
                     value={candidateForm.phone}
                     onChange={e => setCandidateForm({...candidateForm, phone: e.target.value})}
@@ -875,13 +877,13 @@ export default function RecruitmentView() {
               <div>
                 <label className="block text-xs font-black text-slate-400 uppercase mb-2">ملاحظات ومرفقات</label>
                 <textarea 
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 h-20 text-xs"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700 h-20 text-xs"
                   value={candidateForm.notes}
                   onChange={e => setCandidateForm({...candidateForm, notes: e.target.value})}
                 />
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="submit" className="flex-1 bg-indigo-600 text-white py-3 rounded-2xl font-bold hover:bg-indigo-700 transition-all text-xs">حفظ المرشح</button>
+                <button type="submit" className="flex-1 bg-brand-600 text-white py-3 rounded-2xl font-bold hover:bg-brand-700 transition-all text-xs">حفظ المرشح</button>
                 <button type="button" onClick={() => setIsAddingCandidate(false)} className="px-6 py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold text-xs">إلغاء</button>
               </div>
             </form>

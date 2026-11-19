@@ -135,7 +135,7 @@ export const ExpiryAlertsModal: React.FC<ExpiryAlertsModalProps> = ({
           <div 
             onClick={() => setActiveTab('all')}
             className={`p-3 rounded-2xl cursor-pointer transition-all border ${
-              activeTab === 'all' ? 'bg-white border-indigo-400 shadow-sm font-bold text-indigo-700' : 'bg-slate-50/50 border-slate-200 text-slate-600'
+              activeTab === 'all' ? 'bg-white border-brand-400 shadow-sm font-bold text-brand-700' : 'bg-slate-50/50 border-slate-200 text-slate-600'
             }`}
           >
             <p className="text-[10px] text-slate-400">إجمالي التنبيهات</p>

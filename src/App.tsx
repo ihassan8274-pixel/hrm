@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { 
   Users, 
   Building2, 
@@ -32,6 +32,8 @@ import {
   DollarSign,
   Sparkles,
   HeartPulse,
+  FileSpreadsheet,
+  Stethoscope,
   ShieldAlert,
   UserCheck,
   Car,
@@ -42,82 +44,101 @@ import {
   Award,
   HardHat,
   GitPullRequest,
+  Network,
   UserMinus,
   Bot,
   MessageSquare,
   Printer,
   Database,
   Globe,
-  Bell
+  Bell,
+  UserCog
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import type { Branch, Employee, PayrollRecord, Stats, AppSettings } from './types';
 import { useLanguage } from './context/LanguageContext';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
-import { PdfExportModal } from './components/PdfExportModal';
-import { BackupRestoreModal } from './components/BackupRestoreModal';
+// Modals are opened on demand. Keeping these eager would drag the ~594KB
+// jsPDF/html2canvas chunk into the initial page load for every user, even
+// though only a few ever export a PDF.
+const PdfExportModal = lazy(() => import('./components/PdfExportModal').then(m => ({ default: m.PdfExportModal })));
+const BackupRestoreModal = lazy(() => import('./components/BackupRestoreModal').then(m => ({ default: m.BackupRestoreModal })));
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginView } from './components/LoginView';
+import { MustChangePasswordView } from './components/MustChangePasswordView';
 
 // Components
-import DashboardView from './components/DashboardView';
-import SaudiComplianceView from './components/SaudiComplianceView';
-import BranchesView from './components/BranchesView';
-import EmployeesView from './components/EmployeesView';
-import PayrollView from './components/PayrollView';
-import AllowanceTypesView from './components/AllowanceTypesView';
-import AuditLogsView from './components/AuditLogsView';
-import DepartmentsView from './components/DepartmentsView';
-import BonusesView from './components/BonusesView';
+// NotificationBell renders in the header on every screen, so it stays eager.
 import NotificationBell from './components/NotificationBell';
-import LoansView from './components/LoansView';
-import AttendanceView from './components/AttendanceView';
-import ReportsView from './components/ReportsView';
-import LeavesView from './components/LeavesView';
-import AssetsView from './components/AssetsView';
-import DocumentsView from './components/DocumentsView';
-import PerformanceView from './components/PerformanceView';
-import ESSView from './components/ESSView';
-import RecruitmentView from './components/RecruitmentView';
-import ExpensesView from './components/ExpensesView';
-import TrainingView from './components/TrainingView';
-import PromotionsView from './components/PromotionsView';
-import SettingsView from './components/SettingsView';
-import TasksView from './components/TasksView';
-import VisasMuqeemView from './components/VisasMuqeemView';
-import AccountingProvisionsView from './components/AccountingProvisionsView';
-import TotalCostEmploymentView from './components/TotalCostEmploymentView';
-import OvertimeRamadanView from './components/OvertimeRamadanView';
-import LaborLawAiConsultantView from './components/LaborLawAiConsultantView';
-import QiwaContractsView from './components/QiwaContractsView';
-import DisciplinaryMatrixView from './components/DisciplinaryMatrixView';
-import ExitClearanceView from './components/ExitClearanceView';
-import WorkInjuriesView from './components/WorkInjuriesView';
-import NitaqatSimulatorView from './components/NitaqatSimulatorView';
-import AiHrLetterStudioView from './components/AiHrLetterStudioView';
-import MedicalInsuranceView from './components/MedicalInsuranceView';
-import WpsAuditSifView from './components/WpsAuditSifView';
-import TalentMatrix9BoxView from './components/TalentMatrix9BoxView';
-import FleetManagementView from './components/FleetManagementView';
-import FlexibleWorkTeleworkView from './components/FlexibleWorkTeleworkView';
-import AiRetentionPredictorView from './components/AiRetentionPredictorView';
-import EarnedWageAccessView from './components/EarnedWageAccessView';
-import HseSafetyComplianceView from './components/HseSafetyComplianceView';
-import ExecutiveBoardroomView from './components/ExecutiveBoardroomView';
-import ExitInterviewAnalyticsView from './components/ExitInterviewAnalyticsView';
-import ApprovalWorkflowsView from './components/ApprovalWorkflowsView';
-import AiHrCopilotModal from './components/AiHrCopilotModal';
-import { GrievancesView } from './components/GrievancesView';
-import { BudgetingView } from './components/BudgetingView';
-import { RewardsKudosView } from './components/RewardsKudosView';
-import { SmartAssetsView } from './components/SmartAssetsView';
-import AttendanceKioskView from './components/AttendanceKioskView';
-import BranchLiveAttendanceView from './components/BranchLiveAttendanceView';
-import ManagerInboxView from './components/ManagerInboxView';
-import EmployeeDocumentsView from './components/EmployeeDocumentsView';
-import AlertsCenterView from './components/AlertsCenterView';
-import TransfersView from './components/TransfersView';
-import SalaryReportsView from './components/SalaryReportsView';
+
+// Every routed screen is code-split. These were all static imports, which
+// pulled 58 screens plus jsPDF/html2canvas/recharts into one ~3.4MB bundle that
+// every user downloaded on first paint. The heavy export/PDF libraries are
+// isolated further by manualChunks in vite.config.ts.
+const DashboardView = lazy(() => import('./components/DashboardView'));
+const SaudiComplianceView = lazy(() => import('./components/SaudiComplianceView'));
+const BranchesView = lazy(() => import('./components/BranchesView'));
+const EmployeesView = lazy(() => import('./components/EmployeesView'));
+const HealthCertificatesView = lazy(() => import('./components/HealthCertificatesView'));
+const ImportCenterView = lazy(() => import('./components/ImportCenterView'));
+const PayrollView = lazy(() => import('./components/PayrollView'));
+const AllowanceTypesView = lazy(() => import('./components/AllowanceTypesView'));
+const AuditLogsView = lazy(() => import('./components/AuditLogsView'));
+const DepartmentsView = lazy(() => import('./components/DepartmentsView'));
+const BonusesView = lazy(() => import('./components/BonusesView'));
+const LoansView = lazy(() => import('./components/LoansView'));
+const AttendanceView = lazy(() => import('./components/AttendanceView'));
+const ReportsView = lazy(() => import('./components/ReportsView'));
+const LeavesView = lazy(() => import('./components/LeavesView'));
+const AssetsView = lazy(() => import('./components/AssetsView'));
+const DocumentsView = lazy(() => import('./components/DocumentsView'));
+const PerformanceView = lazy(() => import('./components/PerformanceView'));
+const ESSView = lazy(() => import('./components/ESSView'));
+const RecruitmentView = lazy(() => import('./components/RecruitmentView'));
+const ExpensesView = lazy(() => import('./components/ExpensesView'));
+const TrainingView = lazy(() => import('./components/TrainingView'));
+const PromotionsView = lazy(() => import('./components/PromotionsView'));
+const SettingsView = lazy(() => import('./components/SettingsView'));
+const TasksView = lazy(() => import('./components/TasksView'));
+const VisasMuqeemView = lazy(() => import('./components/VisasMuqeemView'));
+const AccountingProvisionsView = lazy(() => import('./components/AccountingProvisionsView'));
+const TotalCostEmploymentView = lazy(() => import('./components/TotalCostEmploymentView'));
+const OvertimeRamadanView = lazy(() => import('./components/OvertimeRamadanView'));
+const LaborLawAiConsultantView = lazy(() => import('./components/LaborLawAiConsultantView'));
+const QiwaContractsView = lazy(() => import('./components/QiwaContractsView'));
+const DisciplinaryMatrixView = lazy(() => import('./components/DisciplinaryMatrixView'));
+const ExitClearanceView = lazy(() => import('./components/ExitClearanceView'));
+const WorkInjuriesView = lazy(() => import('./components/WorkInjuriesView'));
+const NitaqatSimulatorView = lazy(() => import('./components/NitaqatSimulatorView'));
+const AiHrLetterStudioView = lazy(() => import('./components/AiHrLetterStudioView'));
+const MedicalInsuranceView = lazy(() => import('./components/MedicalInsuranceView'));
+const WpsAuditSifView = lazy(() => import('./components/WpsAuditSifView'));
+const TalentMatrix9BoxView = lazy(() => import('./components/TalentMatrix9BoxView'));
+const FleetManagementView = lazy(() => import('./components/FleetManagementView'));
+const FlexibleWorkTeleworkView = lazy(() => import('./components/FlexibleWorkTeleworkView'));
+const AiRetentionPredictorView = lazy(() => import('./components/AiRetentionPredictorView'));
+const EarnedWageAccessView = lazy(() => import('./components/EarnedWageAccessView'));
+const HseSafetyComplianceView = lazy(() => import('./components/HseSafetyComplianceView'));
+const ExecutiveBoardroomView = lazy(() => import('./components/ExecutiveBoardroomView'));
+const ExitInterviewAnalyticsView = lazy(() => import('./components/ExitInterviewAnalyticsView'));
+const ApprovalWorkflowsView = lazy(() => import('./components/ApprovalWorkflowsView'));
+const GrievancesView = lazy(() => import('./components/GrievancesView').then(m => ({ default: m.GrievancesView })));
+const BudgetingView = lazy(() => import('./components/BudgetingView').then(m => ({ default: m.BudgetingView })));
+const RewardsKudosView = lazy(() => import('./components/RewardsKudosView').then(m => ({ default: m.RewardsKudosView })));
+const SmartAssetsView = lazy(() => import('./components/SmartAssetsView').then(m => ({ default: m.SmartAssetsView })));
+const AttendanceKioskView = lazy(() => import('./components/AttendanceKioskView'));
+const BranchLiveAttendanceView = lazy(() => import('./components/BranchLiveAttendanceView'));
+const ManagerInboxView = lazy(() => import('./components/ManagerInboxView'));
+const EmployeeDocumentsView = lazy(() => import('./components/EmployeeDocumentsView'));
+const AlertsCenterView = lazy(() => import('./components/AlertsCenterView'));
+const TransfersView = lazy(() => import('./components/TransfersView'));
+const SalaryReportsView = lazy(() => import('./components/SalaryReportsView'));
+const ConsolidatedBranchesView = lazy(() => import('./components/ConsolidatedBranchesView'));
+const SystemsHubView = lazy(() => import('./components/SystemsHubView'));
+const FormsCenterView = lazy(() => import('./components/FormsCenterView').then(m => ({ default: m.FormsCenterView })));
+const UsersView = lazy(() => import('./components/UsersView'));
+// Opened on demand from the floating launcher, so it must stay lazy too.
+const AiHrCopilotModal = lazy(() => import('./components/AiHrCopilotModal'));
 
 type View = 
   | 'dashboard' 
@@ -148,9 +169,11 @@ type View =
   | 'cost_employment' 
   | 'overtime' 
   | 'ai_consultant' 
-  | 'branches' 
-  | 'employees' 
-  | 'payroll' 
+  | 'branches'
+  | 'employees'
+  | 'health_certificates'
+  | 'import_center'
+  | 'payroll'
   | 'allowances' 
   | 'audit' 
   | 'loans' 
@@ -160,7 +183,8 @@ type View =
   | 'bonuses' 
   | 'leaves' 
   | 'assets' 
-  | 'documents' 
+  | 'documents'
+  | 'forms_center' 
   | 'performance' 
   | 'ess' 
   | 'recruitment' 
@@ -175,14 +199,47 @@ type View =
   | 'employee_documents'
   | 'alerts_center'
   | 'transfers'
-  | 'salary_reports';
+  | 'salary_reports'
+  | 'consolidated_reports'
+  | 'systems_hub'
+  | 'users';
+
+/** Shown while a lazily-loaded screen chunk is in flight. */
+function ScreenLoader() {
+  return (
+    <div className="flex items-center justify-center py-24" role="status" aria-live="polite">
+      <div className="flex flex-col items-center gap-3">
+        <div className="animate-spin rounded-full h-10 w-10 border-4 border-emerald-600 border-t-transparent" />
+        <span className="text-sm text-slate-500">جارٍ تحميل الشاشة…</span>
+      </div>
+    </div>
+  );
+}
 
 // Inner App component that requires authentication
 function AuthenticatedApp() {
   const { t, language, direction } = useLanguage();
   const { user, logout, hasRole, isLoading } = useAuth();
   const [activeView, setActiveView] = useState<View>('dashboard');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.matchMedia('(min-width: 768px)').matches);
+  const sidebarToggle = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!isSidebarOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !window.matchMedia('(min-width: 768px)').matches) {
+        setIsSidebarOpen(false);
+        sidebarToggle.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [isSidebarOpen]);
+  useEffect(() => {
+    const desktop = window.matchMedia('(min-width: 768px)');
+    const closeOnMobile = () => { if (!desktop.matches) setIsSidebarOpen(false); };
+    desktop.addEventListener('change', closeOnMobile);
+    return () => desktop.removeEventListener('change', closeOnMobile);
+  }, []);
   const [showCopilot, setShowCopilot] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
@@ -232,10 +289,13 @@ function AuthenticatedApp() {
   const role = user?.role || '';
   const allow = (id: string) => {
     if (!role) return false; // no user/role must not grant any screen
+    // Account administration answers 403 for every role but admin, so the
+    // screen must not appear for hr_manager even though it owns every other.
+    if (id === 'users') return role === 'admin';
     if (role === 'admin' || role === 'hr_manager') return true;
     if (role === 'employee_ess') return id === 'ess';
-    if (role === 'finance') return ['dashboard', 'payroll', 'wps_audit', 'loans', 'bonuses', 'expenses', 'allowances', 'reports', 'salary_reports', 'provisions', 'cost_employment', 'budgeting'].includes(id);
-    if (role === 'branch_manager') return ['dashboard', 'attendance', 'attendance_kiosk', 'attendance_live', 'employees', 'leaves', 'approval_workflows', 'manager_inbox', 'ess', 'alerts_center'].includes(id);
+    if (role === 'finance') return ['dashboard', 'payroll', 'wps_audit', 'loans', 'bonuses', 'expenses', 'allowances', 'reports', 'salary_reports', 'consolidated_reports', 'provisions', 'cost_employment', 'budgeting'].includes(id);
+    if (role === 'branch_manager') return ['dashboard', 'attendance', 'attendance_kiosk', 'attendance_live', 'employees', 'leaves', 'approval_workflows', 'manager_inbox', 'ess', 'alerts_center', 'forms_center'].includes(id);
     return true;
   };
   // "الإعدادات السريعة" writes PUT /api/settings -> settings.manage (admin, hr_manager).
@@ -253,7 +313,14 @@ function AuthenticatedApp() {
   }
 
   if (!user) {
-    return <LoginView onLogin={() => {}} />;
+    return <LoginView />;
+  }
+
+  // The bootstrap admin runs on a documented default password until it is
+  // changed. Nothing else in the app renders until that happens, so the default
+  // is never usable beyond this screen.
+  if (user.must_change_password) {
+    return <MustChangePasswordView />;
   }
 
   const handleUpdateSettings = async () => {
@@ -302,6 +369,7 @@ function AuthenticatedApp() {
       defaultTitle: 'الموارد البشرية (HR)',
       items: [
         { id: 'employees', key: 'nav.employees', defaultLabel: 'الموظفين والإقامات', icon: Users },
+        { id: 'health_certificates', key: 'nav.health_certificates', defaultLabel: 'الشهادات الصحية والمتابعة (بلدي)', icon: Stethoscope },
         { id: 'rewards_kudos', key: 'nav.rewards_kudos', defaultLabel: 'التقدير والمكافآت (Kudos & Rewards)', icon: Award },
         { id: 'smart_assets', key: 'nav.smart_assets', defaultLabel: 'الأصول والعهد الذكية (QR Handover)', icon: Laptop },
         { id: 'exit_interviews', key: 'nav.exit_interviews', defaultLabel: 'محلل مقابلات الخروج (AI Exits)', icon: UserMinus },
@@ -312,6 +380,7 @@ function AuthenticatedApp() {
         { id: 'recruitment', key: 'nav.recruitment', defaultLabel: 'التوظيف (ATS)', icon: Briefcase },
         { id: 'leaves', key: 'nav.leaves', defaultLabel: 'الإجازات والغياب', icon: Clock },
         { id: 'documents', key: 'nav.documents', defaultLabel: 'الأرشيف والوثائق', icon: ShieldCheck },
+        { id: 'forms_center', key: 'nav.forms_center', defaultLabel: 'مركز النماذج والطباعة', icon: Printer },
         { id: 'assets', key: 'nav.assets', defaultLabel: 'الأصول والعهدة', icon: Wallet },
         { id: 'performance', key: 'nav.performance', defaultLabel: 'تقييم الأداء', icon: Star },
         { id: 'training', key: 'nav.training', defaultLabel: 'التدريب والتطوير', icon: GraduationCap },
@@ -343,8 +412,12 @@ function AuthenticatedApp() {
       defaultTitle: 'الإدارة والنظام',
       items: [
         { id: 'branches', key: 'nav.branches', defaultLabel: 'الفروع والمواقع', icon: Building2 },
+        { id: 'consolidated_reports', key: 'nav.consolidated_reports', defaultLabel: 'التقارير المجمعة بين الفروع', icon: Network },
+        { id: 'systems_hub', key: 'nav.systems_hub', defaultLabel: 'بوابة أنظمة معصوب حليب', icon: Layers },
+        { id: 'users', key: 'nav.users', defaultLabel: 'إدارة المستخدمين', icon: UserCog },
         { id: 'settings', key: 'nav.settings', defaultLabel: 'بيانات المنشأة واللوائح', icon: Settings },
         { id: 'audit', key: 'nav.audit', defaultLabel: 'سجل العمليات', icon: History },
+        { id: 'import_center', key: 'nav.import_center', defaultLabel: 'مركز الاستيراد الموحد (Excel)', icon: FileSpreadsheet },
       ]
     },
     {
@@ -371,38 +444,44 @@ function AuthenticatedApp() {
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans" dir={direction}>
+      {isSidebarOpen && <button type="button" aria-label="إغلاق القائمة" onClick={() => setIsSidebarOpen(false)} className="print-hide fixed inset-0 z-[15] bg-slate-900/20 md:hidden" />}
       {/* Sidebar */}
       <motion.aside 
         initial={false}
-        animate={{ width: isSidebarOpen ? 280 : 80 }}
-        className="bg-slate-900 text-white h-full transition-all duration-300 relative z-20 flex flex-col shrink-0"
+        animate={{ width: isSidebarOpen ? 288 : 80 }}
+        className="text-navy-800 h-full transition-all duration-300 absolute start-0 top-0 md:relative z-20 flex flex-col shrink-0
+                   bg-white border-e border-shell-line"
       >
-        <div className="p-6 flex items-center justify-between border-b border-slate-800 shrink-0">
+        <div className="p-5 flex items-center justify-between border-b border-shell-line shrink-0">
           {isSidebarOpen && (
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="flex items-center gap-3"
             >
-              <div className="bg-emerald-600 p-2 rounded-xl shadow-md shadow-emerald-900/30">
-                <Scale className="w-6 h-6 text-white" />
+              <div className="bg-brand-600 p-2.5 rounded-xl shadow-md shadow-brand-600/25">
+                <Scale className="w-5 h-5 text-white" />
               </div>
               <div className="overflow-hidden">
                 <span 
-                  className="text-sm font-black tracking-tight truncate block max-w-[170px]"
+                  className="text-sm font-black tracking-tight truncate block max-w-[180px] text-navy-900"
                   title={settings.org_name}
                 >
                   {settings.org_name}
                 </span>
-                <span className="text-[10px] text-emerald-400 font-bold block">
-                  {language === 'ar' ? 'نظام HR والرواتب والامتثال' : 'Saudi HR & Compliance'}
+                <span className="text-[10px] text-brand-600 font-bold block">
+                  {language === 'ar' ? 'الموارد البشرية والرواتب والامتثال' : 'Saudi HR & Compliance'}
                 </span>
               </div>
             </motion.div>
           )}
-          <button 
+          <button
+            ref={sidebarToggle}
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 hover:bg-slate-800 rounded-xl transition-colors text-slate-400 hover:text-white"
+            className="p-2 hover:bg-shell-100 rounded-xl transition-colors text-slate-400 hover:text-brand-600"
+            aria-label={isSidebarOpen ? 'طي القائمة' : 'توسيع القائمة'}
+            aria-expanded={isSidebarOpen}
+            aria-controls="primary-navigation"
           >
             {isSidebarOpen ? (
               direction === 'rtl' ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />
@@ -412,35 +491,45 @@ function AuthenticatedApp() {
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-6 custom-scrollbar">
+        <nav id="primary-navigation" className="flex-1 overflow-y-auto px-3 py-4 space-y-5 custom-scrollbar">
           {navSections.map((section, idx) => {
             const items = section.items.filter(i => allow(i.id));
             if (!items.length) return null;
             return (
             <div key={idx} className="space-y-1">
               {isSidebarOpen && (
-                <p className="px-4 text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 opacity-60">
+                <p className="px-3 pt-3 pb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
                   {t(section.titleKey, section.defaultTitle)}
                 </p>
               )}
               {items.map((item) => {
                 const isActive = activeView === item.id;
-                const isSaudiCompliance = item.id === 'saudi';
                 const label = t(item.key, item.defaultLabel);
 
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setActiveView(item.id as View)}
+                    onClick={() => {
+                      setActiveView(item.id as View);
+                      if (!window.matchMedia('(min-width: 768px)').matches) setIsSidebarOpen(false);
+                    }}
                     title={!isSidebarOpen ? label : undefined}
-                    className={`w-full flex items-center gap-3.5 px-4 py-2.5 rounded-2xl transition-all ${
-                      isActive 
-                        ? (isSaudiCompliance ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40 font-bold' : 'bg-blue-600 text-white shadow-lg shadow-blue-900/20 font-bold')
-                        : (isSaudiCompliance ? 'text-emerald-300 hover:bg-emerald-950/40 hover:text-emerald-200' : 'text-slate-400 hover:bg-slate-800/80 hover:text-white')
-                    }`}
+                    aria-label={label}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 relative ${
+                      isActive
+                        ? 'bg-brand-50 text-brand-700 font-bold'
+                        : 'text-slate-600 hover:bg-shell-100 hover:text-navy-900'
+                    } ${isSidebarOpen ? '' : 'justify-center'}`}
                   >
-                    <item.icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : (isSaudiCompliance ? 'text-emerald-400' : 'text-slate-400')}`} />
-                    {isSidebarOpen && <span className="font-bold text-xs truncate">{label}</span>}
+                    {/* شريط المؤشر على حافة القائمة (يمين في RTL) */}
+                    {isActive && (
+                      <span className="absolute inset-y-1.5 right-0 w-[3px] rounded-l-full bg-brand-600" />
+                    )}
+                    <item.icon className={`w-[18px] h-[18px] shrink-0 ${
+                      isActive ? 'text-brand-600' : 'text-slate-400'
+                    }`} />
+                    {isSidebarOpen && <span className="font-bold text-[12.5px] truncate text-start">{label}</span>}
                   </button>
                 );
               })}
@@ -450,36 +539,36 @@ function AuthenticatedApp() {
         </nav>
 
         {isSidebarOpen && (
-          <div className="p-4 border-t border-slate-800 shrink-0 space-y-2">
+          <div className="p-3 border-t border-shell-line shrink-0 space-y-2">
             {canManageSettings && (
             <button 
               onClick={() => {
                 setTempSettings(settings);
                 setIsEditingSettings(true);
               }}
-              className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-xs text-slate-300 hover:text-white transition-colors"
+              className="w-full flex items-center justify-between px-3 py-2.5 bg-shell-100 hover:bg-shell-200 rounded-xl text-xs text-navy-700 hover:text-navy-900 transition-colors"
             >
               <div className="flex items-center gap-2">
-                <Settings className="w-4 h-4 text-slate-400" />
+                <Settings className="w-4 h-4 text-brand-600" />
                 <span className="font-bold">{t('btn.quick_settings')}</span>
               </div>
-              <span className="text-[10px] bg-slate-900 px-1.5 py-0.5 rounded font-mono text-emerald-400">{settings.currency || 'SAR'}</span>
+              <span className="text-[10px] bg-white px-1.5 py-0.5 rounded font-mono text-navy-700 border border-shell-line">{settings.currency || 'SAR'}</span>
             </button>
             )}
-            <div className="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800/60 text-center">
+            <div className="p-2.5 bg-shell-50 rounded-xl border border-shell-line text-center">
               <p className="text-[10px] text-slate-400">{t('app.title')}</p>
-              <p className="text-[11px] font-mono font-bold text-emerald-400">{t('app.version')}</p>
+              <p className="text-[11px] font-mono font-bold text-navy-700">{t('app.version')}</p>
             </div>
           </div>
         )}
       </motion.aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto flex flex-col">
+      <main className="flex-1 min-w-0 ms-20 md:ms-0 overflow-auto flex flex-col">
         {/* Top Header Bar */}
-        <header className="h-16 bg-white border-b border-slate-200 px-6 md:px-8 flex items-center justify-between sticky top-0 z-10 shrink-0 shadow-sm">
-          <div className="flex items-center gap-3">
-            <h2 className="text-base md:text-lg font-black text-slate-800">
+        <header className="h-16 bg-white border-b border-shell-line px-3 sm:px-6 md:px-8 flex items-center justify-between gap-2 sticky top-0 z-10 shrink-0 shadow-sm">
+          <div className="flex min-w-0 items-center gap-3">
+            <h2 className="truncate text-base md:text-lg font-black text-navy-900">
               {currentLabel()}
             </h2>
           </div>
@@ -506,7 +595,7 @@ function AuthenticatedApp() {
               className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-sm"
               title={t('backup.title')}
             >
-              <Database className="w-4 h-4 text-indigo-600" />
+              <Database className="w-4 h-4 text-brand-600" />
               <span>{language === 'ar' ? 'النسخ والاحتياط' : 'Backup DB'}</span>
             </button>
 
@@ -532,15 +621,18 @@ function AuthenticatedApp() {
           </div>
         </header>
 
-        <div className="p-6 md:p-8 flex-1">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeView}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.15 }}
-            >
+        <div className="p-3 sm:p-6 md:p-8 flex-1 min-w-0">
+          {/* No AnimatePresence mode="wait" here: its exit gating deadlocks with
+              lazy (Suspense) screens — the first navigation after load never
+              swaps the view. Enter-only animation swaps unconditionally. */}
+          <motion.div
+            key={activeView}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+              {/* Screens are code-split, so each one loads on first visit. */}
+              <Suspense fallback={<ScreenLoader />}>
               {activeView === 'dashboard' && <DashboardView />}
               {activeView === 'executive_board' && <ExecutiveBoardroomView />}
               {activeView === 'approval_workflows' && <ApprovalWorkflowsView />}
@@ -571,6 +663,8 @@ function AuthenticatedApp() {
               {activeView === 'ai_consultant' && <LaborLawAiConsultantView />}
               {activeView === 'branches' && <BranchesView />}
               {activeView === 'employees' && <EmployeesView />}
+              {activeView === 'health_certificates' && <HealthCertificatesView />}
+              {activeView === 'import_center' && <ImportCenterView />}
               {activeView === 'payroll' && <PayrollView />}
               {activeView === 'allowances' && <AllowanceTypesView />}
               {activeView === 'audit' && <AuditLogsView />}
@@ -582,6 +676,7 @@ function AuthenticatedApp() {
               {activeView === 'leaves' && <LeavesView />}
               {activeView === 'assets' && <AssetsView />}
               {activeView === 'documents' && <DocumentsView />}
+              {activeView === 'forms_center' && <FormsCenterView />}
               {activeView === 'performance' && <PerformanceView />}
               {activeView === 'ess' && <ESSView />}
               {activeView === 'recruitment' && <RecruitmentView />}
@@ -597,8 +692,11 @@ function AuthenticatedApp() {
               {activeView === 'alerts_center' && <AlertsCenterView />}
               {activeView === 'transfers' && <TransfersView />}
               {activeView === 'salary_reports' && <SalaryReportsView />}
-            </motion.div>
-          </AnimatePresence>
+              {activeView === 'consolidated_reports' && <ConsolidatedBranchesView />}
+              {activeView === 'systems_hub' && <SystemsHubView onOpenReports={() => setActiveView('consolidated_reports')} />}
+              {activeView === 'users' && <UsersView />}
+              </Suspense>
+          </motion.div>
         </div>
       </main>
 
@@ -606,7 +704,7 @@ function AuthenticatedApp() {
       <button
         id="floating-ai-copilot-btn"
         onClick={() => setShowCopilot(true)}
-        className="fixed bottom-6 left-6 rtl:left-6 ltr:right-6 z-40 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white px-4 py-3.5 rounded-full shadow-2xl hover:shadow-emerald-500/40 transition-all transform hover:scale-105 flex items-center gap-2.5 border-2 border-emerald-300/40"
+        className="no-print fixed bottom-6 left-6 rtl:left-6 ltr:right-6 z-40 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white px-4 py-3.5 rounded-full shadow-2xl hover:shadow-emerald-500/40 transition-all transform hover:scale-105 flex items-center gap-2.5 border-2 border-emerald-300/40"
         title="المساعد الذكي للموارد البشرية (AI Copilot)"
       >
         <span className="relative flex h-3 w-3">
@@ -619,14 +717,16 @@ function AuthenticatedApp() {
 
       {/* AI HR Copilot Modal */}
       {showCopilot && (
-        <AiHrCopilotModal 
-          isOpen={showCopilot}
-          onClose={() => setShowCopilot(false)}
-          onNavigate={(viewId) => {
-            setActiveView(viewId as View);
-            setShowCopilot(false);
-          }}
-        />
+        <Suspense fallback={null}>
+          <AiHrCopilotModal 
+            isOpen={showCopilot}
+            onClose={() => setShowCopilot(false)}
+            onNavigate={(viewId) => {
+              setActiveView(viewId as View);
+              setShowCopilot(false);
+            }}
+          />
+        </Suspense>
       )}
 
       {/* PDF Export Modal */}
@@ -716,7 +816,7 @@ function AuthenticatedApp() {
               <div className="flex gap-3 pt-4 border-t border-slate-100">
                 <button 
                   onClick={handleUpdateSettings}
-                  className="flex-1 bg-emerald-600 text-white py-3.5 rounded-2xl font-black hover:bg-emerald-700 transition-all shadow-md shadow-emerald-200"
+                  className="flex-1 bg-brand-600 text-white py-3.5 rounded-2xl font-black hover:bg-brand-700 transition-all shadow-md shadow-emerald-200"
                 >
                   {t('btn.save')}
                 </button>

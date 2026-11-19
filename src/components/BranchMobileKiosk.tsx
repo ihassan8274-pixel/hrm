@@ -177,17 +177,17 @@ export default function BranchMobileKiosk({ token }: Props) {
       )}
 
       {paired && (
-      <button onClick={validateGeo} disabled={loading} className="w-full mb-5 py-4 rounded-2xl bg-emerald-600 font-black flex items-center justify-center gap-2 disabled:opacity-50">
+      <button onClick={validateGeo} disabled={loading} className="w-full mb-5 py-4 rounded-2xl bg-brand-600 font-black flex items-center justify-center gap-2 disabled:opacity-50">
         <MapPin className="w-5 h-5" /> {geoOk ? 'الموقع مؤكد — أعد التحقق' : 'تأكيد موقع هاتف الفرع'}
       </button>
       )}
 
       {paired && (
       <div className="flex gap-2 mb-4">
-        <button onClick={() => setMethod('face')} className={`flex-1 py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 border ${method === 'face' ? 'bg-indigo-600 border-indigo-400' : 'bg-white/5 border-white/10'}`}>
+        <button onClick={() => setMethod('face')} className={`flex-1 py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 border ${method === 'face' ? 'bg-brand-600 border-brand-400' : 'bg-white/5 border-white/10'}`}>
           <ScanFace className="w-5 h-5" /> بصمة الوجه
         </button>
-        <button onClick={() => setMethod('fingerprint')} className={`flex-1 py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 border ${method === 'fingerprint' ? 'bg-indigo-600 border-indigo-400' : 'bg-white/5 border-white/10'}`}>
+        <button onClick={() => setMethod('fingerprint')} className={`flex-1 py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 border ${method === 'fingerprint' ? 'bg-brand-600 border-brand-400' : 'bg-white/5 border-white/10'}`}>
           <Fingerprint className="w-5 h-5" /> بصمة الإصبع
         </button>
       </div>
@@ -195,7 +195,7 @@ export default function BranchMobileKiosk({ token }: Props) {
 
       {paired && (
       <div className="grid grid-cols-2 gap-3 mt-auto pb-8">
-        <button onClick={() => punch('in')} disabled={loading || !geoOk} className="py-6 rounded-3xl bg-emerald-500 font-black text-lg disabled:opacity-40 flex flex-col items-center gap-2">
+        <button onClick={() => punch('in')} disabled={loading || !geoOk} className="py-6 rounded-3xl bg-brand-500 font-black text-lg disabled:opacity-40 flex flex-col items-center gap-2">
           <LogIn className="w-8 h-8" /> حضور
         </button>
         <button onClick={() => punch('out')} disabled={loading || !geoOk} className="py-6 rounded-3xl bg-rose-600 font-black text-lg disabled:opacity-40 flex flex-col items-center gap-2">

@@ -61,7 +61,7 @@ export default function AiRetentionPredictorView() {
         );
       case 'medium':
         return (
-          <span className="bg-blue-100 text-blue-800 text-xs px-2.5 py-1 rounded-full font-medium">
+          <span className="bg-brand-100 text-brand-800 text-xs px-2.5 py-1 rounded-full font-medium">
             متوسط ({score}%)
           </span>
         );
@@ -127,7 +127,7 @@ export default function AiRetentionPredictorView() {
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between text-slate-500 mb-2">
             <span className="text-sm font-medium">متوسط مؤشر خطر التسرب العام</span>
-            <TrendingDown className="w-5 h-5 text-indigo-500" />
+            <TrendingDown className="w-5 h-5 text-brand-500" />
           </div>
           <div className="text-3xl font-black text-slate-800">%{stats.averageRiskScore || 0}</div>
           <div className="text-xs text-slate-400 mt-1">على مستوى كافة قطاعات المنشأة</div>

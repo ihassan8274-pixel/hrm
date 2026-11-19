@@ -68,6 +68,10 @@ export interface PayrollInput {
   overtimeHours: number;
   paymentMethod?: 'cash' | 'bank' | 'split';
   cashPercentage?: number;
+  /** Verified one-off off-cycle additions/deductions for this period (دفعة خارج الدورة). */
+  additionalSalaries?: { type: 'earning' | 'deduction'; amount: number }[];
+  /** Verified income-tax exemptions for this period (إثبات إعفاء ضريبي). */
+  taxExemptions?: number;
 }
 
 export interface PayrollResult {
@@ -99,6 +103,9 @@ export interface PayrollResult {
     dailyRate: number;
     insuranceCeilingApplied: boolean;
     taxBracketsUsed: string;
+    taxExemptions: number;
+    additionalEarnings: number;
+    additionalDeductions: number;
   };
 }
 

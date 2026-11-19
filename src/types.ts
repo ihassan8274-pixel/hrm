@@ -137,11 +137,23 @@ export interface Employee {
   // Banking & Saudi Wage Protection (WPS / مدد)
   saudi_iban?: string; // IBAN format e.g. SA... (24 chars)
   bank_name?: string; // اسم البنك (مصرف الراجحي، الأهلي SNB، الإنماء، الرياض...)
+  payment_method?: 'cash' | 'bank' | 'split'; // طريقة صرف الراتب
   
   // Contract Details
   contract_type?: 'fixed' | 'unlimited'; // محدد المدة / غير محدد المدة
   contract_start_date?: string;
   contract_end_date?: string;
+  join_date?: string; // تاريخ الالتحاق (مرادف contract_start_date في بعض المسارات)
+
+  // Passport & health certificate (compliance documents)
+  passport_number?: string;
+  passport_expiry?: string; // YYYY-MM-DD
+  health_cert_number?: string;
+  health_cert_expiry?: string; // YYYY-MM-DD
+
+  // ESS / self-service derived fields
+  annual_leave_balance?: number;
+  iban?: string;
 }
 
 export interface AuditLog {
@@ -212,7 +224,11 @@ export interface PayrollRecord {
   gosi_number?: string;
   gosi_salary?: number;
   saudi_iban?: string;
+  bank_account?: string;
   bank_name?: string;
+  payment_method?: string;
+  cash_amount?: number;
+  bank_amount?: number;
 }
 
 export interface SaudiComplianceSummary {
@@ -289,8 +305,13 @@ export interface Loan {
   total_amount: number;
   remaining_amount: number;
   monthly_installment: number;
-  status: 'active' | 'completed';
+  status: 'pending' | 'active' | 'rejected' | 'completed';
   created_at: string;
+  workflow_status?: string | null;
+  workflow_title?: string | null;
+  workflow_level?: number | null;
+  workflow_max_levels?: number | null;
+  workflow_history?: Array<{ level: number; actor_name: string; action: string; action_date: string; comments?: string }>;
 }
 
 export interface VisaRecord {
@@ -553,19 +574,23 @@ export interface WorkInjury {
   employee_name?: string;
   department_name?: string;
   national_id_iqama?: string;
+  job_title?: string;
   incident_date: string;
-  incident_time: string;
+  incident_time?: string;
   location_type: 'workplace' | 'work_trip' | 'commuting_traffic';
+  incident_location?: string;
   injury_type: string;
+  injury_nature?: string;
   severity: 'minor' | 'moderate' | 'severe' | 'fatal';
   description: string;
-  hospital_name: string;
+  hospital_name?: string;
   sick_leave_days: number;
   gosi_reported: number; // must be reported within 7 days
   gosi_report_date?: string;
   gosi_claim_number?: string;
   daily_allowance_rate: number; // 100% covered by GOSI
   total_compensation_amount: number;
+  gosi_compensation_amount?: number;
   status: 'reported' | 'gosi_approved' | 'under_treatment' | 'closed';
   preventive_actions?: string;
   created_at: string;
@@ -574,17 +599,28 @@ export interface WorkInjury {
 // ==========================================
 // 5. NITAQAT & SAUDIZATION SIMULATOR
 // ==========================================
-export interface NitaqatSimulationResult {
-  totalEmployees: number;
+export type NitaqatTier = 'platinum' | 'high_green' | 'mid_green' | 'low_green' | 'red';
+
+/** Headcount scenario as computed by the Nitaqat band calculator. */
+export interface NitaqatScenario {
   saudiCount: number;
   expatCount: number;
-  saudiSpecialWeightsCount: number; // 4x for disabled (Mowaamah)
-  currentSaudizationPercentage: number;
+  totalEmployees: number;
+  saudiSpecialWeightsCount: number; // 4x weight for disabled Saudis (Mowaamah)
+  saudizationPercentage: number;
   weightedSaudizationPercentage: number;
-  currentTier: 'platinum' | 'high_green' | 'mid_green' | 'low_green' | 'red';
+  tier: NitaqatTier;
   saudisNeededForNextTier: number;
   expatsAllowedBeforeDowngrade: number;
   availableVisasToIssue: number;
+}
+
+export interface NitaqatSimulationResult extends NitaqatScenario {
+  currentTier: NitaqatTier;
+  currentSaudizationPercentage: number;
+  simulated: NitaqatScenario;
+  simulatedTier: NitaqatTier;
+  simulatedSaudizationPercentage: number;
   sectorName: string;
   tierThresholds: {
     platinum: number;
@@ -616,6 +652,7 @@ export interface HrLetterRequest {
 }
 
 export interface GeneratedHrLetter {
+  id?: number;
   letter_id: string;
   title: string;
   content: string;
@@ -656,6 +693,27 @@ export interface MedicalPolicy {
   status: 'active' | 'expiring_soon' | 'expired';
 }
 
+export interface HealthCertificate {
+  id: number;
+  employee_id: number;
+  certificate_number?: string;
+  profession_on_cert?: string;
+  issue_date?: string;
+  expiry_date: string;
+  issuing_authority: string;
+  status: 'active' | 'replaced' | 'revoked';
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+  employee_name?: string;
+  employee_position?: string;
+  employee_nationality?: string;
+  employee_is_saudi?: number;
+  employee_national_id?: string;
+  cert_status?: 'valid' | 'expiring' | 'expired';
+  days_left?: number;
+}
+
 export interface InsuranceEndorsement {
   id: number;
   employee_id: number;
@@ -679,7 +737,21 @@ export interface WpsAuditResult {
   violationCount: number;
   complianceScore: number;
   totalDisbursed: number;
-  sifFileName: string;
+  sifFileName: string | null;
+  /** True when every precondition for a bank file is met. */
+  exportReady: boolean;
+  /** Human-readable reasons the bank file cannot be produced yet. */
+  exportBlockers: string[];
+  bankProfile: {
+    crNumber: string | null;
+    settlementBankCode: string | null;
+    mappedBanks: string[];
+  };
+  /** True when no payroll run exists for the period and master data was read instead. */
+  simulated: boolean;
+  dataSource: 'payroll_run' | 'employees_master_data';
+  /** Explains a simulated audit so the numbers are not mistaken for an approved run. */
+  note: string | null;
   violations: {
     employee_id: number;
     employee_name: string;
@@ -731,6 +803,7 @@ export interface SuccessionPlanItem {
   risk_level: 'critical' | 'high' | 'medium';
   primary_successor_id?: number;
   primary_successor_name?: string;
+  primary_successor_position?: string;
   secondary_successor_id?: number;
   secondary_successor_name?: string;
   readiness_status: 'ready_now' | 'in_development' | 'no_successor';
@@ -750,10 +823,15 @@ export interface FleetVehicle {
   vin_number: string;
   assigned_employee_id?: number;
   assigned_employee_name?: string;
+  department_name?: string;
   assignment_date?: string;
   istimara_expiry: string;
   insurance_expiry: string;
   periodic_inspection_expiry: string; // الفحص الدوري (MVPI)
+  /** Days remaining before expiry; negative means already expired. Computed server-side. */
+  days_to_istimara?: number;
+  days_to_insurance?: number;
+  days_to_mvpi?: number;
   status: 'assigned' | 'available' | 'maintenance' | 'impounded';
   current_odometer: number;
   fuel_card_number?: string;
@@ -784,6 +862,7 @@ export interface FlexibleWorkShift {
   id: number;
   employee_id: number;
   employee_name?: string;
+  department_name?: string;
   date: string;
   hours_worked: number;
   hourly_rate: number;
@@ -800,6 +879,7 @@ export interface TeleworkPermit {
   employee_id: number;
   employee_name?: string;
   department_name?: string;
+  position?: string;
   job_title?: string;
   permit_type: 'full_time_remote' | 'hybrid' | 'temporary';
   remote_days_per_week: number;
@@ -911,11 +991,13 @@ export interface ExecutiveAnalytics {
   saudizationRate: number;
   totalMonthlyPayroll: number;
   annualizedWageBill: number;
-  estimatedRevenue: number;
-  humanCapitalRoi: number; // (Revenue - (Expenses - WageBill)) / WageBill
+  // null = no data source in this system (revenue lives elsewhere; no
+  // termination dates are recorded). The screen must render "غير متاح".
+  estimatedRevenue: number | null;
+  humanCapitalRoi: number | null;
   costPerEmployee: number;
-  turnoverRateAnnual: number;
-  averageTenureYears: number;
+  turnoverRateAnnual: number | null;
+  averageTenureYears: number | null; // measured from recorded contract start dates
   departmentsBreakdown: {
     department_id: number;
     department_name: string;
@@ -928,13 +1010,14 @@ export interface ExecutiveAnalytics {
     quarter: string;
     payroll_cost: number;
     headcount: number;
-    productivity_index: number;
+    growth_pct: number | null; // quarter-over-quarter; null for the first quarter
   }[];
   complianceSummary: {
-    gosi_compliant: boolean;
-    wps_compliant: boolean;
-    cchi_compliant: boolean;
-    qiwa_contracts_rate: number;
+    // null = verified against the government portal, not computable here.
+    gosi_compliant: boolean | null;
+    wps_compliant: boolean | null;
+    cchi_compliant: boolean | null;
+    qiwa_contracts_rate: number | null;
   };
 }
 
@@ -1198,6 +1281,7 @@ export interface RewardRedemption {
 }
 
 export interface PulseSurveyScore {
+  id?: number;
   category: string;
   score_percentage: number;
   respondents_count: number;

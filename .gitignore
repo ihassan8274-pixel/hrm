@@ -8,6 +8,25 @@ coverage/
 !.env.example
 .jwt-secret
 
+# Bootstrap admin credential written on first run — must never be committed.
+.initial-admin-password.txt
+
+# Local credential records: employee first-login values and admin resets.
+ess-first-credentials.csv
+.admin-password.txt
+
+# Stray throwaway scripts created while debugging.
+.tmp-*.cjs
+.tmp-*.js
+check_*.cjs
+check_*.js
+list_tables.cjs
+list_tables.js
+fix_admin.cjs
+reset_admin.cjs
+verify_pwd.cjs
+test_hash.cjs
+
 # --- runtime data & build artifacts (never commit) ---
 backups/
 uploads/
@@ -17,3 +36,19 @@ uploads/
 .pnpm-store/
 InstallerOutput/
 *.log.*
+testsprite_tests/tmp/
+testsprite_tests/tmp/config.json
+
+# Throwaway database built by scripts/build-test-db.cjs for the drift gates.
+scripts/.build/
+
+# Pre-refactor snapshots kept as a rollback path (never commit).
+_refactor_backup_*/
+
+# Backup copy of src/ taken before the identity change (never commit).
+src_backup_before_identity/
+
+# Data exports and imports: employee records and chat history, not source.
+upgrade.json
+import-masoubi.json
+*.sif

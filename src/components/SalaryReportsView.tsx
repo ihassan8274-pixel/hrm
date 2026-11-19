@@ -10,16 +10,28 @@ export default function SalaryReportsView() {
   const [statement, setStatement] = useState<any[]>([]);
   const [provisions, setProvisions] = useState<any>(null);
   const [tab, setTab] = useState<'company' | 'branch' | 'statement' | 'provisions'>('company');
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
+    setError(null);
+    const get = async (path: string) => {
+      const r = await fetch(path);
+      const d = await r.json().catch(() => null);
+      if (!r.ok) throw new Error(d?.error || `تعذر تحميل التقرير (${r.status})`);
+      return d;
+    };
     const q = `?month=${month}&year=${year}`;
-    const [c, b, s, p] = await Promise.all([
-      fetch(`/api/reports/company-salary${q}`).then(r => r.json()),
-      fetch(`/api/reports/branch-salary${q}`).then(r => r.json()),
-      fetch(`/api/reports/payroll-statement${q}`).then(r => r.json()),
-      fetch(`/api/reports/provisions${q}`).then(r => r.json()),
-    ]);
-    setCompany(c); setBranches(b.branches || []); setStatement(s); setProvisions(p);
+    try {
+      const [c, b, s, p] = await Promise.all([
+        get(`/api/reports/company-salary${q}`),
+        get(`/api/reports/branch-salary${q}`),
+        get(`/api/reports/payroll-statement${q}`),
+        get(`/api/reports/provisions${q}`),
+      ]);
+      setCompany(c); setBranches(b?.branches || []); setStatement(Array.isArray(s) ? s : []); setProvisions(p);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'تعذر تحميل التقارير');
+    }
   };
   useEffect(() => { load(); }, [month, year]);
 
@@ -42,11 +54,15 @@ export default function SalaryReportsView() {
 
       <div className="flex gap-2 flex-wrap">
         {[{ v: 'company', l: 'إجمالي الشركة (نقدي/بنكي)', i: TrendingUp }, { v: 'branch', l: 'رواتب الفروع (تكلفة فعلية)', i: Building2 }, { v: 'statement', l: 'كشف الرواتب', i: FileText }, { v: 'provisions', l: 'المخصصات الشهرية', i: CalendarClock }].map(t => (
-          <button key={t.v} onClick={() => setTab(t.v as any)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border ${tab === t.v ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'}`}>
+          <button key={t.v} onClick={() => setTab(t.v as any)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border ${tab === t.v ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-600 border-slate-200'}`}>
             <t.i className="w-4 h-4" /> {t.l}
           </button>
         ))}
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-bold">{error}</div>
+      )}
 
       {tab === 'company' && company && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -60,10 +76,10 @@ export default function SalaryReportsView() {
             <p className="text-3xl font-black text-slate-800">{fmt(company.bank_total)}</p>
             <p className="text-xs text-slate-400 mt-1">{company.bank_count} موظف</p>
           </div>
-          <div className="bg-blue-600 rounded-2xl p-6 shadow-sm text-white">
-            <div className="flex items-center gap-2 text-blue-100 text-sm mb-2"><TrendingUp className="w-5 h-5" /> الإجمالي الكلي</div>
+          <div className="bg-brand-600 rounded-2xl p-6 shadow-sm text-white">
+            <div className="flex items-center gap-2 text-brand-100 text-sm mb-2"><TrendingUp className="w-5 h-5" /> الإجمالي الكلي</div>
             <p className="text-3xl font-black">{fmt(company.total)}</p>
-            <p className="text-xs text-blue-100 mt-1">شهر {company.month}/{company.year}</p>
+            <p className="text-xs text-brand-100 mt-1">شهر {company.month}/{company.year}</p>
           </div>
         </div>
       )}
@@ -73,7 +89,7 @@ export default function SalaryReportsView() {
           {branches.map(b => (
             <div key={b.branch_id} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-black text-slate-800 flex items-center gap-2"><Building2 className="w-5 h-5 text-blue-600" /> {b.branch_name}</h3>
+                <h3 className="font-black text-slate-800 flex items-center gap-2"><Building2 className="w-5 h-5 text-brand-600" /> {b.branch_name}</h3>
                 <span className="text-lg font-black text-emerald-600">{fmt(b.total_cost)}</span>
               </div>
               <div className="overflow-x-auto">
@@ -115,7 +131,7 @@ export default function SalaryReportsView() {
                     <td className="py-2 text-slate-600">{fmt(p.allowances)}</td>
                     <td className="py-2 text-red-600">{fmt(p.deductions)}</td>
                     <td className="py-2 font-bold text-emerald-600">{fmt(p.net_salary)}</td>
-                    <td className="py-2"><span className={`px-2 py-1 rounded-lg text-xs font-bold ${p.payment_method === 'cash' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>{p.payment_method === 'cash' ? 'نقدي' : 'بنكي'}</span></td>
+                    <td className="py-2"><span className={`px-2 py-1 rounded-lg text-xs font-bold ${p.payment_method === 'cash' ? 'bg-amber-100 text-amber-700' : 'bg-brand-100 text-brand-700'}`}>{p.payment_method === 'cash' ? 'نقدي' : 'بنكي'}</span></td>
                   </tr>
                 ))}
                 {statement.length === 0 && <tr><td colSpan={7} className="py-6 text-center text-slate-400">لا بيانات رواتب لهذا الشهر — أنشئ مسير الرواتب أولاً</td></tr>}
@@ -143,10 +159,10 @@ export default function SalaryReportsView() {
               <p className="text-2xl font-black text-slate-800">{fmt(provisions.total_provision)}</p>
               <p className="text-xs text-emerald-600 font-bold mt-1">نسبة {provisions.total_ratio}% من الرواتب</p>
             </div>
-            <div className="bg-blue-600 rounded-2xl p-6 shadow-sm text-white">
-              <div className="flex items-center gap-2 text-blue-100 text-sm mb-2"><Percent className="w-5 h-5" /> أساس الرواتب</div>
+            <div className="bg-brand-600 rounded-2xl p-6 shadow-sm text-white">
+              <div className="flex items-center gap-2 text-brand-100 text-sm mb-2"><Percent className="w-5 h-5" /> أساس الرواتب</div>
               <p className="text-2xl font-black">{fmt(provisions.payroll_base)}</p>
-              <p className="text-xs text-blue-100 mt-1">شهر {provisions.month}/{provisions.year}</p>
+              <p className="text-xs text-brand-100 mt-1">شهر {provisions.month}/{provisions.year}</p>
             </div>
           </div>
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">

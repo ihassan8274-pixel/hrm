@@ -4,9 +4,13 @@ import {
   Send, User, AlertCircle, RefreshCw, Bookmark, Download, ShieldCheck
 } from 'lucide-react';
 import type { GeneratedHrLetter, Employee } from '../types';
+import { Letterhead } from '../lib/print/letterhead';
+import { useLetterhead } from '../lib/print/use-letterhead';
 
 export default function AiHrLetterStudioView() {
   const [letters, setLetters] = useState<GeneratedHrLetter[]>([]);
+  // ترويسة موحّدة مع بقية مخرجات النظام (ورقة الشركة).
+  const company = useLetterhead();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -27,7 +31,7 @@ export default function AiHrLetterStudioView() {
       })
       .catch(console.error);
 
-    fetch('/api/ai/letters')
+    fetch('/api/ai/hr-letters')
       .then(r => r.json())
       .then(data => setLetters(data))
       .catch(console.error);
@@ -39,19 +43,19 @@ export default function AiHrLetterStudioView() {
 
     try {
       setLoading(true);
-      const res = await fetch('/api/ai/generate-letter', {
+      const res = await fetch('/api/ai/hr-letter-generator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           letter_type: letterType,
           employee_id: Number(selectedEmployeeId),
-          custom_instructions: customInstructions
+          custom_notes: customInstructions
         })
       });
       const data = await res.json();
       setGeneratedResult(data);
       // Refresh previous letters list
-      fetch('/api/ai/letters').then(r => r.json()).then(l => setLetters(l));
+      fetch('/api/ai/hr-letters').then(r => r.json()).then(l => setLetters(l));
     } catch (err) {
       console.error(err);
     } finally {
@@ -232,17 +236,16 @@ export default function AiHrLetterStudioView() {
 
             {/* Document Canvas */}
             {generatedResult ? (
-              <div className="border-2 border-slate-800 rounded-xl p-8 space-y-6 text-slate-900 bg-white shadow-sm font-sans leading-relaxed text-sm">
-                {/* Official Letterhead */}
-                <div className="flex items-center justify-between border-b-2 border-slate-800 pb-4">
-                  <div>
-                    <h2 className="font-extrabold text-base text-slate-900">شركة الأنظمة المتكاملة للحلول الرقمية</h2>
-                    <p className="text-xs text-slate-500 font-mono">سجل تجاري: 1010789456 | الرقم الموحد: 7001984523</p>
-                    <p className="text-xs text-slate-500">إدارة الموارد البشرية والشؤون الإدارية</p>
+              <div className="print-document border-2 border-slate-800 rounded-xl p-8 space-y-6 text-slate-900 bg-white shadow-sm font-sans leading-relaxed text-sm">
+                {/* Official Letterhead — ترويسة موحّدة مع بقية مخرجات النظام */}
+                <Letterhead company={company} />
+
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="text-right">
+                    <h3 className="font-bold text-slate-800">{generatedResult.title}</h3>
                   </div>
                   <div className="text-left font-mono text-xs text-slate-600">
                     <p>التاريخ: {new Date().toLocaleDateString('ar-SA')}</p>
-                    <p>الموافق: {new Date().toISOString().split('T')[0]}</p>
                     <p>الرقم الإشاري: HR-DOC-{generatedResult.id || 'AUTO'}</p>
                   </div>
                 </div>

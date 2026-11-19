@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>تقرير فحص المشروع — Massobi HR &amp; Payroll</title>
+<style>
+  :root{--bg:#0f1115;--card:#181b22;--line:#2a2f3a;--txt:#e8eaf0;--mut:#9aa3b2;--ok:#2f9e6b;--warn:#c9902a;--bad:#c0392b;--info:#3b7dd8;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:"Segoe UI",Tahoma,Arial,sans-serif;line-height:1.75;font-size:15px}
+  .wrap{max-width:980px;margin:0 auto;padding:32px 22px 64px}
+  header{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:28px}
+  h1{font-size:26px;margin:0 0 8px;font-weight:700}
+  h2{font-size:20px;margin:36px 0 12px;padding-right:10px;border-right:4px solid var(--info);font-weight:700}
+  h3{font-size:16px;margin:22px 0 8px;color:#cfd5e1;font-weight:600}
+  .sub{color:var(--mut);font-size:13.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:18px 0}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .kpi .n{font-size:24px;font-weight:700}
+  .kpi .l{color:var(--mut);font-size:12.5px;margin-top:2px}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px;background:var(--card);border-radius:10px;overflow:hidden}
+  th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+  th{background:#1e222b;color:#cfd5e1;font-weight:600;font-size:13px}
+  tr:last-child td{border-bottom:none}
+  .ok{color:var(--ok);font-weight:700}
+  .warn{color:var(--warn);font-weight:700}
+  .bad{color:var(--bad);font-weight:700}
+  .info{color:var(--info);font-weight:700}
+  .box{background:var(--card);border:1px solid var(--line);border-right:4px solid var(--info);border-radius:8px;padding:14px 16px;margin:14px 0}
+  .box.crit{border-right-color:var(--bad)}
+  .box.okbox{border-right-color:var(--ok)}
+  .box.warnbox{border-right-color:var(--warn)}
+  code{background:#22262f;padding:2px 6px;border-radius:4px;font-family:Consolas,monospace;font-size:13px;direction:ltr;display:inline-block}
+  .ltr{direction:ltr;text-align:left;font-family:Consolas,monospace;font-size:13px}
+  ul{padding-right:22px;margin:8px 0}
+  li{margin:5px 0}
+  .muted{color:var(--mut)}
+  footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);color:var(--mut);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>تقرير فحص المشروع — Massobi HR &amp; Payroll</h1>
+  <div class="sub">
+    المسار: <code>E:\MASSOBI APP\payroll</code> &nbsp;•&nbsp; التاريخ: 16 سبتمبر 2026 &nbsp;•&nbsp;
+    الفحص: قراءة كود + تشغيل فعلي + اختبار E2E سحابي (TestSprite)
+  </div>
+</header>
+
+<h2>1. الملخص التنفيذي</h2>
+<div class="box okbox">
+  <strong>الخلاصة:</strong> التقسيم المعماري الذي أجريته نجح وتم إثباته بالتشغيل، والعطل الحرج في حساب الرواتب
+  (<code>countryCode</code>) تم إصلاحه. المشروع الآن في حالة قابلة للاختبار. لكن تشغيل 30 اختبار E2E كشف أن
+  <strong>محدِّد معدّل تسجيل الدخول (10 محاولات / 15 دقيقة لكل IP)</strong> يوقف أي اختبار آلي بعد أول 10 عمليات دخول،
+  وهو أيضًا <strong>خطر إنتاجي حقيقي</strong> لأي فرع أو مكتب خلف IP واحد.
+</div>
+
+<div class="grid">
+  <div class="kpi"><div class="n">16</div><div class="l">أخطاء <code>tsc</code> متبقية (كلها في الطبقة الميتة <code>src/db</code>)</div></div>
+  <div class="kpi"><div class="n">17/17</div><div class="l">اختبارات الوحدة ناجحة</div></div>
+  <div class="kpi"><div class="n">236</div><div class="l">مسار API — مطابق تمامًا قبل/بعد التقسيم</div></div>
+  <div class="kpi"><div class="n">8 / 30</div><div class="l">اختبارات E2E ناجحة من المنفَّذ</div></div>
+</div>
+
+<h2>2. المنهجية</h2>
+<ul>
+  <li><strong>قراءة كود:</strong> فحص كامل للمستودع، مقارنة الملف القديم <code>server.ts</code> بالبنية الجديدة.</li>
+  <li><strong>فحص ثابت:</strong> <code>npx tsc --noEmit</code> و<code>npx vitest run</code>.</li>
+  <li><strong>تشغيل معزول:</strong> بناء حزمة منفصلة إلى مجلد مؤقت وتشغيلها على منفذ بديل بقاعدة بيانات منسوخة، ثم تنظيف كامل.</li>
+  <li><strong>اختبار مباشر للـ API:</strong> تسجيل دخول بأربعة أدوار وطلب مسارات حساسة للتحقق من RBAC.</li>
+  <li><strong>اختبار E2E:</strong> TestSprite MCP — 30 حالة عبر نفق TLS إلى تطبيق يعمل محليًا، بوضع production.</li>
+</ul>
+
+<h2>3. حالة الكود بعد تعديلاتك</h2>
+<table>
+  <tr><th>البند</th><th>قبل</th><th>بعد</th></tr>
+  <tr><td>بنية الخادم</td><td>ملف واحد 8,333 سطر</td><td class="ok">18 ملف / 8,079 سطر داخل <code>server/</code></td></tr>
+  <tr><td>تسجيلات المسارات</td><td>236</td><td class="ok">236 (مطابقة حرفيًا — صفر إضافة/حذف)</td></tr>
+  <tr><td>المسارات الفريدة</td><td>142</td><td class="ok">142</td></tr>
+  <tr><td>عطل <code>countryCode</code></td><td class="bad">500 في كل مسارات الرواتب</td><td class="ok">مُصلح ومُتحقق</td></tr>
+  <tr><td>مسارات RBAC غير مصنفة</td><td class="warn">21 مسارًا مفتوحًا</td><td class="ok">صفر — «all write routes are classified»</td></tr>
+  <tr><td>اختبارات الوحدة</td><td class="bad">3 فاشلة / 14 ناجحة</td><td class="ok">17 ناجحة / 0 فاشلة</td></tr>
+  <tr><td>أخطاء <code>tsc</code></td><td class="warn">16</td><td class="warn">16 (تحسّنت طبيعتها: لا شيء منها في <code>server/</code>)</td></tr>
+  <tr><td>الإقلاع</td><td class="muted">غير معروف</td><td class="ok">يعمل — كل الموديولات تُحمّل</td></tr>
+</table>
+<p class="muted">أخطاء <code>tsc</code> الـ16 موزّعة: 11 في <code>src/db/schema/organization.ts</code>، 2 في
+<code>operations.ts</code>، 1 في <code>src/db/index.ts</code>، 1 في <code>drizzle.config.ts</code>،
+1 في <code>EmployeesView.tsx</code>. الطبقة <code>src/db</code> كاملة كود ميت لا يستورده أحد.</p>
+
+<h2>4. نتائج اختبار TestSprite</h2>
+<div class="grid">
+  <div class="kpi"><div class="n">50</div><div class="l">حالة في الخطة (32 عالية، 18 متوسطة)</div></div>
+  <div class="kpi"><div class="n">30</div><div class="l">حالة مُنفَّذة</div></div>
+  <div class="kpi"><div class="n ok">8</div><div class="l">ناجحة (26.7%)</div></div>
+  <div class="kpi"><div class="n bad">1</div><div class="l">فاشلة (3.3%)</div></div>
+  <div class="kpi"><div class="n warn">21</div><div class="l">محجوبة (70%)</div></div>
+  <div class="kpi"><div class="n">6</div><div class="l">أرصدة مستهلكة (144.5 ← 138.5)</div></div>
+</div>
+
+<table>
+  <tr><th>المتطلب</th><th>الإجمالي</th><th>ناجح</th><th>فاشل</th><th>محجوب</th></tr>
+  <tr><td>تسجيل الدخول والجلسة</td><td>3</td><td class="ok">3</td><td>0</td><td>0</td></tr>
+  <tr><td>سجل الموظفين</td><td>3</td><td class="ok">3</td><td>0</td><td>0</td></tr>
+  <tr><td>تشغيل الرواتب الشهري</td><td>5</td><td class="ok">2</td><td>0</td><td class="warn">3</td></tr>
+  <tr><td>تقييد الشاشات بالأدوار</td><td>3</td><td>0</td><td>0</td><td class="warn">3</td></tr>
+  <tr><td>الخدمة الذاتية للموظف (ESS)</td><td>3</td><td>0</td><td class="bad">1</td><td class="warn">2</td></tr>
+  <tr><td>تصدير WPS SIF</td><td>1</td><td>0</td><td>0</td><td class="warn">1</td></tr>
+  <tr><td>الإجازات</td><td>2</td><td>0</td><td>0</td><td class="warn">2</td></tr>
+  <tr><td>مركز الامتثال السعودي</td><td>2</td><td>0</td><td>0</td><td class="warn">2</td></tr>
+  <tr><td>الفروع والأقسام والإعدادات</td><td>2</td><td>0</td><td>0</td><td class="warn">2</td></tr>
+  <tr><td>مسارات الموافقات وصندوق المدير</td><td>3</td><td>0</td><td>0</td><td class="warn">3</td></tr>
+  <tr><td>مصفوفة الجزاءات</td><td>1</td><td>0</td><td>0</td><td class="warn">1</td></tr>
+  <tr><td>الأصول والأسطول</td><td>1</td><td>0</td><td>0</td><td class="warn">1</td></tr>
+  <tr><td>السلف والقروض</td><td>1</td><td>0</td><td>0</td><td class="warn">1</td></tr>
+  <tr><td><strong>الإجمالي</strong></td><td><strong>30</strong></td><td class="ok"><strong>8</strong></td><td class="bad"><strong>1</strong></td><td class="warn"><strong>21</strong></td></tr>
+</table>
+<p class="muted">نسبة النجاح ليست مؤشر جودة منتج: 70% من التشغيل تعطّل بسبب واحد بيئي
+(محدِّد معدّل الدخول)، لذا التغطية الفعلية 9 حالات من أصل خطة من 50 حالة = 18%.</p>
+
+<h2>5. النتائج الحرجة</h2>
+
+<div class="box crit">
+  <h3 style="margin-top:0">خطر 1 — محدِّد معدّل تسجيل الدخول يوقف الاختبار الآلي ويُقفل الفروع</h3>
+  <p><code>authLimiter</code> في <code>server/middleware/auth.ts</code>: <strong>10 طلبات / 15 دقيقة لكل IP</strong>
+  على <code>POST /api/auth/login</code>. كل اختبارات التشغيل جاءت من IP واحد، فمن المحاولة الحادية عشرة صارت
+  الاستجابة «Too many attempts» وفشلت 21 حالة في تجاوز شاشة الدخول.</p>
+  <p><strong>الأثر الإنتاجي:</strong> فرع أو مكتب كامل خلف IP عام واحد يتشارك نفس الحصّة — عشرة تسجيلات دخول
+  فاشلة خلال 15 دقيقة تُقفل الموقع بالكامل.</p>
+  <p><strong>الإصلاح المقترح:</strong></p>
+  <ul>
+    <li>إضافة <code>skipSuccessfulRequests: true</code> ليُحسب الفشل فقط.</li>
+    <li>ربط المفتاح بـ <code>username + IP</code> بدل IP وحده.</li>
+    <li>رفع الحد مع تراجع تصاعدي (back-off) بدل نافذة ثابتة.</li>
+  </ul>
+</div>
+
+<div class="box warnbox">
+  <h3 style="margin-top:0">خطر 2 — حالة فاشلة واحدة: جلسة ESS ظهرت بواجهة مدير (TC006)</h3>
+  <p>بعد الدخول بحساب <code>employee</code> ظهرت لوحة التحكم العامة بقوائم مدير/موارد بشرية بدل واجهة ESS.</p>
+  <p><strong>السبب المرشّح (وليس مؤكدًا):</strong> الواجهة تحفظ الجلسة في <code>localStorage</code>
+  (<code>auth_token</code>/<code>auth_user</code>) وTestSprite يعيد استخدام نفس سياق المتصفح بين الحالات،
+  فربما استُعيدت جلسة مدير متبقية من الحالات السابقة بدل جلسة الموظف. يسند ذلك أن فحص الـAPI المستقل أظهر أن
+  دور <code>employee_ess</code> يتلقى <strong>403</strong> على مسارات الإدارة، وأن قائمة الصلاحيات تحدّه بشاشة ESS فقط.</p>
+  <p><strong>المطلوب:</strong> إعادة اختبار حتمية مع تفريغ <code>localStorage</code> قبل كل مستخدم، قبل اعتبارها عيبًا في المنتج.</p>
+</div>
+
+<div class="box warnbox">
+  <h3 style="margin-top:0">خطر 3 — الربط داخل الواجهة الأمامية</h3>
+  <p>التطبيق يحفظ التوكن وبيانات المستخدم في <code>localStorage</code> دون تصفير الجلسة القديمة قبل تطبيق نتيجة
+  دخول جديدة. يُستحسن تفريغ أي جلسة محفوظة قبل تسجيل نتيجة الدخول، والإخفاق الصريح إلى شاشة الدخول عند فشل المحاولة.</p>
+</div>
+
+<h2>6. ما لم يُختبر</h2>
+<div class="box">
+  تغطية صفرية حقيقية لـ: حسابات الرواتب، مزامنة الحضور وقفل الشهر، تصدير WPS SIF، الإجازات، مركز الامتثال
+  وحساب نهاية الخدمة، الفروع/الأقسام/الإعدادات، مسارات الموافقات، خصم الجزاءات من الرواتب، خصم مخالفات
+  الأسطول، القروض، وشهادة الراتب في ESS. إضافة إلى 20 حالة متوسطة الأولوية لم تُنفَّذ.
+  <p style="margin-bottom:0"><strong>السبب الأساسي:</strong> تعذّر تجاوز شاشة الدخول في 70% من الحالات.</p>
+</div>
+
+<h2>7. مخاطر وديون قائمة</h2>
+<table>
+  <tr><th>البند</th><th>الملف</th><th>الأثر</th></tr>
+  <tr><td>لا يوجد موجّه روابط (router)</td><td><code>src/App.tsx</code></td><td>كل الشاشات على <code>/</code>؛ الروابط المباشرة وإعادة التحديث تعود للوحة التحكم</td></tr>
+  <tr><td>لا توجد بيانات اختبار</td><td><code>payroll.db</code></td><td>كانت 0 موظفين عند البدء، لذا النتائج سطحية</td></tr>
+  <tr><td>مسارات مكرّرة ميتة</td><td><code>server/routes/employees.ts</code> و<code>core.ts</code></td><td><code>/api/documents</code> و<code>/api/notifications</code> مسجّلة مرتين؛ الثانية غير قابلة للوصول</td></tr>
+  <tr><td>طبقة Drizzle ميتة</td><td><code>src/db/**</code></td><td>24 ملفًا لا يستوردها أحد وتكسر بوابة الفحص</td></tr>
+  <tr><td>كلمات مرور افتراضية موثّقة</td><td><code>src/scripts/init-auth.ts</code></td><td><code>admin/admin123</code> وغيرها تعمل حتى الآن</td></tr>
+  <tr><td>CSP معطّلة + CORS مفتوح + توكن في localStorage</td><td><code>server/index.ts</code></td><td>أي XSS يمنح جلسة كاملة 24 ساعة</td></tr>
+  <tr><td>خط Cairo لا يُحمّل</td><td><code>src/index.css</code></td><td><code>@import</code> بعد قواعد أخرى لذلك يتجاهله المتصفح</td></tr>
+  <tr><td>فشل صامت في زرع البيانات التجريبية</td><td><code>server/db/seed.ts</code></td><td>talent/fleet/flex/grievances/kudos/smart-assets تفشل بـ FK constraint</td></tr>
+</table>
+
+<h2>8. التوصيات بالأولوية</h2>
+<table>
+  <tr><th>#</th><th>الإجراء</th><th>الأثر</th></tr>
+  <tr><td>1</td><td>إصلاح محدِّد معدّل الدخول</td><td class="bad">حرج — يفتح حساب الرواتب وكل الشاشات، ويزيل خطر قفل الفروع</td></tr>
+  <tr><td>2</td><td>زرع بيانات اختبار (4–8 موظفين + فرع + أنواع بدلات)</td><td>يجعل نتائج الرواتب ذات معنى</td></tr>
+  <tr><td>3</td><td>إعادة اختبار TC006 مع تفريغ الجلسة</td><td>يحسم إن كان عيبًا حقيقيًا أم أثر اختبار</td></tr>
+  <tr><td>4</td><td>حسم مصير <code>src/db/**</code> (حذف أو إكمال)</td><td>يُصفّر 15 من 16 خطأ <code>tsc</code></td></tr>
+  <tr><td>5</td><td>حذف المسارات المكرّرة الميتة</td><td>إزالة مسار خاطئ يقرأ جدولًا غير المقصود</td></tr>
+  <tr><td>6</td><td>تغيير كلمات المرور الافتراضية</td><td>سدّ ثغرة دخول موثّقة</td></tr>
+  <tr><td>7</td><td>إعادة تشغيل بقية الحالات (20 متوسطة)</td><td>توسيع التغطية بعد الإصلاحات</td></tr>
+</table>
+
+<h2>9. الأدلة والمراجع</h2>
+<ul>
+  <li><code>npx vitest run</code> ← 17 ناجح / 0 فاشل (كود الخروج 0).</li>
+  <li><code>npx tsc --noEmit</code> ← 16 خطأ (كود الخروج 2)، لا شيء منها في <code>server/</code>.</li>
+  <li>طلب حي: <code>GET /api/settings</code> و<code>GET /api/employees</code> بلا توكن ← 401.</li>
+  <li>طلب حي: <code>employee_ess</code> على <code>GET /api/reports/company-salary</code> ← 403.</li>
+  <li>سجل تشغيل TestSprite: <code>Test execution completed, totalTests: 30</code>.</li>
+  <li>ملفات TestSprite: <code>E:\MASSOBI APP\payroll\testsprite_tests\</code> (30 ملف اختبار Python + التقرير).</li>
+</ul>
+
+<footer>
+  أُعدّ هذا التقرير من فحص كود فعلي، تشغيل معزول، واختبار E2E سحابي. الحالات الموصوفة بـ«محجوبة» تعني تعذّر
+  تنفيذها — وليست نجاحًا ولا فشلًا. التطبيق ما زال يعمل محليًا على <code>http://localhost:8090</code> (pid 5112).
+</footer>
+</div>
+</body>
+</html>

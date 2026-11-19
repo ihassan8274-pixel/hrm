@@ -65,7 +65,7 @@ export default function DepartmentsView() {
         </div>
         <button 
           onClick={() => { setEditingId(null); setFormData({name:'', manager_id:0}); setIsModalOpen(true); }}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+          className="flex items-center gap-2 bg-brand-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-brand-700 transition-all shadow-lg shadow-brand-100"
         >
           <Plus className="w-5 h-5" />
           <span>إضافة إدارة جديدة</span>
@@ -80,7 +80,7 @@ export default function DepartmentsView() {
           return (
             <div key={dept.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative group">
               <div className="absolute left-4 top-4 hidden group-hover:flex gap-2">
-                 <button onClick={() => handleEdit(dept)} className="p-2 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-full transition-colors">
+                 <button onClick={() => handleEdit(dept)} className="p-2 bg-slate-50 text-slate-400 hover:text-brand-600 rounded-full transition-colors">
                    <Edit2 className="w-4 h-4" />
                  </button>
                  <button onClick={() => handleDelete(dept.id)} className="p-2 bg-slate-50 text-slate-400 hover:text-red-600 rounded-full transition-colors">
@@ -88,7 +88,7 @@ export default function DepartmentsView() {
                  </button>
               </div>
 
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 mb-4">
                  <Building2 className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-bold text-slate-800 mb-1">{dept.name}</h3>
@@ -109,7 +109,7 @@ export default function DepartmentsView() {
                       </div>
                     ))}
                     {deptEmployees.length > 3 && (
-                      <div className="w-8 h-8 rounded-full bg-indigo-600 border-2 border-white flex items-center justify-center text-[10px] font-bold text-white">
+                      <div className="w-8 h-8 rounded-full bg-brand-600 border-2 border-white flex items-center justify-center text-[10px] font-bold text-white">
                         +{deptEmployees.length - 3}
                       </div>
                     )}
@@ -147,7 +147,7 @@ export default function DepartmentsView() {
                     type="text"
                     value={formData.name}
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
                     placeholder="مثل: إدارة الموارد البشرية"
                   />
                 </div>
@@ -157,7 +157,7 @@ export default function DepartmentsView() {
                   <select 
                     value={formData.manager_id}
                     onChange={e => setFormData({ ...formData, manager_id: Number(e.target.value) })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
                   >
                     <option value="0">اختر موظفاً (اختياري)</option>
                     {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}

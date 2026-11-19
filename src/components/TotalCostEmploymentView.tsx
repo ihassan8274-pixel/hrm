@@ -46,10 +46,10 @@ export default function TotalCostEmploymentView() {
   return (
     <div className="space-y-6" dir="rtl">
       {/* Overview Banner */}
-      <div className="bg-gradient-to-l from-slate-900 via-indigo-950 to-slate-900 text-white p-8 rounded-3xl shadow-xl">
+      <div className="bg-gradient-to-l from-slate-900 via-brand-950 to-slate-900 text-white p-8 rounded-3xl shadow-xl">
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-6">
           <div className="space-y-2">
-            <span className="text-xs text-indigo-300 font-bold uppercase tracking-wider block">
+            <span className="text-xs text-brand-300 font-bold uppercase tracking-wider block">
               التحليل المالي المتقدم للرواتب والمستحقات
             </span>
             <h2 className="text-3xl font-black">
@@ -85,7 +85,7 @@ export default function TotalCostEmploymentView() {
             placeholder="بحث بالاسم أو القسم..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-64"
+            className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-500 outline-none w-full sm:w-64"
           />
           <div className="flex items-center bg-slate-100 p-1 rounded-xl">
             <button
@@ -96,13 +96,13 @@ export default function TotalCostEmploymentView() {
             </button>
             <button
               onClick={() => setFilterNationality('saudi')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filterNationality === 'saudi' ? 'bg-white shadow text-emerald-700' : 'text-slate-500'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filterNationality === 'saudi' ? 'bg-white shadow text-brand-700' : 'text-slate-500'}`}
             >
               سعوديون
             </button>
             <button
               onClick={() => setFilterNationality('expat')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filterNationality === 'expat' ? 'bg-white shadow text-blue-700' : 'text-slate-500'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filterNationality === 'expat' ? 'bg-white shadow text-brand-700' : 'text-slate-500'}`}
             >
               مقيمون
             </button>
@@ -149,7 +149,7 @@ export default function TotalCostEmploymentView() {
                       <p className="text-[10px] text-slate-400 font-medium">{emp.department_name} • {emp.branch_name}</p>
                     </td>
                     <td className="p-3.5 font-bold text-slate-800">{emp.monthly_direct_salary.toLocaleString()} ر.س</td>
-                    <td className="p-3.5 font-bold text-blue-700">+{emp.monthly_gosi_employer.toLocaleString()} ر.س</td>
+                    <td className="p-3.5 font-bold text-brand-700">+{emp.monthly_gosi_employer.toLocaleString()} ر.س</td>
                     <td className="p-3.5 font-bold text-slate-600">+{emp.monthly_medical_insurance.toLocaleString()} ر.س</td>
                     <td className="p-3.5 font-bold text-slate-600">
                       {emp.monthly_government_fees > 0 ? `+${emp.monthly_government_fees.toLocaleString()} ر.س` : '-'}

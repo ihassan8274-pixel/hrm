@@ -136,13 +136,13 @@ export const RewardsKudosView: React.FC<RewardsKudosViewProps> = () => {
       case 'innovation':
         return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">الابتكار والحلول الذكية</span>;
       case 'teamwork':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">العمل الجماعي والتعاون</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-200">العمل الجماعي والتعاون</span>;
       case 'customer_delight':
         return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">إسعاد العملاء والمستفيدين</span>;
       case 'safety_first':
         return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">السلامة والامتثال أولاً</span>;
       case 'leadership':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">القيادة والإلهام</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-200">القيادة والإلهام</span>;
       default:
         return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">التميز في الأداء</span>;
     }
@@ -150,12 +150,12 @@ export const RewardsKudosView: React.FC<RewardsKudosViewProps> = () => {
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'gift_card': return <ShoppingBag className="w-5 h-5 text-indigo-600" />;
+      case 'gift_card': return <ShoppingBag className="w-5 h-5 text-brand-600" />;
       case 'extra_leave': return <Calendar className="w-5 h-5 text-emerald-600" />;
       case 'fuel_card': return <Fuel className="w-5 h-5 text-amber-600" />;
       case 'wellness': return <Activity className="w-5 h-5 text-rose-600" />;
       case 'tech': return <Headphones className="w-5 h-5 text-purple-600" />;
-      default: return <Gift className="w-5 h-5 text-indigo-600" />;
+      default: return <Gift className="w-5 h-5 text-brand-600" />;
     }
   };
 
@@ -247,7 +247,7 @@ export const RewardsKudosView: React.FC<RewardsKudosViewProps> = () => {
                     </div>
                     <div>
                       <h4 className="text-xs text-slate-500">من: <span className="font-semibold text-slate-800">{k.sender_name}</span></h4>
-                      <h4 className="text-xs text-slate-500">إلى: <span className="font-bold text-indigo-600">{k.recipient_name}</span> ({k.recipient_job})</h4>
+                      <h4 className="text-xs text-slate-500">إلى: <span className="font-bold text-brand-600">{k.recipient_name}</span> ({k.recipient_job})</h4>
                     </div>
                   </div>
                   <div>{getCoreValueBadge(k.core_value)}</div>
@@ -369,11 +369,11 @@ export const RewardsKudosView: React.FC<RewardsKudosViewProps> = () => {
                 <div key={s.id} className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-slate-800">{s.category}</span>
-                    <span className="font-mono font-bold text-indigo-600">{s.score_percentage}%</span>
+                    <span className="font-mono font-bold text-brand-600">{s.score_percentage}%</span>
                   </div>
                   <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
                     <div 
-                      className={`h-full rounded-full ${s.score_percentage >= 85 ? 'bg-emerald-500' : s.score_percentage >= 75 ? 'bg-indigo-500' : 'bg-amber-500'}`}
+                      className={`h-full rounded-full ${s.score_percentage >= 85 ? 'bg-emerald-500' : s.score_percentage >= 75 ? 'bg-brand-500' : 'bg-amber-500'}`}
                       style={{ width: `${s.score_percentage}%` }}
                     />
                   </div>
