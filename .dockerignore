@@ -5,3 +5,5 @@ dist
 .env.*
 backups
 *.log
+_refactor_backup_*
+testsprite_tests
