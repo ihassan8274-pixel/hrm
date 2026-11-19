@@ -66,14 +66,19 @@ console.log(`files: ${files.length}`);
 for (const f of files) console.log('  ' + f);
 
 /**
- * Four interpolations are intentional and must stay, because a prepared
+ * These interpolations are intentional and must stay, because a prepared
  * statement binds values, not identifiers. Each resolves to something the code
  * controls before the SQL text is built — never to a raw request value:
  *
- *   server/routes/payroll.ts   `field` → CORRECTABLE_PAYROLL_FIELDS (Set lookup,
- *                              then bound through the whitelist literal)
- *   server/routes/payroll.ts   `fields.join(', ')` → fixed column-name strings
+ *   server/routes/payroll/corrections.ts
+ *                              `safeField` → CORRECTABLE_PAYROLL_FIELDS (Set
+ *                              lookup, then bound through the whitelist literal)
+ *   server/routes/payroll/structures.ts
+ *                              `fields.join(', ')` → fixed column-name strings
  *                              appended in code, never taken from the request
+ *   server/routes/payroll/slips.ts
+ *                              `where` → a WHERE clause assembled from fixed
+ *                              fragments; every value stays bound as ?
  *   server/routes/employees.ts `whereClause` → one of two fixed literals chosen
  *                              by req.user.role; the values stay bound as ?
  *   server/routes/importer.ts  `m.table` / `m.uniqueness.dbColumn` → table and
@@ -90,9 +95,17 @@ for (const f of files) console.log('  ' + f);
  *
  * Anything beyond these fails the build. When adding an interpolation on
  * purpose, allowlist the file here and record why.
+ *
+ * NOTE: the detection above pairs backticks per file, so a file that is
+ * split up can expose an interpolation that the old single-file layout hid
+ * behind a shifted pair. The payroll routes were split in one piece each
+ * (corrections, structures, slips) and that is how the two entries marked
+ * as payroll/* came to be reported.
  */
 const ALLOWED = new Set([
-  'server/routes/payroll.ts',
+  'server/routes/payroll/corrections.ts',
+  'server/routes/payroll/structures.ts',
+  'server/routes/payroll/slips.ts',
   'server/routes/employees.ts',
   'server/routes/importer.ts',
   'server/index.ts',
