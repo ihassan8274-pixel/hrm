@@ -116,6 +116,23 @@ export async function resolveWriteScope(
   return scoped;
 }
 
+/**
+ * The three optional scope filters as bind parameters.
+ *
+ * Every scoped query repeats each filter twice — once for the "is it set?"
+ * test and once for the comparison — so the parameters have to be bound in
+ * that exact order. Hand-writing the six values at every call site is how a
+ * scope filter ends up half applied (entity filtered, employee not), so the
+ * order lives here and nowhere else.
+ */
+export function scopeFilter(scope: OrganizationScope): (number | null)[] {
+  return [
+    scope.entityId, scope.entityId,
+    scope.branchId, scope.branchId,
+    scope.employeeId, scope.employeeId,
+  ];
+}
+
 export interface ScopeTarget {
   entityId: number | null;
   branchId: number | null;
