@@ -93,13 +93,19 @@ describe("server route table", () => {
 
   it("matches the pinned route table", async () => {
     const app = express();
-    for (const [, modulePath] of REGISTRARS) {
+    for (const [name, modulePath] of REGISTRARS) {
       const mod = await import(modulePath);
-      const register = Object.values(mod).find(
-        (value) => typeof value === "function" && value.length === 1,
-      ) as (app: express.Express) => void;
-      expect(typeof register, `no registrar exported from ${modulePath}`).toBe("function");
-      register(app);
+      // The registrar is picked by name, not by "the first exported function
+      // that takes one argument": two modules export more than one such
+      // function (ensureEssWorkflows, syncEmployeeSnapshot), so the heuristic
+      // picked whichever came first in the export list — and adding an export
+      // in front of it would have changed which registrar this test runs,
+      // which is a silent failure in the safety net itself.
+      const register = (mod as Record<string, unknown>)[name] as
+        | ((app: express.Express) => void)
+        | undefined;
+      expect(typeof register, `${modulePath} does not export ${name}`).toBe("function");
+      register!(app);
     }
 
     const table = renderTable(collectRoutes(app));
