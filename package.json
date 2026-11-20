@@ -20,7 +20,11 @@
     "check:env": "node scripts/check-env-format.cjs",
     "check:pg-prepare": "tsx scripts/check-pg-prepare.ts",
     "verify": "npm run lint && npm run test && npm run check:drift && npm run check:env && npm run build",
-    "check:tables": "tsx scripts/check-table-coverage.ts"
+    "check:tables": "tsx scripts/check-table-coverage.ts",
+    "db:test-schema": "tsx scripts/build-test-schema.ts",
+    "gen:test-data": "tsx scripts/generate-test-data.ts --reset",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:db": "npm run db:test-schema && npm run gen:test-data && npm run test:integration"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

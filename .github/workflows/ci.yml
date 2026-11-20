@@ -114,3 +114,65 @@ jobs:
 
       - name: Plan every statement on PostgreSQL
         run: npm run check:pg-prepare
+
+  integration:
+    # Runs the financial routes against a real PostgreSQL server that holds
+    # five hundred employees, twenty-four months of payroll and three months
+    # of attendance.
+    #
+    # The assertions are on numbers, not on status codes: a response of 200
+    # with a wrong net salary is a failure that no other gate in this file
+    # would catch. The dataset is generated from a fixed seed, so the totals
+    # are exact rather than approximate.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: payroll_app
+          POSTGRES_PASSWORD: testpass123
+          POSTGRES_DB: payroll_test
+        ports:
+          - '5432:5432'
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Write the test environment file
+        # The application's .env is authoritative and cannot be overridden
+        # from the shell, so the test run names the file it wants instead.
+        # There is no .env in the repository, so this is the only one.
+        run: |
+          mkdir -p scripts/.build
+          {
+            echo 'PGSCHEMA=payroll_test'
+            echo 'DATABASE_URL=postgresql://payroll_app:testpass123@127.0.0.1:5432/payroll_test'
+            echo 'PG_POOL_MAX=4'
+            echo 'NODE_ENV=test'
+            echo 'JWT_SECRET=integration-test-secret-not-used-in-production'
+            echo 'CORS_ORIGINS=http://localhost:13000'
+          } > scripts/.build/test.env
+
+      - name: Build the test schema
+        run: npm run db:test-schema
+
+      - name: Generate the dataset
+        run: npm run gen:test-data
+
+      - name: Run the integration tests
+        run: npm run test:integration

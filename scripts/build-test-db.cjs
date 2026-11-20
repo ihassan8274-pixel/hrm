@@ -17,7 +17,13 @@ const OUT_DIR = path.join(ROOT, 'scripts', '.build');
 const OUT = path.join(OUT_DIR, 'payroll.db');
 
 fs.mkdirSync(OUT_DIR, { recursive: true });
-for (const f of fs.readdirSync(OUT_DIR)) fs.unlinkSync(path.join(OUT_DIR, f));
+// Only the file this script writes is removed. The directory is shared with
+// the integration test setup, and clearing all of it took the test
+// environment file with it — which made the integration suite skip itself
+// silently after an ordinary `npm test`.
+for (const f of fs.readdirSync(OUT_DIR)) {
+  if (f === 'payroll.db') fs.unlinkSync(path.join(OUT_DIR, f));
+}
 
 const db = new D(OUT);
 
