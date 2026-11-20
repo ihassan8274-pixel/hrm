@@ -1,7 +1,11 @@
-import "dotenv/config";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
+import { loadProjectEnv } from "./load-env";
+
+// The same file the database layer loads, so both agree on which environment
+// the process is running in.
+loadProjectEnv();
 import { log } from "../lib/logger";
 
 const fromEnv = (process.env.JWT_SECRET || "").trim();

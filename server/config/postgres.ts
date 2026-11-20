@@ -1,11 +1,11 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { Pool, PoolClient, QueryResult, types } from "pg";
-import dotenv from "dotenv";
 import { parameterize, toPostgresStatement } from "./sql-translate";
 import { isConnectionLevelFailure, isReadStatement } from "./db-resilience";
+import { loadProjectEnv } from "./load-env";
 import { log } from "../lib/logger";
 
-const loadedEnv = dotenv.config({ override: true });
+const loadedEnv = loadProjectEnv();
 
 // Preserve the API's existing JSON date strings and numeric IDs from SQLite.
 types.setTypeParser(20, (value) => Number(value));

@@ -20,15 +20,21 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # The project's own .env is the source of truth for the app's settings, and
+    # it is read as a file rather than interpolated. Interpolation lets the
+    # shell win over .env, and this machine carries a DATABASE_URL for a
+    # different project in the user environment — which would silently point
+    # the payroll app at another database. Reading the file cannot be shadowed.
+    #
+    # The values below are the ones that must differ inside the container.
+    # `environment:` takes precedence over `env_file:`, so NODE_ENV is the
+    # production build and PORT is the internal one even though .env names the
+    # development ones.
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
       PORT: 3000
-      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
-      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
-      PGSCHEMA: ${PGSCHEMA:-payroll}
-      PG_POOL_MAX: ${PG_POOL_MAX:-12}
-      CORS_ORIGINS: ${CORS_ORIGINS:-}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     ports:
       - "${APP_PORT:-3000}:3000"
     volumes:
