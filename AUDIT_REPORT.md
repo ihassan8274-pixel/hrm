@@ -1,8 +1,16 @@
-# Comprehensive Audit Report — RestoCost Payroll ERP System
+# Comprehensive Audit Report — RestoCost Payroll ERP
+
+> **SUPERSEDED — لا تعتمد على أي رقم أو مسار في هذا التقرير.**
+> التقرير ده dated سبتمبر 2025 وبيصف حالة مختلفة تماماً: SQLite/Drizzle بدل PostgreSQL 16،
+> ملف `server.ts` واحد بدل `server/routes/` المقسّمة، 77 جدول بدل 108، وواجهة فيها
+> مكونات كانت اتشالت (منها `ErrorBoundary` اللي اتشال في commit `49ea620`).
+> المرجع الرسمي الحالي هو **[`DEVELOPMENT_PLAN.md`](./DEVELOPMENT_PLAN.md)** — أي قرار
+> اتُّخذ من التقرير ده لازم يُعاد بناؤه على المخطط الجديد.
+
 **Path:** `E:\MASSOBI APP\payroll`  
 **Date:** 2025-09-27  
 **Auditor:** Automated System Analysis  
-**Version:** 1.0
+**Version:** 1.0 (superseded)
 
 ---
 
