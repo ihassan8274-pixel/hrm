@@ -327,26 +327,43 @@ async function main() {
   const summaryRows: unknown[][] = [];
   for (const { month, year } of attendanceMonths) {
     const daysInMonth = new Date(year, month, 0).getDate();
+    // The working days of the month. The fixture models a Saudi week, so the
+    // weekend is Friday and Saturday — the same list the country rules carry.
+    const workingDays: number[] = [];
+    for (let day = 1; day <= daysInMonth; day++) {
+      const weekday = new Date(year, month - 1, day).getDay();
+      if (weekday === 5 || weekday === 6) continue;
+      workingDays.push(day);
+    }
     for (const emp of employees) {
-      // Attendance is not perfect on purpose: a third of the month is missing
-      // for some employees, so absence deductions and the present-day count
-      // have something to bite on.
-      const missingDays = random() < 0.25 ? between(1, 4) : 0;
-      const presentDays = Math.max(1, daysInMonth - missingDays);
-      let present = 0;
-      for (let day = 1; day <= daysInMonth && present < presentDays; day++) {
-        const weekday = new Date(year, month - 1, day).getDay();
-        if (weekday === 5 || weekday === 6) continue; // weekend
-        const checkIn = new Date(Date.UTC(year, month - 1, day, 6, 0));
-        const checkOut = new Date(Date.UTC(year, month - 1, day, 14, 0));
-        const late = random() < 0.1;
-        logRows.push([
-          emp.id, emp.branch_id, 1,
-          checkIn.toISOString(), checkOut.toISOString(),
-          24.6, 46.6, 24.6, 46.6,
-          "device", late ? "late" : "present",
-        ]);
-        present++;
+      // Attendance is not perfect on purpose: a quarter of the employees miss
+      // a few working days, so the absence deduction and the present-day count
+      // have something to bite on. The days are taken off the working days,
+      // not off the calendar, so the weekend is never counted as absence.
+      //
+      // A few employees have no device records at all — a device that was not
+      // working, or a month before the devices were installed. Their monthly
+      // summary stands on its own, which is the case the application has to
+      // get right.
+      const noDevice = random() < 0.05;
+      const missingDays = noDevice || random() >= 0.25 ? 0 : between(1, 3);
+      const skipped = new Set<number>();
+      while (skipped.size < missingDays && workingDays.length > 0) {
+        skipped.add(workingDays[Math.floor(random() * workingDays.length)]);
+      }
+      if (!noDevice) {
+        for (const day of workingDays) {
+          if (skipped.has(day)) continue;
+          const checkIn = new Date(Date.UTC(year, month - 1, day, 6, 0));
+          const checkOut = new Date(Date.UTC(year, month - 1, day, 14, 0));
+          const late = random() < 0.1;
+          logRows.push([
+            emp.id, emp.branch_id, 1,
+            checkIn.toISOString(), checkOut.toISOString(),
+            24.6, 46.6, 24.6, 46.6,
+            "device", late ? "late" : "present",
+          ]);
+        }
       }
       summaryRows.push([emp.id, month, year, missingDays, between(0, 12)]);
     }
@@ -364,7 +381,12 @@ async function main() {
   const loanRows: unknown[][] = [];
   for (const emp of employees) {
     if (random() < 0.2) {
-      const total = money(10000, 120000);
+      // A loan that a salary can actually carry: at most six months of it, so
+      // the monthly instalment never exceeds half the wage. A loan bigger than
+      // the pay would make the net negative for a reason that has nothing to
+      // do with attendance.
+      const months = between(1, 6);
+      const total = Math.round(emp.basic_salary * months * 100) / 100;
       const installment = Math.round((total / 12) * 100) / 100;
       loanRows.push([emp.id, total, Math.round(total * 0.5 * 100) / 100, installment, "active"]);
     }

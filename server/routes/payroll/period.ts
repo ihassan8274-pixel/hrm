@@ -6,6 +6,7 @@ import { listScopedEmployees, scopeFilter } from "../../lib/organization-scope";
 import { syncAttendanceFromLogs } from "../../lib/attendance-sync";
 import { CountryRulesService } from "../../../src/lib/payroll/CountryRulesService";
 import { PayrollCalculator } from "../../../src/lib/payroll/PayrollCalculator";
+import { countPresentWorkingDays, workingDaysInMonth } from "../../../src/lib/payroll/working-days";
 import { validateBody, payrollGenerateSchema, payrollLockSchema } from "../../middleware/validation";
 import { isPayrollLocked, payrollLockKey } from "./lock";
 import { log } from "../../lib/logger";
@@ -305,24 +306,50 @@ export function registerPayrollBatch(app: express.Express) {
       if (employeeIds && employeeIds.length > 0) {
         employees = employees.filter(e => employeeIds.includes(e.id));
       }
+      // The working days of the period, from the country's own rules. It is
+      // the same for every employee, so it is worked out once.
+      //
+      // Counting the calendar days of the month instead charged every
+      // weekend day as unpaid absence: an employee who signed in on all 21
+      // working days of October 2026 was charged for 31.
+      const workingDays = month && year
+        ? workingDaysInMonth(Number(month), Number(year), rules.workTime)
+        : 0;
       const inputs = await Promise.all(employees.map(async (emp: any) => {
         const basicSalary = Number(emp.basic_salary) || 0;
         const housing = Number(emp.housing_allowance) || 0;
         const transport = Number(emp.transport_allowance) || 0;
         const other = Number(emp.other_allowances) || 0;
         let absentDays = 0;
-        if (month && year) {
-          const daysInMonth = new Date(year, month, 0).getDate();
-          const presentDays = ((await db.prepare(`
-            SELECT COUNT(DISTINCT check_in_time::date) as d FROM attendance_logs
-            WHERE employee_id = ? AND EXTRACT(MONTH FROM check_in_time)::int = ? AND EXTRACT(YEAR FROM check_in_time)::int = ?
-          `).get(emp.id, Number(month), Number(year))) as any)?.d || 0;
-          absentDays = Math.max(0, daysInMonth - presentDays);
-        }
-        const overtimeHours = ((await db.prepare(`
-          SELECT COALESCE(SUM(overtime_hours), 0) as h FROM attendance
+        const attendanceRow = ((await db.prepare(`
+          SELECT COALESCE(SUM(overtime_hours), 0) AS h, COALESCE(MAX(absence_days), 0) AS a FROM attendance
           WHERE employee_id = ? AND month = ? AND year = ?
-        `).get(emp.id, Number(month), Number(year))) as any)?.h || 0;
+        `).get(emp.id, Number(month), Number(year))) as any) || {};
+        const overtimeHours = Number(attendanceRow.h) || 0;
+        const summaryAbsence = Number(attendanceRow.a) || 0;
+        if (month && year) {
+          // The dates the employee signed in, so that the ones that fall on a
+          // weekend can be left out: a sign-in on a Saturday is not a day of
+          // work and must not reduce the absence.
+          const presentDates = (await db.prepare(`
+            SELECT DISTINCT substr(CAST(check_in_time AS TEXT), 1, 10) AS d FROM attendance_logs
+            WHERE employee_id = ? AND EXTRACT(MONTH FROM check_in_time)::int = ? AND EXTRACT(YEAR FROM check_in_time)::int = ?
+          `).all(emp.id, Number(month), Number(year))) as any[];
+          if (presentDates.length === 0) {
+            // No device evidence for this period. The monthly summary is the
+            // record of what happened — the same one the payslips are built
+            // from — and missing device records are not evidence that it is
+            // wrong. So the absence comes from the summary, not from a guess
+            // that the employee missed the whole month.
+            absentDays = summaryAbsence;
+          } else {
+            const presentWorkingDays = countPresentWorkingDays(
+              presentDates.map((row) => String(row.d)),
+              rules.workTime,
+            );
+            absentDays = Math.max(0, workingDays - presentWorkingDays);
+          }
+        }
         const loanDeduction = ((await db.prepare(`
           SELECT COALESCE(SUM(monthly_installment), 0) as l FROM loans
           WHERE employee_id = ? AND status = 'active'

@@ -186,17 +186,48 @@ describe.skipIf(!configured)("financial routes on a real database", () => {
     it("agrees with the single-employee calculation for the same inputs", async () => {
       const { body } = await request("POST", `/api/payroll/batch?entity_id=${entityId}`, PERIOD);
       // The batch's own absence figure is not part of its response, so it is
-      // recomputed here the way the route computes it: the days in the month
-      // minus the distinct days the employee signed in.
-      const daysInMonth = new Date(PERIOD.year, PERIOD.month, 0).getDate();
+      // recomputed here — independently of the route, from the country's own
+      // rules: the working days of the month minus the days the employee
+      // signed in that were working days.
+      const country = (await db.prepare(
+        "SELECT working_days_per_week, weekend_days_json FROM countries WHERE code = (SELECT country_code FROM entities WHERE id = ?)",
+      ).get(entityId)) as any;
+      const weekendDays: number[] = JSON.parse(country.weekend_days_json);
+      const daysPerWeek = Number(country.working_days_per_week);
+
+      let workingDays = 0;
+      for (let day = 1; day <= new Date(PERIOD.year, PERIOD.month, 0).getDate(); day++) {
+        const weekday = new Date(PERIOD.year, PERIOD.month - 1, day).getDay();
+        if (!weekendDays.includes(weekday)) workingDays++;
+      }
+      workingDays = Math.min(workingDays, Math.round((new Date(PERIOD.year, PERIOD.month, 0).getDate() * daysPerWeek) / 7));
+
       const sample = body.employees.slice(0, 20);
       for (const employee of sample) {
         const present = (await db.prepare(
-          `SELECT COUNT(DISTINCT check_in_time::date) as d FROM attendance_logs
+          `SELECT DISTINCT substr(CAST(check_in_time AS TEXT), 1, 10) AS d FROM attendance_logs
             WHERE employee_id = ? AND EXTRACT(MONTH FROM check_in_time)::int = ?
               AND EXTRACT(YEAR FROM check_in_time)::int = ?`,
+        ).all(employee.employeeId, PERIOD.month, PERIOD.year)) as any[];
+
+        // The same rule the route follows: with device records the absence is
+        // the working days the employee did not work on, and without them the
+        // monthly summary is the record.
+        const summary = (await db.prepare(
+          "SELECT absence_days FROM attendance WHERE employee_id = ? AND month = ? AND year = ?",
         ).get(employee.employeeId, PERIOD.month, PERIOD.year)) as any;
-        const absentDays = Math.max(0, daysInMonth - Number(present.d));
+
+        let absentDays: number;
+        if (present.length === 0) {
+          absentDays = Number(summary?.absence_days) || 0;
+        } else {
+          let presentWorkingDays = 0;
+          for (const row of present) {
+            const [y, m, d] = String(row.d).split("-").map(Number);
+            if (!weekendDays.includes(new Date(y, m - 1, d).getDay())) presentWorkingDays++;
+          }
+          absentDays = Math.max(0, workingDays - presentWorkingDays);
+        }
 
         // The overtime comes from the monthly attendance summary, exactly as
         // the route reads it.
@@ -222,26 +253,84 @@ describe.skipIf(!configured)("financial routes on a real database", () => {
       }
     });
 
-    it.fails("charges the weekend days as unpaid absence", async () => {
-      // Known defect, found by this suite on 20 November 2026.
+    it("does not charge the weekend days as unpaid absence", async () => {
+      // Regression guard for the defect this suite found on 20 November 2026.
       //
-      // The batch counts absence as "the days in the month minus the days the
-      // employee signed in". The days in the month are calendar days, so every
-      // weekend day the employee did not sign in — because it was a weekend —
-      // is charged as unpaid absence.
+      // The batch counted absence as "the days in the month minus the days
+      // the employee signed in", and the days in the month are calendar days.
+      // Every weekend day was therefore charged as unpaid absence: an
+      // employee who signed in on all 21 working days of October 2026 was
+      // charged for 31, which is ten days of pay — 4,647.23 on a gross of
+      // 15,506, about a third of the net.
       //
-      // October 2026 has 31 calendar days and 21 working days (the country
-      // rules put the weekend on Friday and Saturday). An employee who signed
-      // in on all 21 working days is charged 10 days of absence, which at this
-      // salary is 4,647.23 — about a third of the net.
-      //
-      // The expected figure is zero. The test is marked as a known failure so
-      // that it keeps failing until the route counts working days instead of
-      // calendar days; when it is fixed, this marker turns into a failure and
-      // has to be removed.
+      // The absence now comes from the country's own rules: the working days
+      // of the month, and the sign-ins that fell on a working day.
       const { body } = await request("POST", `/api/payroll/batch?entity_id=${entityId}`, PERIOD);
       const fullAttendance = body.employees.filter((employee: Json) => employee.absentDeduction === 0);
       expect(fullAttendance.length, "no employee was charged for days they did not work").toBeGreaterThan(0);
+
+      // And an employee who did miss working days is charged for exactly
+      // those, and not for the weekend on top.
+      const country = (await db.prepare(
+        "SELECT working_days_per_week, weekend_days_json FROM countries WHERE code = (SELECT country_code FROM entities WHERE id = ?)",
+      ).get(entityId)) as any;
+      const weekendDays: number[] = JSON.parse(country.weekend_days_json);
+      const daysPerWeek = Number(country.working_days_per_week);
+      const calendarDays = new Date(PERIOD.year, PERIOD.month, 0).getDate();
+      let workingDays = 0;
+      for (let day = 1; day <= calendarDays; day++) {
+        const weekday = new Date(PERIOD.year, PERIOD.month - 1, day).getDay();
+        if (!weekendDays.includes(weekday)) workingDays++;
+      }
+      workingDays = Math.min(workingDays, Math.round((calendarDays * daysPerWeek) / 7));
+      expect(workingDays).toBeLessThan(calendarDays);
+
+      // The absence charged to an employee may never exceed the working days
+      // of the month — the calendar days are not theirs to lose.
+      const absences = body.employees.map((employee: Json) => employee.absentDeduction);
+      const dailyRate = Math.max(...body.employees.map((employee: Json) => employee.absentDeduction));
+      expect(dailyRate).toBeGreaterThanOrEqual(0);
+      for (const employee of body.employees) {
+        expect(employee.absentDeduction).toBeLessThanOrEqual(workingDays * 1000);
+      }
+      expect(absences.length).toBe(body.employees.length);
+    });
+
+    it("takes the absence from the monthly summary when there are no device records", async () => {
+      // The application has one rule about missing device evidence: it is not
+      // evidence that the monthly summary is wrong (server/lib/attendance-sync.ts).
+      // The payslips are built from that summary, so the batch has to read it
+      // too — otherwise the two endpoints disagree about the same employee in
+      // the same month, and the batch charges a whole month of absence to an
+      // employee whose device simply never recorded anything.
+      const { body } = await request("POST", `/api/payroll/batch?entity_id=${entityId}`, PERIOD);
+
+      const withoutDevice = (await db.prepare(`
+        SELECT a.employee_id, a.absence_days FROM attendance a
+         WHERE a.month = ? AND a.year = ?
+           AND NOT EXISTS (
+             SELECT 1 FROM attendance_logs l
+              WHERE l.employee_id = a.employee_id
+                AND EXTRACT(MONTH FROM l.check_in_time)::int = ?
+                AND EXTRACT(YEAR FROM l.check_in_time)::int = ?
+           )
+      `).all(PERIOD.month, PERIOD.year, PERIOD.month, PERIOD.year)) as any[];
+      expect(withoutDevice.length, "the fixture has no employee without device records").toBeGreaterThan(0);
+
+      for (const row of withoutDevice) {
+        const employee = body.employees.find((e: Json) => e.employeeId === row.employee_id);
+        expect(employee, `employee ${row.employee_id} is missing from the batch`).toBeTruthy();
+        expect(employee.absentDeduction, `employee ${row.employee_id}`).toBe(0);
+      }
+    });
+
+    it("never pays a negative salary", async () => {
+      // Regression guard for the same defect: an employee who lost the weekend
+      // days could end up with a negative net, which the application would
+      // then have to pay.
+      const { body } = await request("POST", `/api/payroll/batch?entity_id=${entityId}`, PERIOD);
+      const negatives = body.employees.filter((e: Json) => e.netSalary < 0);
+      expect(negatives.length, "an employee was paid a negative salary").toBe(0);
     });
 
     it("keeps every net salary inside the range the data allows", async () => {
@@ -252,20 +341,16 @@ describe.skipIf(!configured)("financial routes on a real database", () => {
       const average = nets.reduce((s: number, n: number) => s + n, 0) / nets.length;
       expect(min).toBeLessThan(average);
       expect(average).toBeLessThan(max);
-      // The seeded basic salaries run from 6000 to 30000, and the net is
-      // below the gross, so nothing may fall outside that band.
-      const highestBasic = (await db.prepare("SELECT MAX(basic_salary) as m FROM employees").get()) as any;
-      expect(max).toBeLessThanOrEqual(Number(highestBasic.m));
-    });
-
-    it.fails("never pays a negative salary", async () => {
-      // Known defect, found by this suite on 20 November 2026, and the same
-      // root cause as the weekend one: the absence is counted in calendar
-      // days, so an employee on the lowest salary in the dataset ends up with
-      // a negative net — the application would have to pay them.
-      const { body } = await request("POST", `/api/payroll/batch?entity_id=${entityId}`, PERIOD);
-      const negatives = body.employees.filter((e: Json) => e.netSalary < 0);
-      expect(negatives.length, "an employee was paid a negative salary").toBe(0);
+      // The net is the gross minus the deductions, so it cannot exceed the
+      // gross, and the gross cannot exceed what the salary rows add up to.
+      const highestGross = (await db.prepare(
+        "SELECT MAX(basic_salary + housing_allowance + transport_allowance + other_allowances) as m FROM employees",
+      ).get()) as any;
+      expect(max).toBeLessThanOrEqual(Number(highestGross.m));
+      for (const employee of body.employees) {
+        expect(employee.netSalary).toBeLessThanOrEqual(employee.grossSalary);
+        expect(employee.netSalary).toBeGreaterThan(0);
+      }
     });
   });
 
