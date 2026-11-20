@@ -3,6 +3,7 @@ import db, { logAction, createNotification } from "../config/postgres";
 import { kioskLimiter, pairPhoneLimiter, enrollLimiter } from "../middleware/auth";
 import crypto from "crypto";
 import express from "express";
+import { log } from "../lib/logger";
 import {
   verifyAuthenticationResponse,
   verifyRegistrationResponse,
@@ -441,7 +442,7 @@ app.patch("/api/attendance/devices/:id", async (req, res) => {
         return res.status(400).json({ error: "فشل تسجيل البصمة" });
       }
     } catch (e) {
-      console.error("WebAuthn registration error:", e);
+      log.error("WebAuthn registration error:", e);
       return res.status(500).json({ error: "خطأ في تسجيل البصمة" });
     }
   });
@@ -534,7 +535,7 @@ app.patch("/api/attendance/devices/:id", async (req, res) => {
         return res.status(401).json({ error: "فشل التحقق من البصمة" });
       }
     } catch (e) {
-      console.error("WebAuthn login error:", e);
+      log.error("WebAuthn login error:", e);
       return res.status(500).json({ error: "خطأ في التحقق من البصمة" });
     }
   });

@@ -11,13 +11,16 @@
     "start": "node dist/server.cjs",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "lint": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "node scripts/build-test-db.cjs && vitest run",
     "test:route-table": "vitest run server/routes/__tests__/route-table.test.ts",
     "db:test-build": "node scripts/build-test-db.cjs",
     "check:write-drift": "node scripts/find-write-column-drift.cjs",
     "check:sql-interpolation": "node scripts/find-sql-interpolation.cjs",
     "check:drift": "node scripts/verify-drift.cjs",
-    "verify": "npm run lint && npm run test && npm run check:drift && npm run build"
+    "check:env": "node scripts/check-env-format.cjs",
+    "check:pg-prepare": "tsx scripts/check-pg-prepare.ts",
+    "verify": "npm run lint && npm run test && npm run check:drift && npm run check:env && npm run build",
+    "check:tables": "tsx scripts/check-table-coverage.ts"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

@@ -2,6 +2,7 @@
 import { createNotification, execute, logAction, queryAll, queryOne } from "../config/postgres";
 import { getAI } from "../services/ai";
 import express from "express";
+import { log } from "../lib/logger";
 
 export function registerAi(app: express.Express) {
 
@@ -33,7 +34,7 @@ export function registerAi(app: express.Express) {
         });
         aiResponse = response.text || '';
       } catch (err) {
-        console.error("Gemini API error in consultant:", err);
+        log.error("Gemini API error in consultant:", err);
       }
     }
     if (!aiResponse) {
@@ -202,7 +203,7 @@ export function registerAi(app: express.Express) {
         });
         generatedContent = response.text || '';
       } catch (err) {
-        console.error("Gemini letter generator error:", err);
+        log.error("Gemini letter generator error:", err);
       }
     }
     if (!generatedContent) {
@@ -474,7 +475,7 @@ const expIqamas = ((await queryOne(
         });
         replyText = response.text || "أهلاً بك، كيف يمكنني مساعدتك في شؤون الموظفين والامتثال لنظام العمل؟";
       } catch (err) {
-        console.error("Gemini copilot error:", err);
+        log.error("Gemini copilot error:", err);
       }
     }
     if (!replyText) {

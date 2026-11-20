@@ -7,6 +7,7 @@ import { assertWritableScope, resolveWritableEntity, ScopeError } from "../lib/o
 import bcrypt from "bcryptjs";
 import { CountryRulesService } from "../../src/lib/payroll/CountryRulesService";
 import express from "express";
+import { log } from "../lib/logger";
 
 async function getRestoreTableOrder(): Promise<string[]> {
   const tables = (await db.prepare(`SELECT table_name AS name FROM information_schema.tables
@@ -261,7 +262,7 @@ export function registerCore(app: express.Express) {
       const notes = (await db.prepare("SELECT * FROM notifications ORDER BY created_at DESC LIMIT 30").all());
       res.json(notes);
     } catch (e) {
-      console.error("Error fetching notifications:", e);
+      log.error("Error fetching notifications:", e);
       res.status(500).json({ error: "Failed to fetch notifications" });
     }
   });
@@ -328,7 +329,7 @@ export function registerCore(app: express.Express) {
       res.setHeader('Content-Disposition', `attachment; filename=saudi_hr_backup_${new Date().toISOString().split('T')[0]}.json`);
       res.json(payload);
     } catch (e) {
-      console.error("Backup export error:", e);
+      log.error("Backup export error:", e);
       res.status(500).json({ error: "فشل تصدير النسخة الاحتياطية" });
     }
   });
@@ -390,7 +391,7 @@ export function registerCore(app: express.Express) {
         restored_at: new Date().toISOString()
       });
     } catch (e) {
-      console.error("Backup restore error:", e);
+      log.error("Backup restore error:", e);
       res.status(500).json({ error: "فشل استعادة قاعدة البيانات: " + (e as Error).message });
     }
   });

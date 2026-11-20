@@ -7,9 +7,18 @@ name: CI
 #     resolves no columns, so neither type-checking nor a read-path test sees
 #     it. It surfaced only when a user pressed the button (HTTP 500).
 #   - read-path drift: a SELECT naming a column or table that does not exist.
+#     The schema-drift test resolves every statement against a database built
+#     from the migrations, so it runs in CI now (`npm test` builds it first).
+#   - dialect drift: a statement written for SQLite that PostgreSQL rejects —
+#     `julianday()`, `text <= timestamp`, `MAX(a, b)`, `substr()` on a
+#     TIMESTAMPTZ. SQLite accepts all of them, so the SQLite gate cannot see
+#     them; the postgres-gate job below plans every statement on a real
+#     PostgreSQL server.
 #   - unclassified RBAC routes: a write endpoint reachable without a policy.
 #   - validation regressions: 21 of 31 schemas used to be double-wrapped and
 #     would have rejected every request; a unit test now pins that shape.
+#   - environment shape: a DATABASE_URL spread over several lines passes
+#     dotenv but is cut at the first newline by `docker run --env-file`.
 
 on:
   push:
@@ -41,6 +50,9 @@ jobs:
         run: npm run lint
 
       - name: Unit + drift tests
+        # `npm test` builds the throwaway database from the migrations first,
+        # so the schema-drift test has a schema to resolve against and cannot
+        # be skipped for want of one.
         run: npm run test
 
       - name: Schema drift gates
@@ -51,6 +63,9 @@ jobs:
         # a schema to resolve against on CI.
         run: npm run check:drift
 
+      - name: Environment file shape
+        run: npm run check:env
+
       - name: Build
         run: npm run build
 
@@ -60,3 +75,42 @@ jobs:
           name: dist-${{ github.sha }}
           path: dist/
           retention-days: 7
+
+  postgres-gate:
+    # Plans every statement the server sends against a real PostgreSQL server.
+    # The dialect defects (SQLite functions and casts PostgreSQL rejects) are
+    # invisible to the SQLite gates — they only fail here.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: payroll_app
+          POSTGRES_PASSWORD: testpass123
+          POSTGRES_DB: payroll
+        ports:
+          - '5432:5432'
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      PG_GATE_URL: postgres://payroll_app:testpass123@127.0.0.1:5432/payroll
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Plan every statement on PostgreSQL
+        run: npm run check:pg-prepare

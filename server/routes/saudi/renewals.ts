@@ -1,5 +1,6 @@
 import db, { logAction, createNotification } from "../../config/postgres";
 import express from "express";
+import { RENEWAL_TYPES, isRenewalType } from "../../lib/renewal-types";
 
 /**
  * Government renewals: the history of what was renewed, and the quick renewal
@@ -21,6 +22,14 @@ export function registerRenewalHistory(app: express.Express) {
 export function registerQuickRenew(app: express.Express) {
   app.post("/api/saudi/quick-renew", async (req, res) => {
     const { employee_id, type, duration_months = 12, cost, sadad_number, reference_number, notes } = req.body;
+    // The type decides which branch runs. An unknown value used to skip both
+    // branches and still answer { success: true }, so the client believed the
+    // renewal happened while nothing had been written.
+    if (!isRenewalType(type)) {
+      return res.status(400).json({
+        error: `نوع التجديد غير صحيح. القيم المسموحة: ${RENEWAL_TYPES.join(", ")}`,
+      });
+    }
     const emp = (await db.prepare("SELECT * FROM employees WHERE id = ?").get(employee_id)) as any;
     if (!emp) return res.status(404).json({ error: 'الموظف غير موجود' });
     const now = new Date();

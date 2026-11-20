@@ -16,6 +16,7 @@
 
 import db, { logAction, createNotification } from "../config/postgres";
 import express from "express";
+import { log } from "../lib/logger";
 
 type RequestType = "loan" | "leave" | "grievance" | "suggestion" | "workflow_improvement";
 
@@ -216,7 +217,7 @@ export function registerEssRequests(app: express.Express) {
         message: `تم رفع ${spec.label} بنجاح وهو بانتظار الاعتماد.`,
       });
     } catch (e) {
-      console.error("ESS request create failed:", e);
+      log.error("ESS request create failed:", e);
       res.status(500).json({ error: "تعذّر رفع الطلب" });
     }
   });
@@ -307,7 +308,7 @@ export function registerEssRequests(app: express.Express) {
         })),
       });
     } catch (e) {
-      console.error("ESS requests list failed:", e);
+      log.error("ESS requests list failed:", e);
       res.status(500).json({ error: "تعذّر استرجاع الطلبات" });
     }
   });

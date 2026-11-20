@@ -14,6 +14,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import express from "express";
 import { randomUUID, randomInt } from "crypto";
+import { log } from "../lib/logger";
 
 export function registerAuth(app: express.Express) {
 
@@ -64,7 +65,7 @@ export function registerAuth(app: express.Express) {
       }
       res.json(await issueSession(user, req));
     } catch (err) {
-      console.error("Login error:", err);
+      log.error("Login error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -114,7 +115,7 @@ export function registerAuth(app: express.Express) {
         throw err;
       }
     } catch (err) {
-      console.error("Register error:", err);
+      log.error("Register error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -172,7 +173,7 @@ export function registerAuth(app: express.Express) {
       await db.prepare("DELETE FROM sessions WHERE user_id = ? AND token != ?").run(user.id, token);
       res.json({ success: true });
     } catch (err) {
-      console.error("Change password error:", err);
+      log.error("Change password error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -208,7 +209,7 @@ export function registerAuth(app: express.Express) {
       res.json(await issueSession(user, req));
     } catch (err) {
       if (err instanceof AccessError) return res.status(err.status).json({ error: err.message });
-      console.error("SSO login error:", err);
+      log.error("SSO login error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -310,7 +311,7 @@ export function registerAuth(app: express.Express) {
       // Returned once so the admin can hand it over; it is never stored in clear.
       res.json({ success: true, password, must_change_password: true });
     } catch (err) {
-      console.error("Admin password reset error:", err);
+      log.error("Admin password reset error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   });

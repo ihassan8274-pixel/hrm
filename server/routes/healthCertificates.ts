@@ -1,5 +1,6 @@
 import db, { logAction } from "../config/postgres";
 import express from "express";
+import { log } from "../lib/logger";
 
 // A certificate counts as "expiring" this many days before its expiry date.
 const EXPIRING_WINDOW_DAYS = 60;
@@ -47,7 +48,7 @@ export function registerHealthCertificates(app: express.Express) {
         .all() as any[];
       res.json(rows.map(r => ({ ...r, ...computeStatus(r.expiry_date) })));
     } catch (e) {
-      console.error(e);
+      log.error(e);
       res.status(500).json({ error: "Failed to fetch health certificates" });
     }
   });
@@ -82,7 +83,7 @@ export function registerHealthCertificates(app: express.Express) {
         missing_employees: missing,
       });
     } catch (e) {
-      console.error(e);
+      log.error(e);
       res.status(500).json({ error: "Failed to compute health certificate stats" });
     }
   });
@@ -119,7 +120,7 @@ export function registerHealthCertificates(app: express.Express) {
       await logAction("create", "health_certificate", id as number, `شهادة صحية لـ ${emp?.name ?? employee_id} تنتهي ${expiry_date}`);
       res.json({ id });
     } catch (e) {
-      console.error(e);
+      log.error(e);
       res.status(500).json({ error: "Failed to create health certificate" });
     }
   });
@@ -157,7 +158,7 @@ export function registerHealthCertificates(app: express.Express) {
       await logAction("update", "health_certificate", existing.id, `تحديث شهادة صحية (${status})`);
       res.json({ ok: true });
     } catch (e) {
-      console.error(e);
+      log.error(e);
       res.status(500).json({ error: "Failed to update health certificate" });
     }
   });
@@ -174,7 +175,7 @@ export function registerHealthCertificates(app: express.Express) {
       await logAction("delete", "health_certificate", existing.id, `حذف شهادة صحية رقم ${existing.certificate_number ?? ""}`.trim());
       res.json({ ok: true });
     } catch (e) {
-      console.error(e);
+      log.error(e);
       res.status(500).json({ error: "Failed to delete health certificate" });
     }
   });

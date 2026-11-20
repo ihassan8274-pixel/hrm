@@ -24,8 +24,20 @@ import {
  * real schema, which is exactly the check the database performs at runtime.
  */
 
-const DB_PATH = process.env.DB_PATH || 'payroll.db';
-const dbExists = fs.existsSync(DB_PATH);
+/**
+ * The database to resolve the statements against.
+ *
+ * `payroll.db` is git-ignored, so on CI it does not exist — and the whole
+ * suite was skipped, which meant the read-path drift gate never ran anywhere.
+ * `npm test` now builds the throwaway database from the migrations first, and
+ * this lookup prefers it; a developer with a local payroll.db still gets that
+ * one checked.
+ */
+const DB_PATH = [process.env.DB_PATH, "scripts/.build/payroll.db", "payroll.db"].find((candidate) =>
+  candidate && fs.existsSync(candidate),
+) as string | undefined;
+
+const dbExists = Boolean(DB_PATH);
 
 // Statements whose SQL is built by interpolation cannot be validated statically.
 const SKIP_REASON = 'contains ${...} interpolation';
@@ -38,6 +50,11 @@ function buildStatements() {
     const src = fs.readFileSync(abs, 'utf8');
     for (const st of extractStatements(src, rel)) {
       if (!isSchemaCheckable(st.sql)) continue;
+      // The server reads PostgreSQL's own catalogue for the backup/restore and
+      // schema features. SQLite has no information_schema, so those statements
+      // cannot be resolved here — they are covered by the PostgreSQL gate
+      // (npm run check:pg-prepare).
+      if (/information_schema|pg_catalog|pg_get_serial_sequence|setval\s*\(/i.test(st.sql)) continue;
       if (st.interpolated) {
         out.push({ file: st.file, line: st.line, sql: '', skipped: SKIP_REASON });
         continue;

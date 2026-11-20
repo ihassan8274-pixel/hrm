@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { ensurePostgresSchema, execute, executeScript, queryAll, transaction } from "../config/postgres";
+import { log } from "../lib/logger";
 
 const migrationsDirectory = path.join(process.cwd(), "server", "db", "postgres");
 
@@ -28,7 +29,7 @@ export async function runPostgresMigrations(): Promise<void> {
       await executeScript(sql);
       await execute("INSERT INTO schema_migrations (version, name) VALUES (?, ?)", version, file);
     })();
-    console.log(`[postgres:migrate] Applied ${file}`);
+    log.info(`[postgres:migrate] Applied ${file}`);
   }
 }
 

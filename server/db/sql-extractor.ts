@@ -9,6 +9,9 @@
  * separately because their SQL cannot be resolved statically.
  */
 
+import fs from "node:fs";
+import path from "node:path";
+
 export interface ExtractedStatement {
   file: string;
   line: number;
@@ -16,10 +19,23 @@ export interface ExtractedStatement {
   interpolated: boolean;
 }
 
+/**
+ * How the extracted SQL text is normalised.
+ *
+ * The default cleanup targets SQLite: it turns the doubled quotes SQLite
+ * accepts into single ones and rewrites a double-quoted literal into a
+ * single-quoted one. PostgreSQL reads `"x"` as an identifier, so the cleanup
+ * has to be switched off there — and the `''` → `'` replacement breaks an
+ * empty string literal, which is why the PostgreSQL gate asks for the raw
+ * text.
+ */
+export interface ExtractOptions {
+  /** Rewrites the SQL for the SQLite dialect. Defaults to true. */
+  normalizeForSqlite?: boolean;
+}
+
 /** Recursively collect .ts files, skipping tests and the migrations folder. */
 function collectFiles(dir: string, base: string, out: string[] = []): string[] {
-  const fs = require('fs');
-  const path = require('path');
   if (!fs.existsSync(dir)) return out;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
@@ -43,17 +59,26 @@ export function collectServerSources(base = process.cwd()): string[] {
 /**
  * Scans for `db.prepare(` / `db.exec(` followed by a backtick template literal,
  * matching the closing backtick. Tracks line numbers by counting newlines.
+ *
+ * The facade's direct entry points — `queryOne`, `queryAll` and `execute` —
+ * are matched as well: they are used directly in a few modules, and a statement
+ * that only goes through them would otherwise never be checked.
  */
-export function extractStatements(source: string, file: string): ExtractedStatement[] {
+export function extractStatements(
+  source: string,
+  file: string,
+  options: ExtractOptions = {},
+): ExtractedStatement[] {
+  const normalizeForSqlite = options.normalizeForSqlite !== false;
   const results: ExtractedStatement[] = [];
   // Both forms occur in this codebase: backtick template literals (multi-line
   // SQL) and single-quoted strings (short one-liners). Matching only backticks
   // missed queries like `SELECT * FROM medical_policies ORDER BY expiry_date`.
-  const callRe = /db\.(prepare|exec)\s*\(\s*([`'"])/g;
+  const callRe = /\b(?:db\.(?:prepare|exec)|queryOne|queryAll|execute)\s*\(\s*([`'"])/g;
   let match: RegExpExecArray | null;
 
   while ((match = callRe.exec(source)) !== null) {
-    const quote = match[2];
+    const quote = match[1];
     const openIdx = match.index + match[0].length - 1;
     const isTemplate = quote === '`';
     const isDouble = quote === '"';
@@ -80,10 +105,12 @@ export function extractStatements(source: string, file: string): ExtractedStatem
     // `no such column: "active"` errors that mask the real drift.
     const cleaned = isTemplate
       ? sql
-      : sql
-          .replace(/''/g, "'")
-          .replace(/\\'/g, "'")
-          .replace(/"([^"]*)"/g, "'$1'");
+      : normalizeForSqlite
+        ? sql
+            .replace(/''/g, "'")
+            .replace(/\\'/g, "'")
+            .replace(/"([^"]*)"/g, "'$1'")
+        : sql;
     results.push({
       file,
       line,

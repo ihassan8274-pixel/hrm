@@ -1,6 +1,7 @@
 // Route module. Registered from server/index.ts; the order there is the route order.
 import db, { logAction, createNotification } from "../config/postgres";
 import express from "express";
+import { log } from "../lib/logger";
 
 /**
  * يضمن وجود مسارات اعتماد بوابة الموظف (شكاوى/مقترحات/تطوير إجراءات).
@@ -47,7 +48,7 @@ export async function ensureEssWorkflows(): Promise<void> {
       INSERT INTO approval_workflows (workflow_type, title, description, conditions_json, levels_json, is_active)
       VALUES (?, ?, ?, '{}', ?, 1)
     `).run(wf.type, wf.title, wf.description, JSON.stringify(wf.levels));
-    console.log(`[workflows] ensured missing workflow: ${wf.type}`);
+    log.info(`[workflows] ensured missing workflow: ${wf.type}`);
   }
 }
 
@@ -92,7 +93,7 @@ export function registerWorkflows(app: express.Express) {
           .run(approved ? "accepted" : "rejected", comments || `قرار ${actorName}`, stamp, entityId);
       }
     } catch (e) {
-      console.error("failed to apply workflow decision to entity:", e);
+      log.error("failed to apply workflow decision to entity:", e);
     }
   }
 
@@ -369,7 +370,13 @@ export function registerWorkflows(app: express.Express) {
         INSERT INTO reward_redemptions (employee_id, employee_name, reward_id, reward_title, points_spent, redemption_code, status)
         VALUES (?, ?, ?, ?, ?, ?, 'approved')
       `).run(employee_id, employee_name, reward_id, reward_title, points_spent, code);
-      await db.prepare("UPDATE reward_catalog SET stock_quantity = MAX(0, stock_quantity - 1) WHERE id = ?").run(reward_id);
+      // MAX with two arguments is a SQLite scalar function; PostgreSQL's MAX
+      // is an aggregate and rejects it ("function max(integer, integer) does
+      // not exist"), which turned every redemption into a 500. The CASE form
+      // is the portable spelling of "never below zero".
+      await db.prepare(
+        "UPDATE reward_catalog SET stock_quantity = CASE WHEN stock_quantity - 1 < 0 THEN 0 ELSE stock_quantity - 1 END WHERE id = ?",
+      ).run(reward_id);
       res.json({ id: result.lastInsertRowid, redemption_code: code, success: true });
     } catch (e) {
       res.status(500).json({ error: "فشل استبدال المكافأة" });
@@ -547,7 +554,7 @@ export function registerWorkflows(app: express.Express) {
       };
       res.json({ summary, alerts });
     } catch (e) {
-      console.error("Alerts error:", e);
+      log.error("Alerts error:", e);
       res.status(500).json({ error: "فشل استرجاع تنبيهات الوثائق" });
     }
   });

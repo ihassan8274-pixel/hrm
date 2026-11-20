@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import rateLimit from "express-rate-limit";
 import { config } from "../config/env";
 import { queryOne } from "../config/postgres";
+import { log } from "../lib/logger";
 
 export const JWT_SECRET = config.JWT_SECRET;
 export const JWT_EXPIRY = config.JWT_EXPIRY;
@@ -202,6 +203,8 @@ export const PERM = {
   // مركز النماذج والطباعة: إصدار المستندات وتحرير القوالب
   FORMS_DOCUMENTS_ISSUE: "forms.documents.issue", // admin, hr_manager, branch_manager
   FORMS_TEMPLATES_MANAGE: "forms.templates.manage", // admin, hr_manager
+  // Observability: the server's own request counters and timings.
+  METRICS_VIEW: "metrics.view", // admin, hr_manager
 } as const;
 
 // role -> permission keys ("*" = every screen: admin/hr_manager own all screens)
@@ -287,6 +290,8 @@ export const ROUTE_PERMISSIONS: Array<{ method: string; pattern: RegExp; perm: s
   { method: "PUT", pattern: /^\/api\/budgets\/departments\/[^/]+$/, perm: PERM.BUDGETS_MANAGE },
   // audit trail (audit screen + dashboard widget readers)
   { method: "GET", pattern: /^\/api\/audit-logs$/, perm: PERM.AUDIT_LOGS_VIEW },
+  // server metrics: request counters, error counts and timings per route
+  { method: "GET", pattern: /^\/api\/metrics$/, perm: PERM.METRICS_VIEW },
   // financial / compliance data
   { method: "GET", pattern: /^\/api\/reports(\/.*)?$/, perm: PERM.REPORTS_VIEW },
   // dashboard screen: admin, hr_manager, finance, branch_manager (DashboardView, ReportsView)
@@ -512,7 +517,7 @@ const enforceRoutePermissions = (req: express.Request, res: express.Response, ne
       const key = method + " " + url;
       if (!unclassifiedWrites.has(key)) {
         unclassifiedWrites.add(key);
-        console.warn("[RBAC] unclassified write route (allowed for operational roles): " + key);
+        log.warn("[RBAC] unclassified write route (allowed for operational roles): " + key);
       }
     }
   }
@@ -564,12 +569,12 @@ export function reportUnclassifiedWriteRoutes(app: express.Express) {
       }
     }
     if (found.size) {
-      console.warn("[RBAC] " + found.size + " unclassified write route(s) — allowed for operational roles, denied for employee_ess:");
-      for (const route of Array.from(found).sort()) console.warn("  - " + route);
+      log.warn("[RBAC] " + found.size + " unclassified write route(s) — allowed for operational roles, denied for employee_ess:");
+      for (const route of Array.from(found).sort()) log.warn("  - " + route);
     } else {
-      console.log("[RBAC] all write routes are classified.");
+      log.info("[RBAC] all write routes are classified.");
     }
   } catch (e) {
-    console.warn("[RBAC] route coverage scan failed", e);
+    log.warn("[RBAC] route coverage scan failed", e);
   }
 }

@@ -1,6 +1,9 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { Pool, PoolClient, QueryResult, types } from "pg";
 import dotenv from "dotenv";
+import { parameterize, toPostgresStatement } from "./sql-translate";
+import { isConnectionLevelFailure, isReadStatement } from "./db-resilience";
+import { log } from "../lib/logger";
 
 const loadedEnv = dotenv.config({ override: true });
 
@@ -32,105 +35,31 @@ const pool = new Pool({
 });
 
 pool.on("error", (error) => {
-  console.error("[postgres] idle client error", error);
+  log.error("[postgres] idle client error", error);
 });
 
-const noIdPrimaryKeyTables = new Set(["countries", "schema_migrations", "settings"]);
-
-function parameterize(sql: string, params: unknown[]): { sql: string; params: unknown[] } {
-  let output = "";
-  let index = 0;
-  const namedValues: unknown[] = [];
-  const namedIndexes = new Map<string, number>();
-  const namedParams = params.length === 1 && params[0] !== null && typeof params[0] === "object" && !Array.isArray(params[0])
-    ? params[0] as Record<string, unknown>
-    : null;
-  let state: "code" | "single" | "double" | "line" | "block" = "code";
-  for (let i = 0; i < sql.length; i++) {
-    const char = sql[i];
-    const next = sql[i + 1];
-    if (state === "single") {
-      output += char;
-      if (char === "'" && next === "'") output += sql[++i];
-      else if (char === "'") state = "code";
-    } else if (state === "double") {
-      output += char;
-      if (char === '"' && next === '"') output += sql[++i];
-      else if (char === '"') state = "code";
-    } else if (state === "line") {
-      output += char;
-      if (char === "\n") state = "code";
-    } else if (state === "block") {
-      output += char;
-      if (char === "*" && next === "/") {
-        output += sql[++i];
-        state = "code";
-      }
-    } else if (char === "'") {
-      output += char;
-      state = "single";
-    } else if (char === '"') {
-      output += char;
-      state = "double";
-    } else if (char === "-" && next === "-") {
-      output += char + sql[++i];
-      state = "line";
-    } else if (char === "/" && next === "*") {
-      output += char + sql[++i];
-      state = "block";
-    } else if (char === "?" && !namedParams) {
-      // Postgres لا يستطيع استنتاج نوع المعامل في «$n IS NULL» وحده، فيرمي
-      // 42P18 (indeterminate datatype). النمط شائع في الاستعلامات المقيَّدة
-      // بنطاق الكيان («? IS NULL OR entity_id = ?»).-cast إلى نص يحلّها:
-      // المعامل يُستعمل في اختبار IS NULL فقط، فنوعه لا يحمل معنى آخر.
-      const rest = sql.slice(i + 1);
-      const isNullTest = /^\s*IS\s+(NOT\s+)?NULL\b/i.test(rest);
-      output += `$${++index}${isNullTest ? "::text" : ""}`;
-    } else if (namedParams && char === "@" && /[A-Za-z_]/.test(next || "")) {
-      let end = i + 1;
-      while (/[A-Za-z0-9_]/.test(sql[end] || "")) end++;
-      const name = sql.slice(i + 1, end);
-      if (!Object.prototype.hasOwnProperty.call(namedParams, name)) throw new Error(`Missing SQL parameter: ${name}`);
-      if (!namedIndexes.has(name)) {
-        namedIndexes.set(name, namedValues.length + 1);
-        namedValues.push(namedParams[name]);
-      }
-      output += `$${namedIndexes.get(name)}`;
-      i = end - 1;
-    } else {
-      output += char;
-    }
-  }
-  return { sql: output, params: namedParams ? namedValues : params };
-}
-
-function postgresSql(sql: string, returningId = false): string {
-  let normalized = sql.trim().replace(/;\s*$/, "");
-  const ignore = /^INSERT\s+OR\s+IGNORE\s+INTO\s+/i.test(normalized);
-  const replace = /^INSERT\s+OR\s+REPLACE\s+INTO\s+/i.test(normalized);
-  normalized = normalized.replace(/^INSERT\s+OR\s+(?:IGNORE|REPLACE)\s+INTO\s+/i, "INSERT INTO ");
-
-  if (replace && /^INSERT\s+INTO\s+settings\b/i.test(normalized)) {
-    normalized += " ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value";
-  }
-  if (ignore) normalized += " ON CONFLICT DO NOTHING";
-
-  if (returningId && /^INSERT\s+INTO\s+/i.test(normalized)) {
-    const table = normalized.match(/^INSERT\s+INTO\s+(?:"([^"]+)"|([a-z_][a-z0-9_]*))/i)?.slice(1).find(Boolean);
-    if (table && !noIdPrimaryKeyTables.has(table.toLowerCase()) && !/\bRETURNING\b/i.test(normalized)) {
-      normalized += " RETURNING id";
-    }
-  }
-  return normalized;
-}
+const postgresSql = toPostgresStatement;
 
 async function query<T extends Record<string, unknown> = Record<string, unknown>>(
   sql: string,
   params: unknown[] = [],
 ): Promise<QueryResult<T>> {
-  const executor = transactions.getStore() || pool;
   const normalized = parameterize(sql.trim().replace(/;\s*$/, ""), params);
-  return executor.query<T>(normalized.sql, normalized.params);
+  const activeTransaction = transactions.getStore();
+  if (activeTransaction) return activeTransaction.query<T>(normalized.sql, normalized.params);
+
+  try {
+    return await pool.query<T>(normalized.sql, normalized.params);
+  } catch (error) {
+    // A pooled client can die between requests — the database was restarted or
+    // the network blipped — and the request that was waiting on it fails even
+    // though the statement never ran. A read can simply be asked again, on a
+    // fresh connection. A write cannot: the server may have applied it before
+    // the connection dropped, and running it twice would duplicate the row.
+    if (!isReadStatement(normalized.sql) || !isConnectionLevelFailure(error)) throw error;
+    log.warn("[postgres] retrying a read after a connection failure", error);
+    return await pool.query<T>(normalized.sql, normalized.params);
+  }
 }
 
 export async function queryAll<T extends Record<string, unknown> = Record<string, unknown>>(

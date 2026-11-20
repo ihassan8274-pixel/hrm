@@ -4,6 +4,7 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import path from "path";
 import fs from "fs";
+import { log } from "../lib/logger";
 
 // DDL + idempotent demo seeds for the modules that kept their schema inline after the
 // route split: EWA (13), HSE (14), Exit Interviews (16), Approval Workflows (17).
@@ -330,7 +331,7 @@ export async function ensureBootstrapAdmin() {
     { mode: 0o600 }
   );
   try { fs.chmodSync(credPath, 0o600); } catch {}
-  console.log(
+  log.info(
     `[bootstrap] لا يوجد مستخدمين — تم إنشاء admin بكلمة المرور الافتراضية ` +
       `(ADMIN123). يجب تغييرها فور أول تسجيل دخول. التفاصيل: ${credPath}`
   );
@@ -361,7 +362,7 @@ export async function linkUsersToEmployees() {
     
     if (employeeId) {
       await db.prepare("UPDATE users SET employee_id = ? WHERE id = ?").run(employeeId, user.id);
-      console.log(`[link] User ${user.username} linked to employee ${employeeId}`);
+      log.info(`[link] User ${user.username} linked to employee ${employeeId}`);
     }
   }
 }

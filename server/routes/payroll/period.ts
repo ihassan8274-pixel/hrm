@@ -8,6 +8,7 @@ import { CountryRulesService } from "../../../src/lib/payroll/CountryRulesServic
 import { PayrollCalculator } from "../../../src/lib/payroll/PayrollCalculator";
 import { validateBody, payrollGenerateSchema, payrollLockSchema } from "../../middleware/validation";
 import { isPayrollLocked, payrollLockKey } from "./lock";
+import { log } from "../../lib/logger";
 
 /**
  * The payroll period itself: the register for a month, the attendance sync
@@ -97,7 +98,7 @@ export function registerPayrollGenerate(app: express.Express) {
     const scopedIds = (await listScopedEmployees(db, scope)).map((employee) => employee.id);
     // Attendance is synced for the caller's employees only — a branch manager
     // must not rewrite the absence summary of another branch.
-    try { await syncAttendanceFromLogs(db, Number(month), Number(year), new Date(), scopedIds); } catch (e) { console.error(e); }
+    try { await syncAttendanceFromLogs(db, Number(month), Number(year), new Date(), scopedIds); } catch (e) { log.error(e); }
     const settings = (await db.prepare("SELECT * FROM settings").all());
     const settingsObj = (settings as any[]).reduce((acc, curr) => {
       acc[curr.key] = curr.value;
@@ -279,7 +280,7 @@ export function registerPayrollCalculate(app: express.Express) {
       };
       res.json(finalResult);
     } catch (e) {
-      console.error("Payroll calculation error:", e);
+      log.error("Payroll calculation error:", e);
       res.status(500).json({ error: (e as Error).message });
     }
   });
@@ -376,7 +377,7 @@ export function registerPayrollBatch(app: express.Express) {
         }
       });
     } catch (e) {
-      console.error("Batch payroll error:", e);
+      log.error("Batch payroll error:", e);
       res.status(500).json({ error: (e as Error).message });
     }
   });

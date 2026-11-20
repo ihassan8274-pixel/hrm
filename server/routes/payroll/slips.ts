@@ -138,7 +138,7 @@ export function registerSalarySlips(app: express.Express) {
       params.push(...scopeFilter(scope));
 
       const slips = (await db.prepare(`
-        SELECT ss.*, e.name as employee_name, e.emp_code, e.department_id, d.name as dept_name, b.name as branch_name, s.name_ar as structure_name
+        SELECT ss.*, e.name as employee_name, e.department_id, d.name as dept_name, b.name as branch_name, s.name_ar as structure_name
         FROM salary_slips ss
         JOIN employees e ON ss.employee_id = e.id
         LEFT JOIN departments d ON e.department_id = d.id

@@ -21,6 +21,7 @@ import {
 import { DEFAULT_BRAND } from "../../src/lib/print/brand";
 import { requireOrganizationScope, organizationScope } from "../middleware/organizationScope";
 import { assertEmployeeWritableScope, ScopeError } from "../lib/organization-scope";
+import { log } from "../lib/logger";
 
 /** التصنيفات المعروضة في واجهة المركز — تضاف إلى قائمة الفلاتر. */
 const TEMPLATE_CATEGORIES = ["letters", "certificates", "warnings", "contracts", "reports"];
@@ -147,7 +148,7 @@ export function registerForms(app: express.Express) {
         rows.map((row) => ({ ...row, placeholders: extractPlaceholders(row.body_ar) })),
       );
     } catch (error) {
-      console.error("[forms] failed to list templates", error);
+      log.error("[forms] failed to list templates", error);
       res.status(500).json({ error: "تعذّر تحميل القوالب" });
     }
   });
@@ -160,7 +161,7 @@ export function registerForms(app: express.Express) {
       if (!template) return res.status(404).json({ error: "القالب غير موجود" });
       res.json({ ...template, placeholders: extractPlaceholders(template.body_ar) });
     } catch (error) {
-      console.error("[forms] failed to load template", error);
+      log.error("[forms] failed to load template", error);
       res.status(500).json({ error: "تعذّر تحميل القالب" });
     }
   });
@@ -198,7 +199,7 @@ export function registerForms(app: express.Express) {
       await logAction("create", "document_template", info.lastInsertRowid as number, `إنشاء قالب: ${name_ar}`);
       res.json({ id: info.lastInsertRowid });
     } catch (error) {
-      console.error("[forms] failed to create template", error);
+      log.error("[forms] failed to create template", error);
       res.status(500).json({ error: "تعذّر إنشاء القالب" });
     }
   });
@@ -241,7 +242,7 @@ export function registerForms(app: express.Express) {
       await logAction("update", "document_template", template.id, `تعديل قالب: ${name_ar}`);
       res.json({ ok: true });
     } catch (error) {
-      console.error("[forms] failed to update template", error);
+      log.error("[forms] failed to update template", error);
       res.status(500).json({ error: "تعذّر تعديل القالب" });
     }
   });
@@ -259,7 +260,7 @@ export function registerForms(app: express.Express) {
       await logAction("delete", "document_template", template.id, `حذف قالب: ${template.name_ar}`);
       res.json({ ok: true });
     } catch (error) {
-      console.error("[forms] failed to delete template", error);
+      log.error("[forms] failed to delete template", error);
       res.status(500).json({ error: "تعذّر حذف القالب" });
     }
   });
@@ -276,7 +277,7 @@ export function registerForms(app: express.Express) {
         .all()) as any[];
       res.json({ company, branches });
     } catch (error) {
-      console.error("[forms] failed to load letterhead", error);
+      log.error("[forms] failed to load letterhead", error);
       res.status(500).json({ error: "تعذّر تحميل بيانات المنشأة" });
     }
   });
@@ -311,7 +312,7 @@ export function registerForms(app: express.Express) {
         context,
       });
     } catch (error) {
-      console.error("[forms] failed to render preview", error);
+      log.error("[forms] failed to render preview", error);
       res.status(500).json({ error: "تعذّر توليد المعاينة" });
     }
   });
@@ -379,7 +380,7 @@ export function registerForms(app: express.Express) {
 
       res.json({ id, reference_number: referenceNumber });
     } catch (error) {
-      console.error("[forms] failed to issue document", error);
+      log.error("[forms] failed to issue document", error);
       res.status(500).json({ error: "تعذّر إصدار المستند" });
     }
   });
@@ -474,7 +475,7 @@ export function registerForms(app: express.Express) {
 
       res.json({ issued, refused });
     } catch (error) {
-      console.error("[forms] failed to issue batch", error);
+      log.error("[forms] failed to issue batch", error);
       res.status(500).json({ error: "تعذّر إصدار المستندات" });
     }
   });
@@ -505,7 +506,7 @@ export function registerForms(app: express.Express) {
         )) as any[];
       res.json(rows);
     } catch (error) {
-      console.error("[forms] failed to list documents", error);
+      log.error("[forms] failed to list documents", error);
       res.status(500).json({ error: "تعذّر تحميل المستندات" });
     }
   });
@@ -523,7 +524,7 @@ export function registerForms(app: express.Express) {
       if (!document) return res.status(404).json({ error: "المستند غير موجود" });
       res.json(document);
     } catch (error) {
-      console.error("[forms] failed to load document", error);
+      log.error("[forms] failed to load document", error);
       res.status(500).json({ error: "تعذّر تحميل المستند" });
     }
   });

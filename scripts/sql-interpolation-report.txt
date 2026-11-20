@@ -1,14 +1,10 @@
-server/index.ts:186
-  vars: safeName
-  SELECT * FROM "${safeName}"
-
-server/routes/importer.ts:609
+server/routes/importer.ts:610
   vars: m.uniqueness.dbColumn | m.table
   SELECT ${m.uniqueness.dbColumn} v FROM ${m.table}
 
 server/routes/payroll/slips.ts:140
   vars: where
-   SELECT ss.*, e.name as employee_name, e.emp_code, e.department_id, d.name as dept_name, b.name as branch_name, s.name_ar as struc
+   SELECT ss.*, e.name as employee_name, e.department_id, d.name as dept_name, b.name as branch_name, s.name_ar as structure_name FR
 
 server/routes/payroll/structures.ts:140
   vars: fields.join(', ')

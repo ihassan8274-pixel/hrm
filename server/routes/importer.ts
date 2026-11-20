@@ -3,6 +3,7 @@ import { resolveWriteScope } from "../lib/organization-scope";
 import express from "express";
 import * as XLSX from "xlsx";
 import { syncEmployeeSnapshot } from "./healthCertificates";
+import { log } from "../lib/logger";
 
 // ---------------------------------------------------------------------------
 // Unified Excel/CSV importer for the dormant HR modules.
@@ -632,7 +633,7 @@ export function registerImporter(app: express.Express) {
         rows,
       });
     } catch (e) {
-      console.error(e);
+      log.error(e);
       res.status(500).json({ error: "فشل تحليل الملف: " + (e as Error).message });
     }
   });
@@ -684,7 +685,7 @@ export function registerImporter(app: express.Express) {
 
       res.json({ inserted, rejected });
     } catch (e) {
-      console.error(e);
+      log.error(e);
       res.status(500).json({ error: "فشل الاستيراد: " + (e as Error).message });
     }
   });

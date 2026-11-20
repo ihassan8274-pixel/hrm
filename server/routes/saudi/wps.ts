@@ -2,6 +2,7 @@ import db from "../../config/postgres";
 import express from "express";
 import { buildSifExport, readSifProfile, normalizePeriod, validateSifIdentities, SifError } from "../../lib/sif-export";
 import { resolveOrganizationScope, ScopeError } from "../../lib/organization-scope";
+import { log } from "../../lib/logger";
 
 /**
  * WPS / SAMA protection of wages.
@@ -30,7 +31,7 @@ export function registerSifDownload(app: express.Express) {
       if (error instanceof ScopeError) {
         return res.status(error.status).json({ error: error.message });
       }
-      console.error("wps-export failed:", error);
+      log.error("wps-export failed:", error);
       res.status(500).json({ error: "تعذّر توليد ملف البنك" });
     }
   });
@@ -282,7 +283,7 @@ export function registerWpsAudit(app: express.Express) {
       if (error instanceof ScopeError) {
         return res.status(error.status).json({ error: error.message });
       }
-      console.error("export-sif failed:", error);
+      log.error("export-sif failed:", error);
       res.status(500).json({ error: "تعذّر توليد ملف البنك" });
     }
   });

@@ -1,4 +1,5 @@
 import db from "../../config/postgres";
+import { log } from "../../lib/logger";
 
 export interface CalculationContext {
   employee: any;
@@ -144,7 +145,7 @@ export class SalaryStructureEngine {
         ...Array.from(this.calculatedValues.values())
       );
     } catch (e) {
-      console.error(`[SalaryEngine] Formula evaluation error: ${formula}`, e);
+      log.error(`[SalaryEngine] Formula evaluation error: ${formula}`, e);
       return 0;
     }
   }
@@ -169,7 +170,7 @@ export class SalaryStructureEngine {
       const func = new Function(`return ${expr};`);
       return !!func();
     } catch (e) {
-      console.error(`[SalaryEngine] Condition evaluation error: ${condition}`, e);
+      log.error(`[SalaryEngine] Condition evaluation error: ${condition}`, e);
       return false;
     }
   }
