@@ -66,6 +66,7 @@ const BackupRestoreModal = lazy(() => import('./components/BackupRestoreModal').
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginView } from './components/LoginView';
 import { MustChangePasswordView } from './components/MustChangePasswordView';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Components
 // NotificationBell renders in the header on every screen, so it stays eager.
@@ -831,8 +832,10 @@ function AuthenticatedApp() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AuthenticatedApp />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AuthenticatedApp />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
