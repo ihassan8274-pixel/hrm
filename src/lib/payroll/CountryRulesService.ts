@@ -48,6 +48,8 @@ export class CountryRulesService {
       insurance: {
         employeeRate: parseFloat(rulesMap.get('insurance_emp_rate') || country.insurance_emp_rate),
         employerRate: parseFloat(rulesMap.get('insurance_comp_rate') || country.insurance_comp_rate),
+        uncoveredEmployeeRate: parseFloat(rulesMap.get('insurance_uncovered_emp_rate') || '0'),
+        uncoveredEmployerRate: parseFloat(rulesMap.get('insurance_uncovered_comp_rate') || '0'),
         ceiling: country.insurance_ceiling ? parseFloat(rulesMap.get('insurance_ceiling') || country.insurance_ceiling) : undefined,
         floor: country.insurance_floor ? parseFloat(rulesMap.get('insurance_floor') || country.insurance_floor) : undefined,
         ceilingAppliedOn: (rulesMap.get('insurance_ceiling_on') as 'gross' | 'basic_plus_housing') || 'basic_plus_housing'

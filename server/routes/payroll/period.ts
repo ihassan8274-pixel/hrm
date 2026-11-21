@@ -8,7 +8,7 @@ import { CountryRulesService } from "../../../src/lib/payroll/CountryRulesServic
 import { PayrollCalculator } from "../../../src/lib/payroll/PayrollCalculator";
 import { absenceFor, unpaidLeaveDaysInPeriod } from "../../lib/attendance-absence";
 import { dailyBasisFor, maxWorkingDaysInMonth, workingDaysInMonth } from "../../../src/lib/payroll/working-days";
-import { workTimeForEntity } from "../../lib/country-rules";
+import { isInsuranceCovered, workTimeForEntity } from "../../lib/country-rules";
 import { validateBody, payrollGenerateSchema, payrollLockSchema } from "../../middleware/validation";
 import { isPayrollLocked, payrollLockKey } from "./lock";
 import { log } from "../../lib/logger";
@@ -109,9 +109,6 @@ export function registerPayrollGenerate(app: express.Express) {
       acc[curr.key] = curr.value;
       return acc;
     }, {});
-    const defaultSaudiEmpRate = parseFloat(settingsObj.saudi_gosi_emp_rate || '9.75') / 100;
-    const defaultSaudiCompRate = parseFloat(settingsObj.saudi_gosi_comp_rate || '11.75') / 100;
-    const defaultExpatCompRate = parseFloat(settingsObj.expat_gosi_comp_rate || '2.0') / 100;
     const employees = (await db.prepare(`
       SELECT e.*,
       COALESCE((SELECT SUM(amount) FROM employee_allowances WHERE employee_id = e.id), 0) as allowances
@@ -164,16 +161,13 @@ export function registerPayrollGenerate(app: express.Express) {
           const housing = emp.housing_allowance || 0;
           const transport = emp.transport_allowance || 0;
           const gosiWage = Math.min(45000, Number(emp.basic_salary) + Number(housing));
-          const isSaudi = emp.is_saudi === 1 || emp.nationality === 'سعودي' || emp.nationality === 'سعودية' ? 1 : 0;
-          let insEmpRate = 0;
-          let insCompRate = 0;
-          if (isSaudi) {
-            insEmpRate = defaultSaudiEmpRate; // 9.75% (9% Annuities + 0.75% Saned)
-            insCompRate = defaultSaudiCompRate; // 11.75% (9% Annuities + 2% Hazards + 0.75% Saned)
-          } else {
-            insEmpRate = 0; // 0% on expat employee
-            insCompRate = defaultExpatCompRate; // 2% Occupational Hazards on employer
-          }
+          // The scheme covers the national workers. A worker it does not
+          // cover pays no employee contribution, and the employer pays the
+          // occupational hazards rate instead — 2% in Saudi Arabia.
+          const covered = isInsuranceCovered(emp);
+          const isSaudi = covered ? 1 : 0;
+          const insEmpRate = covered ? countryRules.insurance.employeeRate / 100 : (countryRules.insurance.uncoveredEmployeeRate ?? 0) / 100;
+          const insCompRate = covered ? countryRules.insurance.employerRate / 100 : (countryRules.insurance.uncoveredEmployerRate ?? 0) / 100;
           const insEmpShare = Math.round(gosiWage * insEmpRate * 100) / 100;
           const insCompShare = Math.round(gosiWage * insCompRate * 100) / 100;
           const totalAllowances = emp.allowances + housing + transport + (emp.other_allowances || 0) + overtimePay + monthBonus + add.earnings;
@@ -255,9 +249,10 @@ export function registerPayrollCalculate(app: express.Express) {
         if (await denyEmployee(res, scope, Number(employee_id))) return;
       }
       let entityId = user.entity_id;
+      let employeeRecord: any = null;
       if (employee_id) {
-        const emp = (await db.prepare("SELECT entity_id FROM employees WHERE id = ?").get(employee_id));
-        if (emp) entityId = emp.entity_id;
+        employeeRecord = await db.prepare("SELECT entity_id, is_saudi, nationality FROM employees WHERE id = ?").get(employee_id);
+        if (employeeRecord) entityId = employeeRecord.entity_id;
       }
       if (!entityId) {
         return res.status(400).json({ error: "Entity not found for user/employee" });
@@ -274,6 +269,8 @@ export function registerPayrollCalculate(app: express.Express) {
         : maxWorkingDaysInMonth(rules.workTime);
       const input = {
         employeeId: Number(employee_id) || 0,
+        // The social insurance scheme covers the national workers only.
+        insuranceCovered: employeeRecord ? isInsuranceCovered(employeeRecord) : true,
         basicSalary: Number(basicSalary) || 0,
         housingAllowance: Number(housingAllowance) || 0,
         transportAllowance: Number(transportAllowance) || 0,
@@ -379,6 +376,8 @@ export function registerPayrollBatch(app: express.Express) {
           otherAllowances: other,
           deductions: standingDeductions,
           unpaidLeaveDays,
+          // The social insurance scheme covers the national workers only.
+          insuranceCovered: isInsuranceCovered(emp),
           loanDeduction,
           absentDays,
           overtimeHours,

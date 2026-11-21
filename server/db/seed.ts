@@ -12,8 +12,8 @@ import { log } from "../lib/logger";
 // Ensure base entities exist before seeding advanced modules
 async function ensureBaseEntities() {
   const defaultCountries = [
-    { code: 'SA', name_ar: 'السعودية', name_en: 'Saudi Arabia', currency: 'SAR', symbol_ar: 'ر.س', symbol_en: 'SAR', insurance_type: 'gosi', employee_rate: 9.75, employer_rate: 11.75, ceiling: 45000, tax_type: 'none', eos_type: 'saudi_half_month', leave_days: 21, work_days: 6, weekend: '[5,6]', wps: 'sama' },
-    { code: 'EG', name_ar: 'مصر', name_en: 'Egypt', currency: 'EGP', symbol_ar: 'ج.م', symbol_en: 'EGP', insurance_type: 'egypt_social', employee_rate: 11, employer_rate: 18.75, ceiling: 12600, tax_type: 'progressive', eos_type: 'egypt_half_month', leave_days: 21, work_days: 6, weekend: '[5]', wps: 'egypt_sif' },
+    { code: 'SA', name_ar: 'السعودية', name_en: 'Saudi Arabia', currency: 'SAR', symbol_ar: 'ر.س', symbol_en: 'SAR', insurance_type: 'gosi', employee_rate: 9.75, employer_rate: 11.75, ceiling: 45000, tax_type: 'none', eos_type: 'saudi_half_month', leave_days: 21, work_days: 6, weekend: '[5,6]', wps: 'sama', uncovered_employee_rate: 0, uncovered_employer_rate: 2 },
+    { code: 'EG', name_ar: 'مصر', name_en: 'Egypt', currency: 'EGP', symbol_ar: 'ج.م', symbol_en: 'EGP', insurance_type: 'egypt_social', employee_rate: 11, employer_rate: 18.75, ceiling: 12600, tax_type: 'progressive', eos_type: 'egypt_half_month', leave_days: 21, work_days: 6, weekend: '[5]', wps: 'egypt_sif', uncovered_employee_rate: 0, uncovered_employer_rate: 0 },
   ];
   for (const country of defaultCountries) {
     await db.prepare(`INSERT OR IGNORE INTO countries
@@ -24,6 +24,27 @@ async function ensureBaseEntities() {
       .run(country.code, country.name_ar, country.name_en, country.currency, country.symbol_ar, country.symbol_en,
         country.insurance_type, country.employee_rate, country.employer_rate, country.ceiling, country.tax_type,
         country.eos_type, country.leave_days, country.work_days, country.weekend, country.wps);
+
+    // The rates for a worker the scheme does not cover — an expatriate. They
+    // pay no employee contribution, and the employer pays the occupational
+    // hazards rate instead: 2% in Saudi Arabia, nothing in Egypt.
+    for (const [key, value] of [
+      ['insurance_uncovered_emp_rate', String(country.uncovered_employee_rate ?? 0)],
+      ['insurance_uncovered_comp_rate', String(country.uncovered_employer_rate ?? 0)],
+    ]) {
+      const existing = (await db.prepare(
+        "SELECT rule_key FROM country_rules WHERE country_code = ? AND rule_type = 'insurance' AND rule_key = ?",
+      ).get(country.code, key)) as any;
+      if (existing) {
+        await db.prepare(
+          "UPDATE country_rules SET rule_value = ? WHERE country_code = ? AND rule_type = 'insurance' AND rule_key = ?",
+        ).run(value, country.code, key);
+      } else {
+        await db.prepare(
+          "INSERT INTO country_rules (country_code, rule_type, rule_key, rule_value) VALUES (?, 'insurance', ?, ?)",
+        ).run(country.code, key, value);
+      }
+    }
   }
   for (const [key, value] of [
     ['org_name', 'مؤسسة الرواتب العالمية'], ['country', 'Egypt'], ['currency', 'EGP'], ['tax_rate', '10'],

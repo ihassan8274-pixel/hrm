@@ -2,6 +2,16 @@ import type { CountryConfig } from './payroll-types';
 import { PayrollInput, PayrollResult } from './payroll-types';
 import { dailyBasisFor } from './working-days';
 
+/**
+ * The length of a month for the statutory daily wage.
+ *
+ * نظام العمل, Article 2: «الشهر: ثلاثون يوماً ما لم ينص على خلاف ذلك في عقد
+ * العمل أو في لائحة تنظيم العمل». The overtime is paid on this basis: the
+ * basic wage over thirty days, and Article 107 adds half the basic wage on
+ * top of the hourly rate.
+ */
+const STATUTORY_MONTH_DAYS = 30;
+
 export class PayrollCalculator {
   static calculate(input: PayrollInput, rules: CountryConfig): PayrollResult {
     const { basicSalary, housingAllowance, transportAllowance, otherAllowances, deductions, loanDeduction, absentDays, overtimeHours } = input;
@@ -18,28 +28,42 @@ export class PayrollCalculator {
     const insuranceCeilingOn = rules.insurance.ceilingAppliedOn === 'gross' 
       ? grossSalary 
       : basicSalary + housingAllowance;
-    
-    // 4. Employee insurance
+
+    // 4. Employee and employer insurance
+    //
+    // The social insurance scheme covers the national workers. A worker it
+    // does not cover pays no employee contribution; the employer pays the
+    // occupational hazards rate instead — 2% in Saudi Arabia — and there is
+    // no floor to raise a wage that is not insured at all.
+    const covered = input.insuranceCovered !== false;
+    const employeeRate = covered ? rules.insurance.employeeRate : (rules.insurance.uncoveredEmployeeRate ?? 0);
+    const employerRate = covered ? rules.insurance.employerRate : (rules.insurance.uncoveredEmployerRate ?? 0);
+
     let insuranceBase = insuranceCeilingOn;
     let insuranceCeilingApplied = false;
     if (rules.insurance.ceiling && insuranceBase > rules.insurance.ceiling) {
       insuranceBase = rules.insurance.ceiling;
       insuranceCeilingApplied = true;
     }
-    if (rules.insurance.floor && insuranceBase < rules.insurance.floor) {
+    if (covered && rules.insurance.floor && insuranceBase < rules.insurance.floor) {
       insuranceBase = rules.insurance.floor;
     }
     
-    const insuranceEmployee = insuranceBase * (rules.insurance.employeeRate / 100);
-    const insuranceEmployer = insuranceBase * (rules.insurance.employerRate / 100);
+    const insuranceEmployee = insuranceBase * (employeeRate / 100);
+    const insuranceEmployer = insuranceBase * (employerRate / 100);
     
     // 5. Overtime pay
-    const hourlyRate = dailyRate / rules.workTime.hoursPerDay;
+    //
+    // On the statutory basis: the basic wage over thirty days, divided by the
+    // hours of the day. The absence deduction uses the country's working days
+    // instead, because a month is paid for the days the employee is expected
+    // to work.
+    const hourlyRate = (basicSalary / STATUTORY_MONTH_DAYS) / rules.workTime.hoursPerDay;
     const overtimePay = overtimeHours * hourlyRate * rules.workTime.overtimeRate;
     
     // 6. Absent deduction
     const absentDeduction = absentDays * dailyRate;
-
+    
     // 6b. Verified income-tax exemptions reduce the taxable income (إثبات إعفاء).
     const taxExemptions = Number(input.taxExemptions) || 0;
     

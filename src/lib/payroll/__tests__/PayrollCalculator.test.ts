@@ -9,7 +9,17 @@ const saConfig: CountryConfig = {
   currency: 'SAR',
   currency_symbol_ar: 'ر.س',
   currency_symbol_en: 'SAR',
-  insurance: { employeeRate: 9.75, employerRate: 11.75, ceiling: 45000, floor: 2000, ceilingAppliedOn: 'basic_plus_housing' },
+  insurance: {
+    employeeRate: 9.75,
+    employerRate: 11.75,
+    // A worker the scheme does not cover: no employee contribution, and the
+    // employer pays the occupational hazards rate instead.
+    uncoveredEmployeeRate: 0,
+    uncoveredEmployerRate: 2,
+    ceiling: 45000,
+    floor: 2000,
+    ceilingAppliedOn: 'basic_plus_housing'
+  },
   tax: { type: 'none' },
   eos: { type: 'half_month_per_year', monthsPerYear: 0.5, basis: 'last_basic' },
   leaves: { annualDays: 21, sickDays: 0, maternityDays: 0, paternityDays: 0 },
@@ -114,11 +124,37 @@ describe('PayrollCalculator', () => {
 
   it('calculates overtime: 3 hours at 1.5x hourly rate', () => {
     const r = calc({ basicSalary: 10000, overtimeHours: 3 });
-    // A month is paid for the working days: Saudi Arabia works Sunday to
-    // Thursday, so the day is 1/21 of the wage.
-    // dailyRate = 10000/21 = 476.190, hourly = 476.190/8 = 59.524
-    // overtime = 3 * 59.524 * 1.5 = 267.857
-    expect(r.overtimePay).toBeCloseTo(267.857, 2);
+    // The overtime is paid on the statutory daily wage: the basic wage over
+    // thirty days (نظام العمل, Article 2: the month is thirty days), divided
+    // by the hours of the day.
+    // hourly = 10000/30/8 = 41.667, overtime = 3 * 41.667 * 1.5 = 187.5
+    expect(r.overtimePay).toBeCloseTo(187.5, 2);
+  });
+
+  it('keeps the overtime on the statutory basis while the month is paid for 21 days', () => {
+    // The absence deduction follows the country's working days; the overtime
+    // stays on the statutory thirty days.
+    const withOvertime = calc({ basicSalary: 10000, housingAllowance: 5000, overtimeHours: 1 });
+    const withoutOvertime = calc({ basicSalary: 10000, housingAllowance: 5000 });
+    expect(withOvertime.overtimePay).toBeCloseTo(62.5, 2); // 10000/30/8 * 1.5
+    expect(withoutOvertime.overtimePay).toBe(0);
+  });
+
+  it('charges no employee contribution to a worker the scheme does not cover', () => {
+    // An expatriate pays nothing to the social insurance scheme, and the
+    // employer pays the occupational hazards rate instead — 2% in Saudi
+    // Arabia.
+    const covered = calc({ basicSalary: 10000, housingAllowance: 5000 });
+    const uncovered = calc({ basicSalary: 10000, housingAllowance: 5000, insuranceCovered: false });
+    expect(covered.insuranceEmployee).toBeCloseTo(15000 * 0.0975, 2);
+    expect(uncovered.insuranceEmployee).toBe(0);
+    expect(uncovered.insuranceEmployer).toBeCloseTo(15000 * 0.02, 2);
+    // The floor raises a wage that is insured; a wage that is not insured at
+    // all is not raised to it.
+    const lowCovered = calc({ basicSalary: 500, housingAllowance: 0 });
+    const lowUncovered = calc({ basicSalary: 500, housingAllowance: 0, insuranceCovered: false });
+    expect(lowCovered.insuranceEmployee).toBeCloseTo(2000 * 0.0975, 2);
+    expect(lowUncovered.insuranceEmployee).toBe(0);
   });
 
   it('deducts absent days from net', () => {

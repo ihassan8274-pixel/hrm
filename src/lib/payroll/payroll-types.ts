@@ -4,6 +4,15 @@ export interface InsuranceRules {
   ceiling?: number;
   floor?: number;
   ceilingAppliedOn: 'gross' | 'basic_plus_housing';
+  /**
+   * The rates for a worker the scheme does not cover — an expatriate.
+   *
+   * Such a worker pays no employee contribution, and the employer pays the
+   * occupational hazards rate instead: 2% in Saudi Arabia, nothing in a
+   * country whose scheme covers everyone.
+   */
+  uncoveredEmployeeRate?: number;
+  uncoveredEmployerRate?: number;
 }
 
 export interface TaxBracket {
@@ -77,6 +86,13 @@ export interface PayrollInput {
    * on the establishment's books) and not paid either.
    */
   unpaidLeaveDays?: number;
+  /**
+   * Whether the social insurance scheme covers this employee.
+   *
+   * A worker outside the scheme pays no employee contribution; the employer
+   * pays the occupational hazards rate instead. Undefined means covered.
+   */
+  insuranceCovered?: boolean;
   /** Verified income-tax exemptions for this period (إثبات إعفاء ضريبي). */
   taxExemptions?: number;
 }

@@ -388,23 +388,9 @@ describe.skipIf(!configured)("financial routes on a real database", () => {
       for (const row of saved) {
         const preview = body.employees.find((e: Json) => e.employeeId === row.employee_id);
         expect(preview, `employee ${row.employee_id} is missing from the batch`).toBeTruthy();
-        // The net has to match for the employees the social insurance scheme
-        // covers. For the ones it does not cover, the preview still charges
-        // the scheme's employee rate while the payroll run does not — the two
-        // implementations disagree on that, and it is recorded in the
-        // development plan.
-        const employee = (await db.prepare(
-          "SELECT is_saudi, nationality FROM employees WHERE id = ?",
-        ).get(row.employee_id)) as any;
-        const covered = employee.is_saudi === 1 || employee.nationality === "سعودي" || employee.nationality === "سعودية";
-        const difference = preview.netSalary - Number(row.net_salary);
-        if (covered) {
-          expect(difference, `employee ${row.employee_id}`).toBeCloseTo(0, 1);
-        } else {
-          // The preview is the lower one: it charges the scheme's employee
-          // rate for a worker the scheme does not cover.
-          expect(difference, `employee ${row.employee_id}`).toBeCloseTo(-preview.insuranceEmployee, 1);
-        }
+        // The preview and the payroll that is saved have to agree, for every
+        // employee: the same absence, the same tax, the same insurance.
+        expect(Number(row.net_salary), `employee ${row.employee_id}`).toBeCloseTo(preview.netSalary, 1);
       }
     });
 

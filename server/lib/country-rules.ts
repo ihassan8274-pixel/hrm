@@ -15,3 +15,35 @@ export async function workTimeForEntity(entityId: number | null): Promise<WorkTi
   const rules = await CountryRulesService.getEntityRules(entityId);
   return rules.workTime;
 }
+
+/**
+ * Whether the social insurance scheme covers an employee.
+ *
+ * The scheme covers the national workers: a Saudi employee is covered, an
+ * expatriate is not. An employee outside the scheme pays no employee
+ * contribution, and the employer pays the occupational hazards rate instead.
+ */
+export function isInsuranceCovered(employee: {
+  is_saudi?: number | null;
+  nationality?: string | null;
+}): boolean {
+  const nationality = (employee.nationality || "").trim();
+  return (
+    employee.is_saudi === 1 ||
+    nationality === "سعودي" ||
+    nationality === "سعودية" ||
+    nationality === "Saudi" ||
+    nationality === "Saudi Arabia"
+  );
+}
+
+/**
+ * The employer's rate for a worker the social insurance scheme does not
+ * cover — 2% in Saudi Arabia.
+ *
+ * It is read from the settings, the same place the payroll run reads it from,
+ * so the two cannot drift apart.
+ */
+export function uncoveredEmployerRate(settings: Record<string, string>): number {
+  return (parseFloat(settings.expat_gosi_comp_rate || "2") || 0) / 100;
+}
