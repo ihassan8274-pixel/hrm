@@ -274,6 +274,19 @@
     width: 100% !important;
   }
 
+  /* الورق ما بياخدش ارتفاع التطبيق. إخفاء العنصر (visibility) بيخفيه
+     بصرياً بس بيسيب مساحته، فكان جدول الموظفين (55 صفاً) بيطيّع الورق
+     6 صفحات فاضية ورا الشهادة. كل ما هو خارج المستند المطبوع بينخمر
+     فلا يحتل مساحة — المستند هو اللي بيحدد عدد الصفحات.
+     المستند نفسه خارج التدفق (position: absolute)، فمتموخدش بالقصّ. */
+  body:has(.print-document) #root *:not(.print-document):not(.print-document *) {
+    max-height: 0 !important;
+    overflow: hidden !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    border-width: 0 !important;
+  }
+
   /* الحركات (transform/filter) تُنشئ «سياق احتواء» جديداً، فتحوّل الورقة
      إلى موضع نسبي داخل الشاشة بدل أعلى الصفحة. نُبطلها على سلالة الورقة. */
   body:has(.print-document) #root *:has(.print-document) {
