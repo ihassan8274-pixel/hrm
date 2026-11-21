@@ -84,9 +84,9 @@ export default function SalaryCertificateModal({ employee, isOpen, onClose, onCe
   const totalMonthlyWage = employee.basic_salary + (includeAllowances ? (employee.housing_allowance || 0) + (employee.transport_allowance || 0) + (employee.other_allowances || 0) : 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm overflow-y-auto" dir="rtl">
-      <div className="bg-white w-full max-w-4xl rounded-3xl p-6 md:p-8 shadow-2xl my-8">
-        <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+    <div className="print-modal-overlay print-modal-scroll fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm overflow-y-auto" dir="rtl">
+      <div className="bg-white w-full max-w-4xl rounded-3xl p-6 md:p-8 shadow-2xl my-8 print:m-0 print:p-0 print:max-w-none">
+        <div className="no-print print:hidden flex justify-between items-center pb-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <FileText className="w-5 h-5" />
@@ -191,7 +191,7 @@ export default function SalaryCertificateModal({ employee, isOpen, onClose, onCe
             {/* Printable Document Preview */}
             <div 
               ref={printRef}
-              className="bg-white border-2 border-slate-200 rounded-2xl p-8 text-slate-800 space-y-6 print:m-0 print:border-none print:p-0"
+              className="print-document bg-white border-2 border-slate-200 rounded-2xl p-8 text-slate-800 space-y-6 print:m-0 print:border-none print:p-0"
               style={{ minHeight: '520px' }}
             >
               {/* Certificate Header — الترويسة الموحّدة لكل مخرجات النظام */}
@@ -311,7 +311,7 @@ export default function SalaryCertificateModal({ employee, isOpen, onClose, onCe
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-between items-center pt-2">
+            <div className="no-print print:hidden flex justify-between items-center pt-2">
               <button 
                 type="button" 
                 onClick={() => setCertificate(null)}

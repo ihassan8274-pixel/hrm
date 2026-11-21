@@ -307,6 +307,17 @@
     padding: 0 !important;
   }
 
+  /* أشرطة التمرير نفسها ما تُطبعش. Chromium كان بيرسم الشريط الأزرق
+     المخصّص للتطبيق على حافة الورقة، فيطلع خطاً أزرق غريب في الشهادة.
+     ولا سماكة الشريط ولا لونه معروضين على الورق. */
+  ::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+  }
+  * {
+    scrollbar-width: none !important;
+  }
+
   /* ورقة تلو الأخرى تبدأ صفحة جديدة. */
   .print-page + .print-page {
     break-before: page;
