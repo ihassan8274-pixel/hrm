@@ -1,5 +1,6 @@
 import type { CountryConfig } from './payroll-types';
 import { PayrollInput, PayrollResult } from './payroll-types';
+import { dailyBasisFor } from './working-days';
 
 export class PayrollCalculator {
   static calculate(input: PayrollInput, rules: CountryConfig): PayrollResult {
@@ -111,10 +112,16 @@ export class PayrollCalculator {
   }
 
   private static calculateDailyRate(basicSalary: number, housingAllowance: number, rules: CountryConfig): number {
-    // Saudi and GCC: 30 days basis
-    // Egypt: 30 days basis
-    // Some countries use 26 working days
-    const monthDays = rules.workTime.daysPerWeek === 5 ? 26 : 30;
+    // A month is paid for the days the employee is expected to work, so the
+    // daily rate — and everything derived from it: the absence deduction, the
+    // hourly rate for overtime, the leave accrual — divides the wage by the
+    // working days of a month.
+    //
+    // The country's own weekend decides how many that is: 21 days for a
+    // five-day week (Friday and Saturday off, which is Saudi Arabia and the
+    // Gulf), 26 for a six-day week (Friday off, which is Egypt, Jordan and
+    // Kuwait).
+    const monthDays = dailyBasisFor(rules.workTime);
     return (basicSalary + housingAllowance) / monthDays;
   }
 

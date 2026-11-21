@@ -6,10 +6,25 @@ import { listScopedEmployees, scopeFilter } from "../../lib/organization-scope";
 import { syncAttendanceFromLogs } from "../../lib/attendance-sync";
 import { CountryRulesService } from "../../../src/lib/payroll/CountryRulesService";
 import { PayrollCalculator } from "../../../src/lib/payroll/PayrollCalculator";
-import { countPresentWorkingDays, workingDaysInMonth } from "../../../src/lib/payroll/working-days";
+import { absenceFor } from "../../lib/attendance-absence";
 import { validateBody, payrollGenerateSchema, payrollLockSchema } from "../../middleware/validation";
 import { isPayrollLocked, payrollLockKey } from "./lock";
 import { log } from "../../lib/logger";
+
+/**
+ * The working-time rules of the entity an employee belongs to.
+ *
+ * The country decides the working week, so the weekend comes from the
+ * country rules — the same ones the payroll calculation uses. A country with
+ * Friday and Saturday off has a five-day week; one with Friday off has six.
+ */
+async function workTimeForEntity(entityId: number | null) {
+  if (entityId === null) {
+    throw new Error("الموظف غير مرتبط بكيان — لا يمكن تحديد أيام العمل له");
+  }
+  const rules = await CountryRulesService.getEntityRules(entityId);
+  return rules.workTime;
+}
 
 /**
  * The payroll period itself: the register for a month, the attendance sync
@@ -45,7 +60,7 @@ export function registerAttendanceSync(app: express.Express) {
       const year = Number(req.body.year);
       const scope = organizationScope(res);
       const employeeIds = (await listScopedEmployees(db, scope)).map((employee) => employee.id);
-      const r = await syncAttendanceFromLogs(db, month, year, new Date(), employeeIds);
+      const r = await syncAttendanceFromLogs(db, month, year, new Date(), employeeIds, workTimeForEntity);
       res.json({ success: true, ...r, employees: employeeIds.length });
     } catch (e) { res.status(500).json({ error: (e as Error).message }); }
   });
@@ -99,7 +114,7 @@ export function registerPayrollGenerate(app: express.Express) {
     const scopedIds = (await listScopedEmployees(db, scope)).map((employee) => employee.id);
     // Attendance is synced for the caller's employees only — a branch manager
     // must not rewrite the absence summary of another branch.
-    try { await syncAttendanceFromLogs(db, Number(month), Number(year), new Date(), scopedIds); } catch (e) { log.error(e); }
+    try { await syncAttendanceFromLogs(db, Number(month), Number(year), new Date(), scopedIds, workTimeForEntity); } catch (e) { log.error(e); }
     const settings = (await db.prepare("SELECT * FROM settings").all());
     const settingsObj = (settings as any[]).reduce((acc, curr) => {
       acc[curr.key] = curr.value;
@@ -306,15 +321,7 @@ export function registerPayrollBatch(app: express.Express) {
       if (employeeIds && employeeIds.length > 0) {
         employees = employees.filter(e => employeeIds.includes(e.id));
       }
-      // The working days of the period, from the country's own rules. It is
-      // the same for every employee, so it is worked out once.
-      //
-      // Counting the calendar days of the month instead charged every
-      // weekend day as unpaid absence: an employee who signed in on all 21
-      // working days of October 2026 was charged for 31.
-      const workingDays = month && year
-        ? workingDaysInMonth(Number(month), Number(year), rules.workTime)
-        : 0;
+
       const inputs = await Promise.all(employees.map(async (emp: any) => {
         const basicSalary = Number(emp.basic_salary) || 0;
         const housing = Number(emp.housing_allowance) || 0;
@@ -328,14 +335,11 @@ export function registerPayrollBatch(app: express.Express) {
         const overtimeHours = Number(attendanceRow.h) || 0;
         const summaryAbsence = Number(attendanceRow.a) || 0;
         if (month && year) {
-          // The dates the employee signed in, so that the ones that fall on a
-          // weekend can be left out: a sign-in on a Saturday is not a day of
-          // work and must not reduce the absence.
-          const presentDates = (await db.prepare(`
+          const signIns = (await db.prepare(`
             SELECT DISTINCT substr(CAST(check_in_time AS TEXT), 1, 10) AS d FROM attendance_logs
             WHERE employee_id = ? AND EXTRACT(MONTH FROM check_in_time)::int = ? AND EXTRACT(YEAR FROM check_in_time)::int = ?
           `).all(emp.id, Number(month), Number(year))) as any[];
-          if (presentDates.length === 0) {
+          if (signIns.length === 0) {
             // No device evidence for this period. The monthly summary is the
             // record of what happened — the same one the payslips are built
             // from — and missing device records are not evidence that it is
@@ -343,11 +347,11 @@ export function registerPayrollBatch(app: express.Express) {
             // that the employee missed the whole month.
             absentDays = summaryAbsence;
           } else {
-            const presentWorkingDays = countPresentWorkingDays(
-              presentDates.map((row) => String(row.d)),
-              rules.workTime,
-            );
-            absentDays = Math.max(0, workingDays - presentWorkingDays);
+            // The working days the employee neither worked on nor was on
+            // approved leave for — the same calculation the monthly summary
+            // is written from, so the two cannot disagree.
+            const breakdown = await absenceFor(db, emp.id, Number(month), Number(year), rules.workTime);
+            absentDays = breakdown.absenceDays;
           }
         }
         const loanDeduction = ((await db.prepare(`

@@ -320,9 +320,46 @@ async function main() {
     ["BASIC", "HOUSING", "TRANSPORT", "OTHER"].map((code, i) => [structure.id, componentByCode.get(code), i + 1, 1]),
   );
 
+  const attendanceMonths = monthsBack(ATTENDANCE_MONTHS);
+  /* --- leaves -------------------------------------------------------------- */
+
+  // The leaves come before the attendance: an employee on approved leave does
+  // not sign in, so the attendance has to know about the leave.
+  const leaveRows: unknown[][] = [];
+  const leavePeriods = new Map<number, { from: string; to: string }[]>();
+  for (const emp of employees) {
+    if (random() < 0.15) {
+      // The leave lands in one of the attendance months, so every period that
+      // is tested has employees with a leave in it.
+      const { month, year } = pick(attendanceMonths);
+      const start = between(1, 20);
+      const days = between(1, 10);
+      const status = pick(["approved", "approved", "pending"]);
+      const from = isoDate(year, month, start);
+      const to = isoDate(year, month, start + days);
+      leaveRows.push([
+        emp.id, pick(["annual", "sick", "unpaid"]),
+        from, to,
+        days, status,
+        pick(["إجازة سنوية", "مرضية", "شخصية"]),
+        null, new Date(Date.UTC(year, month - 1, start)).toISOString(),
+      ]);
+      if (status === "approved") {
+        const periods = leavePeriods.get(emp.id) || [];
+        periods.push({ from, to });
+        leavePeriods.set(emp.id, periods);
+      }
+    }
+  }
+  await insertMany(
+    "leaves",
+    ["employee_id", "type", "start_date", "end_date", "days", "status", "reason", "approver_id", "approved_at"],
+    leaveRows,
+  );
+  console.log(`leaves: ${leaveRows.length}`);
+
   /* --- attendance --------------------------------------------------------- */
 
-  const attendanceMonths = monthsBack(ATTENDANCE_MONTHS);
   const logRows: unknown[][] = [];
   const summaryRows: unknown[][] = [];
   for (const { month, year } of attendanceMonths) {
@@ -345,6 +382,15 @@ async function main() {
       // working, or a month before the devices were installed. Their monthly
       // summary stands on its own, which is the case the application has to
       // get right.
+      //
+      // The days of an approved leave are days the employee was not at work:
+      // there is no sign-in for them. That is what makes the leave overlap
+      // with the absence worth testing.
+      const onLeave = leavePeriods.get(emp.id) || [];
+      const isOnLeave = (day: number) => {
+        const iso = isoDate(year, month, day);
+        return onLeave.some((period) => iso >= period.from && iso <= period.to);
+      };
       const noDevice = random() < 0.05;
       const missingDays = noDevice || random() >= 0.25 ? 0 : between(1, 3);
       const skipped = new Set<number>();
@@ -354,6 +400,7 @@ async function main() {
       if (!noDevice) {
         for (const day of workingDays) {
           if (skipped.has(day)) continue;
+          if (isOnLeave(day)) continue;
           const checkIn = new Date(Date.UTC(year, month - 1, day, 6, 0));
           const checkOut = new Date(Date.UTC(year, month - 1, day, 14, 0));
           const late = random() < 0.1;
@@ -393,30 +440,6 @@ async function main() {
   }
   await insertMany("loans", ["employee_id", "total_amount", "remaining_amount", "monthly_installment", "status"], loanRows);
   console.log(`loans: ${loanRows.length}`);
-
-  /* --- leaves -------------------------------------------------------------- */
-
-  const leaveRows: unknown[][] = [];
-  for (const emp of employees) {
-    if (random() < 0.15) {
-      const { month, year } = attendanceMonths[0];
-      const start = between(1, 20);
-      const days = between(1, 10);
-      leaveRows.push([
-        emp.id, pick(["annual", "sick", "unpaid"]),
-        isoDate(year, month, start), isoDate(year, month, start + days),
-        days, pick(["approved", "approved", "pending"]),
-        pick(["إجازة سنوية", "مرضية", "شخصية"]),
-        null, new Date(Date.UTC(year, month - 1, start)).toISOString(),
-      ]);
-    }
-  }
-  await insertMany(
-    "leaves",
-    ["employee_id", "type", "start_date", "end_date", "days", "status", "reason", "approver_id", "approved_at"],
-    leaveRows,
-  );
-  console.log(`leaves: ${leaveRows.length}`);
 
   /* --- qiwa contracts for the Saudi employees ------------------------------ */
 

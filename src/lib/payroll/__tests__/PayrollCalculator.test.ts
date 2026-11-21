@@ -25,6 +25,9 @@ const egConfig: CountryConfig = {
   currency: 'EGP',
   currency_symbol_ar: 'ج.م',
   currency_symbol_en: 'EGP',
+  // Egypt works Saturday to Thursday: Friday is the only weekend day, so the
+  // month is paid for 26 days.
+  workTime: { hoursPerDay: 8, daysPerWeek: 6, weekendDays: [5], overtimeRate: 1.5 },
   insurance: { employeeRate: 0, employerRate: 0, ceilingAppliedOn: 'gross' },
   tax: {
     type: 'progressive',
@@ -111,16 +114,31 @@ describe('PayrollCalculator', () => {
 
   it('calculates overtime: 3 hours at 1.5x hourly rate', () => {
     const r = calc({ basicSalary: 10000, overtimeHours: 3 });
-    // dailyRate = 10000/30 = 333.333, hourly = 333.333/8 = 41.667
-    // overtime = 3 * 41.667 * 1.5 = 187.5
-    expect(r.overtimePay).toBeCloseTo(187.5, 1);
+    // A month is paid for the working days: Saudi Arabia works Sunday to
+    // Thursday, so the day is 1/21 of the wage.
+    // dailyRate = 10000/21 = 476.190, hourly = 476.190/8 = 59.524
+    // overtime = 3 * 59.524 * 1.5 = 267.857
+    expect(r.overtimePay).toBeCloseTo(267.857, 2);
   });
 
   it('deducts absent days from net', () => {
     const r = calc({ basicSalary: 3000, absentDays: 2 });
-    const dailyRate = 3000 / 30;
-    expect(r.absentDeduction).toBeCloseTo(dailyRate * 2, 2); // 200
+    const dailyRate = 3000 / 21;
+    expect(r.absentDeduction).toBeCloseTo(dailyRate * 2, 2); // 285.714
     expect(r.netSalary).toBeCloseTo(r.grossSalary - r.insuranceEmployee - r.absentDeduction, 2);
+  });
+
+  it('takes the length of the month from the country weekend', () => {
+    // Egypt works Saturday to Thursday, so its month is paid for 26 days.
+    const r = calc({ basicSalary: 3000, absentDays: 2 }, egConfig);
+    expect(r.absentDeduction).toBeCloseTo((3000 / 26) * 2, 2); // 230.769
+  });
+
+  it('charges an employee who missed the whole month the whole wage', () => {
+    // The point of the working-day basis: a month is paid for the days the
+    // employee is expected to work, so missing all of them costs all of it.
+    const r = calc({ basicSalary: 10000, housingAllowance: 5000, absentDays: 21 });
+    expect(r.absentDeduction).toBeCloseTo(15000, 2);
   });
 
   it('splits net salary for split payment (40% cash / 60% bank)', () => {
@@ -151,9 +169,10 @@ describe('PayrollCalculator', () => {
 
   it('calculates annual leave accrual monthly', () => {
     const r = calc({ basicSalary: 12000, housingAllowance: 0 });
-    const dailyRate = 12000 / 30; // 400
-    // annualLeaveAccrual = (21/12) * 400 = 700
-    expect(r.annualLeaveAccrual).toBeCloseTo(700, 2);
+    // A month is paid for 21 working days, so a day of leave is worth
+    // 12000/21 = 571.43 and the monthly accrual is (21/12) * 571.43 = 1000 —
+    // which is exactly 21 days of leave a year.
+    expect(r.annualLeaveAccrual).toBeCloseTo(1000, 2);
   });
 
   it('calculateBatch returns results for all inputs', () => {

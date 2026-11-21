@@ -82,3 +82,37 @@ export function countPresentWorkingDays(dates: string[], workTime: WorkTimeRules
   }
   return seen.size;
 }
+
+/**
+ * The working days of a month up to and including a day of it.
+ *
+ * Used for the days of a period that have already gone by, so that a month
+ * that is still running is not compared against days that have not happened.
+ */
+export function workingDaysUpTo(month: number, year: number, upToDay: number, workTime: WorkTimeRules): number {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const limit = Math.min(Math.max(1, upToDay), daysInMonth);
+  let count = 0;
+  for (let day = 1; day <= limit; day++) {
+    if (!isWeekendDay(new Date(year, month - 1, day), workTime.weekendDays)) count++;
+  }
+  return count;
+}
+
+/**
+ * The number of days a month is paid for — the divisor of the daily rate.
+ *
+ * A monthly wage is paid for the days the employee is expected to work, so a
+ * day of absence costs that much and a day of leave is worth that much. With
+ * a five-day week (Friday and Saturday off) that is 21 days; with a six-day
+ * week (Friday off) it is 26.
+ *
+ * The weekend list decides which of the two it is. `daysPerWeek` is the
+ * fallback for a country whose weekend list is empty.
+ */
+export function dailyBasisFor(workTime: WorkTimeRules): number {
+  const workingDaysPerWeek = workTime.weekendDays.length > 0
+    ? 7 - workTime.weekendDays.length
+    : workTime.daysPerWeek;
+  return Math.round((30 * workingDaysPerWeek) / 7);
+}
