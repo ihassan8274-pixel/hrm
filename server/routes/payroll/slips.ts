@@ -5,6 +5,8 @@ import { requireOrganizationScope, organizationScope, denyEmployee } from "../..
 import { scopeFilter } from "../../lib/organization-scope";
 import { SalaryStructureEngine } from "../../lib/payroll/SalaryStructureEngine";
 import { validateBody, payrollCalculateSlipSchema, payrollSaveSlipSchema } from "../../middleware/validation";
+import { workingDaysInMonth } from "../../../src/lib/payroll/working-days";
+import { workTimeForEntity } from "../../lib/country-rules";
 
 /**
  * Salary slips (قسائم الرواتب).
@@ -48,15 +50,23 @@ export function registerSalarySlips(app: express.Express) {
         WHERE employee_id = ? AND status = 'active'
       `).get(employee_id)) || { total_installment: 0 };
 
+      // The working days of the period come from the country's own week: a
+      // month has more calendar days than working days, and the difference is
+      // the weekend. Reporting '30 minus the absence' counted the weekend as
+      // working days.
+      const workTime = await workTimeForEntity((employee as any).entity_id);
+      const periodWorkingDays = workingDaysInMonth(Number(month), Number(year), workTime);
+      const absentDays = Number(attendance.absence_days) || 0;
+
       // إعداد السياق
       const context = {
         employee,
         structure,
         period: { month: Number(month), year: Number(year) },
         attendance: {
-          working_days: attendance.absence_days ? 30 - Number(attendance.absence_days) : 30,
-          payment_days: attendance.absence_days ? 30 - Number(attendance.absence_days) : 30,
-          absent_days: Number(attendance.absence_days) || 0,
+          working_days: Math.max(0, periodWorkingDays - absentDays),
+          payment_days: Math.max(0, periodWorkingDays - absentDays),
+          absent_days: absentDays,
           overtime_hours: Number(attendance.overtime_hours) || 0,
           late_minutes: 0,
         },

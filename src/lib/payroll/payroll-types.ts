@@ -70,6 +70,13 @@ export interface PayrollInput {
   cashPercentage?: number;
   /** Verified one-off off-cycle additions/deductions for this period (دفعة خارج الدورة). */
   additionalSalaries?: { type: 'earning' | 'deduction'; amount: number }[];
+  /**
+   * The days of approved unpaid leave in the period.
+   *
+   * They are deducted once, as unpaid leave: not as absence (the employee was
+   * on the establishment's books) and not paid either.
+   */
+  unpaidLeaveDays?: number;
   /** Verified income-tax exemptions for this period (إثبات إعفاء ضريبي). */
   taxExemptions?: number;
 }
@@ -87,6 +94,8 @@ export interface PayrollResult {
   insuranceEmployer: number;
   taxAmount: number;
   absentDeduction: number;
+  /** The unpaid leave of the period, deducted once. */
+  unpaidLeaveDeduction: number;
   loanDeduction: number;
   otherDeductions: number;
   totalDeductions: number;

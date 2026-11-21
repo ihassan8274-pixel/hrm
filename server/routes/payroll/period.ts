@@ -6,25 +6,14 @@ import { listScopedEmployees, scopeFilter } from "../../lib/organization-scope";
 import { syncAttendanceFromLogs } from "../../lib/attendance-sync";
 import { CountryRulesService } from "../../../src/lib/payroll/CountryRulesService";
 import { PayrollCalculator } from "../../../src/lib/payroll/PayrollCalculator";
-import { absenceFor } from "../../lib/attendance-absence";
+import { absenceFor, unpaidLeaveDaysInPeriod } from "../../lib/attendance-absence";
+import { dailyBasisFor, maxWorkingDaysInMonth, workingDaysInMonth } from "../../../src/lib/payroll/working-days";
+import { workTimeForEntity } from "../../lib/country-rules";
 import { validateBody, payrollGenerateSchema, payrollLockSchema } from "../../middleware/validation";
 import { isPayrollLocked, payrollLockKey } from "./lock";
 import { log } from "../../lib/logger";
 
-/**
- * The working-time rules of the entity an employee belongs to.
- *
- * The country decides the working week, so the weekend comes from the
- * country rules — the same ones the payroll calculation uses. A country with
- * Friday and Saturday off has a five-day week; one with Friday off has six.
- */
-async function workTimeForEntity(entityId: number | null) {
-  if (entityId === null) {
-    throw new Error("الموظف غير مرتبط بكيان — لا يمكن تحديد أيام العمل له");
-  }
-  const rules = await CountryRulesService.getEntityRules(entityId);
-  return rules.workTime;
-}
+
 
 /**
  * The payroll period itself: the register for a month, the attendance sync
@@ -120,7 +109,6 @@ export function registerPayrollGenerate(app: express.Express) {
       acc[curr.key] = curr.value;
       return acc;
     }, {});
-    const taxRate = parseFloat(settingsObj.tax_rate || '0') / 100;
     const defaultSaudiEmpRate = parseFloat(settingsObj.saudi_gosi_emp_rate || '9.75') / 100;
     const defaultSaudiCompRate = parseFloat(settingsObj.saudi_gosi_comp_rate || '11.75') / 100;
     const defaultExpatCompRate = parseFloat(settingsObj.expat_gosi_comp_rate || '2.0') / 100;
@@ -161,16 +149,18 @@ export function registerPayrollGenerate(app: express.Express) {
           if (loan) {
             loanDeduction = Math.min(loan.monthly_installment, loan.remaining_amount);
           }
-          const dailyRate = emp.basic_salary / 30;
-          const hourlyRate = (emp.basic_salary / 30) / 8;
+          // A month is paid for the working days of the country, so the daily
+          // rate — and the hourly rate of the overtime — follow the country's
+          // own week: 21 days for a five-day week, 26 for a six-day one.
+          const countryRules = await CountryRulesService.getEntityRules(emp.entity_id);
+          const workTime = countryRules.workTime;
+          const basis = dailyBasisFor(workTime);
+          const dailyRate = (emp.basic_salary + (emp.housing_allowance || 0)) / basis;
+          const hourlyRate = dailyRate / workTime.hoursPerDay;
           const absenceDeduction = att.absence_days * dailyRate;
           const overtimePay = att.overtime_hours * hourlyRate * 1.5;
-          const unpaidLeaves = (await db.prepare(`
-            SELECT SUM(days) as total FROM leaves
-            WHERE employee_id = ? AND status = 'approved' AND type = 'unpaid'
-            AND (EXTRACT(MONTH FROM start_date)::int = ? OR EXTRACT(MONTH FROM end_date)::int = ?)
-          `).get(emp.id, Number(month), Number(month))) as any;
-          const unpaidLeaveDeduction = (unpaidLeaves.total || 0) * dailyRate;
+          const unpaidLeaveDays = await unpaidLeaveDaysInPeriod(db, emp.id, Number(month), Number(year));
+          const unpaidLeaveDeduction = unpaidLeaveDays * dailyRate;
           const housing = emp.housing_allowance || 0;
           const transport = emp.transport_allowance || 0;
           const gosiWage = Math.min(45000, Number(emp.basic_salary) + Number(housing));
@@ -189,7 +179,11 @@ export function registerPayrollGenerate(app: express.Express) {
           const totalAllowances = emp.allowances + housing + transport + (emp.other_allowances || 0) + overtimePay + monthBonus + add.earnings;
           const totalDeductions = emp.deductions + absenceDeduction + unpaidLeaveDeduction + loanDeduction + monthPenalty + insEmpShare + add.deductions;
           const taxableIncome = Math.max(0, emp.basic_salary + totalAllowances - totalDeductions - taxExemptions);
-          const taxAmount = Math.max(0, taxableIncome * taxRate);
+          // The tax comes from the country's rules, not from a global setting.
+          // The setting held a flat 10% left over from the days when the
+          // organisation was Egyptian, and it was charging Saudi employees an
+          // income tax the country does not have.
+          const taxAmount = PayrollCalculator.calculateTax(taxableIncome, countryRules);
           const net = taxableIncome - taxAmount;
           const payMethod = emp.payment_method || 'bank';
           const cashPct = Number(emp.cash_percentage || 0);
@@ -235,7 +229,11 @@ export function registerPayrollGenerate(app: express.Express) {
       return count;
     });
     try {
-      const generatedCount = transactions(employees);
+      // The transaction has to be awaited: without it the route answers
+      // before the period is written, the count it reports is the function
+      // rather than the number of employees, and a failure inside the
+      // transaction never reaches the catch below.
+      const generatedCount = await transactions(employees);
       await createNotification('تم إنشاء مسير الرواتب', `تم إنشاء مسير رواتب لعدد ${generatedCount} موظف لشهر ${month}/${year} وفق قواعد نظام العمل والتأمينات السعودية`, 'success');
       await logAction('generate', 'payroll', null, `Generated KSA-compliant payroll for ${month}/${year}`);
       res.json({ success: true, count: generatedCount });
@@ -265,6 +263,15 @@ export function registerPayrollCalculate(app: express.Express) {
         return res.status(400).json({ error: "Entity not found for user/employee" });
       }
       const rules = await CountryRulesService.getEntityRules(entityId);
+      // The absence cannot be longer than the working days of the period: an
+      // employee is not absent on the days the establishment is closed. The
+      // request may name the period; without it the longest month of the year
+      // is the bound.
+      const requestedMonth = Number((req.body as any)?.month) || 0;
+      const requestedYear = Number((req.body as any)?.year) || 0;
+      const absenceLimit = requestedMonth && requestedYear
+        ? workingDaysInMonth(requestedMonth, requestedYear, rules.workTime)
+        : maxWorkingDaysInMonth(rules.workTime);
       const input = {
         employeeId: Number(employee_id) || 0,
         basicSalary: Number(basicSalary) || 0,
@@ -273,7 +280,7 @@ export function registerPayrollCalculate(app: express.Express) {
         otherAllowances: Number(otherAllowances) || 0,
         deductions: Number(deductions) || 0,
         loanDeduction: Number(loanDeduction) || 0,
-        absentDays: Number(absentDays) || 0,
+        absentDays: Math.min(Number(absentDays) || 0, absenceLimit),
         overtimeHours: Number(overtimeHours) || 0,
         paymentMethod: paymentMethod || 'bank',
         cashPercentage: Number(cashPercentage) || 0
@@ -358,6 +365,11 @@ export function registerPayrollBatch(app: express.Express) {
           SELECT COALESCE(SUM(monthly_installment), 0) as l FROM loans
           WHERE employee_id = ? AND status = 'active'
         `).get(emp.id)) as any)?.l || 0;
+        // The unpaid leave of the period, and the employee's standing
+        // deductions: the payroll run that saves the period charges both, so
+        // the preview has to as well.
+        const unpaidLeaveDays = await unpaidLeaveDaysInPeriod(db, emp.id, Number(month), Number(year));
+        const standingDeductions = Number(emp.deductions) || 0;
         return {
           employeeId: emp.id,
           employee: emp,
@@ -365,7 +377,8 @@ export function registerPayrollBatch(app: express.Express) {
           housingAllowance: housing,
           transportAllowance: transport,
           otherAllowances: other,
-          deductions: 0,
+          deductions: standingDeductions,
+          unpaidLeaveDays,
           loanDeduction,
           absentDays,
           overtimeHours,

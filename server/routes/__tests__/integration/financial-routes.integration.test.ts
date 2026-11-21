@@ -366,6 +366,48 @@ describe.skipIf(!configured)("financial routes on a real database", () => {
       }
     });
 
+    it("writes the same net in the payroll run the interface uses", async () => {
+      // The interface does not use /api/payroll/calculate or /batch — it runs
+      // /api/payroll/generate, which builds the period that is actually
+      // saved. That route had its own daily rate, so the preview and the
+      // saved run could disagree about the same employee in the same month.
+      //
+      // The payroll rows of the period are removed first, because generate
+      // skips the employees that already have one.
+      await db.prepare("DELETE FROM payroll WHERE month = ? AND year = ?").run(PERIOD.month, PERIOD.year);
+
+      const generated = await request("POST", `/api/payroll/generate?entity_id=${entityId}`, PERIOD);
+      expect(generated.status, JSON.stringify(generated.body)).toBe(200);
+
+      const { body } = await request("POST", `/api/payroll/batch?entity_id=${entityId}`, PERIOD);
+      const saved = (await db.prepare(
+        "SELECT employee_id, net_salary, deductions FROM payroll WHERE month = ? AND year = ? ORDER BY employee_id LIMIT 20",
+      ).all(PERIOD.month, PERIOD.year)) as any[];
+      expect(saved.length).toBeGreaterThan(0);
+
+      for (const row of saved) {
+        const preview = body.employees.find((e: Json) => e.employeeId === row.employee_id);
+        expect(preview, `employee ${row.employee_id} is missing from the batch`).toBeTruthy();
+        // The net has to match for the employees the social insurance scheme
+        // covers. For the ones it does not cover, the preview still charges
+        // the scheme's employee rate while the payroll run does not — the two
+        // implementations disagree on that, and it is recorded in the
+        // development plan.
+        const employee = (await db.prepare(
+          "SELECT is_saudi, nationality FROM employees WHERE id = ?",
+        ).get(row.employee_id)) as any;
+        const covered = employee.is_saudi === 1 || employee.nationality === "سعودي" || employee.nationality === "سعودية";
+        const difference = preview.netSalary - Number(row.net_salary);
+        if (covered) {
+          expect(difference, `employee ${row.employee_id}`).toBeCloseTo(0, 1);
+        } else {
+          // The preview is the lower one: it charges the scheme's employee
+          // rate for a worker the scheme does not cover.
+          expect(difference, `employee ${row.employee_id}`).toBeCloseTo(-preview.insuranceEmployee, 1);
+        }
+      }
+    });
+
     it("never pays a negative salary", async () => {
       // Regression guard for the same defect: an employee who lost the weekend
       // days could end up with a negative net, which the application would
@@ -478,9 +520,12 @@ describe.skipIf(!configured)("financial routes on a real database", () => {
       expect(records.length).toBe(body.totalEmployees);
 
       // The amounts in the file have to add up to the total in its header,
-      // and to the net amounts that were paid for that period.
+      // and to the net amounts that were paid for the period. Each line
+      // carries two decimals, so the sum of five hundred lines can drift a
+      // few cents from the total.
       const fileTotal = records.reduce((sum, line) => sum + Number(line.split(",")[4]), 0);
-      expect(fileTotal).toBeCloseTo(body.totalAmount, 2);
+      const rounding = records.length * 0.005;
+      expect(Math.abs(fileTotal - body.totalAmount)).toBeLessThanOrEqual(rounding);
       const paidTotal = (await db.prepare(
         "SELECT COALESCE(SUM(bank_amount), 0) as s FROM payroll WHERE month = ? AND year = ?",
       ).get(PERIOD.month, PERIOD.year)) as any;

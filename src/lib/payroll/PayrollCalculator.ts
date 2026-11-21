@@ -48,7 +48,8 @@ export class PayrollCalculator {
     const taxAmount = this.calculateTax(taxableIncome, rules);
     
     // 8. Total deductions
-    const totalDeductions = insuranceEmployee + taxAmount + (deductions || 0) + (loanDeduction || 0) + absentDeduction + additional.deductions;
+    const unpaidLeaveDeduction = (input.unpaidLeaveDays || 0) * dailyRate;
+    const totalDeductions = insuranceEmployee + taxAmount + (deductions || 0) + (loanDeduction || 0) + absentDeduction + unpaidLeaveDeduction + additional.deductions;
     
     // 9. Net salary
     const netSalary = grossSalary + overtimePay + additional.earnings - totalDeductions;
@@ -88,6 +89,7 @@ export class PayrollCalculator {
       insuranceEmployer,
       taxAmount,
       absentDeduction,
+      unpaidLeaveDeduction,
       loanDeduction: loanDeduction || 0,
       otherDeductions: deductions || 0,
       totalDeductions,
@@ -179,7 +181,13 @@ export class PayrollCalculator {
     return Math.round(monthlyBasis * months * 100) / 100;
   }
 
-  private static calculateTax(taxableIncome: number, rules: CountryConfig): number {
+  /**
+   * The tax on a taxable income, from the country's own rules.
+   *
+   * It is public because the payroll run needs the same figure: a country
+   * with no income tax — Saudi Arabia — must not be charged one.
+   */
+  static calculateTax(taxableIncome: number, rules: CountryConfig): number {
     if (taxableIncome <= 0) return 0;
     
     switch (rules.tax.type) {

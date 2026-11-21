@@ -97,6 +97,28 @@ export async function leaveWorkingDaysInPeriod(
   return count;
 }
 
+/**
+ * The days of approved unpaid leave that fall in the period.
+ *
+ * Unpaid leave is deducted once, as unpaid leave: it is not absence (the
+ * employee was on the establishment's books, not absent from the job) and it
+ * is not paid either.
+ */
+export async function unpaidLeaveDaysInPeriod(
+  db: any,
+  employeeId: number,
+  month: number,
+  year: number,
+): Promise<number> {
+  const row = (await db.prepare(`
+    SELECT COALESCE(SUM(days), 0) AS d FROM leaves
+     WHERE employee_id = ? AND type = 'unpaid' AND status = 'approved'
+       AND EXTRACT(YEAR FROM start_date)::int = ?
+       AND EXTRACT(MONTH FROM start_date)::int = ?
+  `).all(employeeId, year, month)) as { d: number } | undefined;
+  return Number(row?.d) || 0;
+}
+
 /** The absence of an employee for a period, from the device records and the leave. */
 export async function absenceFor(
   db: any,

@@ -100,6 +100,23 @@ export function workingDaysUpTo(month: number, year: number, upToDay: number, wo
 }
 
 /**
+ * The most working days a month can have for this country.
+ *
+ * It is the bound the absence cannot pass: an employee cannot be absent for
+ * more days than there are working days in the longest month of the year.
+ */
+export function maxWorkingDaysInMonth(workTime: WorkTimeRules): number {
+  let max = 0;
+  for (const year of [2026, 2027]) {
+    for (let month = 1; month <= 12; month++) {
+      const count = workingDaysInMonth(month, year, workTime);
+      if (count > max) max = count;
+    }
+  }
+  return max;
+}
+
+/**
  * The number of days a month is paid for — the divisor of the daily rate.
  *
  * A monthly wage is paid for the days the employee is expected to work, so a
