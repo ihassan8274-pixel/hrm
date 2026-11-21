@@ -987,6 +987,15 @@ return (
       </div>
         </div>
       )}
+
+      {/* شهادة تعريف بالراتب — زر الطابعة في جدول الموظفين بيفتح المودال ده */}
+      {certEmployee && (
+        <SalaryCertificateModal
+          employee={certEmployee}
+          isOpen={Boolean(certEmployee)}
+          onClose={() => setCertEmployee(null)}
+        />
+      )}
     </div>
   );
 }

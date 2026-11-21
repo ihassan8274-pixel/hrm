@@ -13,7 +13,6 @@ import AccountingProvisionsView from './AccountingProvisionsView';
 import TotalCostEmploymentView from './TotalCostEmploymentView';
 import OvertimeRamadanView from './OvertimeRamadanView';
 import LaborLawAiConsultantView from './LaborLawAiConsultantView';
-import SalaryCertificateModal from './SalaryCertificateModal';
 import { Letterhead, DocumentFooter } from '../lib/print/letterhead';
 import { useLetterhead } from '../lib/print/use-letterhead';
 
@@ -91,9 +90,6 @@ export default function SaudiComplianceView() {
   const [gosiRecords, setGosiRecords] = useState<GosiRecord[]>([]);
   const [renewals, setRenewals] = useState<SaudiGovernmentRenewal[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Salary Certificate Modal State
-  const [certEmployee, setCertEmployee] = useState<any | null>(null);
 
   // Filters & Search
   const [searchTerm, setSearchTerm] = useState('');
@@ -1546,15 +1542,6 @@ export default function SaudiComplianceView() {
 
       {/* Tab: AI Saudi Labor Law Consultant */}
       {activeTab === 'ai_consultant' && <LaborLawAiConsultantView />}
-
-      {/* Salary Certificate Modal */}
-      {certEmployee && (
-        <SalaryCertificateModal
-          employee={certEmployee}
-          isOpen={true}
-          onClose={() => setCertEmployee(null)}
-        />
-      )}
 
       {/* Quick Renewal Modal */}
       {selectedEmpForRenew && (
