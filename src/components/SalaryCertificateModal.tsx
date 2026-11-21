@@ -103,6 +103,16 @@ export default function SalaryCertificateModal({ employee, isOpen, onClose, onCe
 
         {!certificate ? (
           <div className="mt-6 space-y-6">
+            {/* الطباعة قبل توليد الشهادة: ما تطبعش الشاشة كلها.
+                رسالة توجيه على الورق بدل واجهة النظام. */}
+            <div className="print-only print-document border border-slate-300 rounded-2xl p-8 text-slate-800">
+              <h3 className="text-lg font-black mb-2">شهادة تعريف بالراتب</h3>
+              <p className="text-sm font-bold">لم تُولَّد شهادة بعد.</p>
+              <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+                اضغط «توليد الشهادة الرسمية» أولاً، ثم اطبع. الورقة المطبوعة هي الشهادة وحدها، بلا واجهة النظام.
+              </p>
+            </div>
+
             <div className="bg-emerald-50/70 border border-emerald-100 p-4 rounded-2xl flex items-center justify-between">
               <div>
                 <p className="text-sm font-black text-emerald-950">{employee.name}</p>
