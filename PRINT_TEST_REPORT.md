@@ -87,13 +87,14 @@ from payroll.salary_certificates order by id desc limit 2;
 
 ## 5. العيوب اللي كشفها الاختبار
 
-### E1 🔴 زر «إصدار شهادة تعريف بالراتب» في شاشة الموظفين **ميت**
+### E1 🔴 زر «إصدار شهادة تعريف بالراتب» في شاشة الموظفين **ميت** — ✅ اتصلح 21/11
 
 - **الموقع:** `src/components/EmployeesView.tsx:8` (import) و `:18` (`certEmployee` state) و `:959` (الزر بيستدعي `setCertEmployee(emp)`)
 - **السبب:** المودال `SalaryCertificateModal` **مُستورد بس مش بيتعرض** في الصفحة. الـstate بيتحدّث والزر بيتنفّذ، بس ما فيش `<SalaryCertificateModal …>` في الـJSX.
 - **الأثر:** أي موظف أو HR يضغط الزر من شاشة «الموظفين والإقامات» **مش بيحصلش حاجة** — صمت تام.
 - **حالة مشابهة:** `src/components/SaudiComplianceView.tsx:1551` فيه `<SalaryCertificateModal>` معرّض، بس `setCertEmployee` **مش بيتنادى من أي مكان** ⇒ نفس العيب بالعكس (المودال معرّض وما بيفتحش).
 - **الشاشة الشغّالة الوحيدة:** `src/components/ESSView.tsx:556`.
+- **✅ الإصلاح:** commit `aa86c4a` — المودال اتعرض في `EmployeesView`، والكود الميت في `SaudiComplianceView` اتشال. اتنشر واتأكد حيًّا (تفاصيل §9).
 
 ### E2 🔴 رابط الـQR في الشهادة المطبوعة ⇒ **صفحة 404**
 
@@ -120,7 +121,7 @@ from payroll.salary_certificates order by id desc limit 2;
 
 | الأولوية | البند | ملاحظة |
 |---|---|---|
-| 🔴 P1 | **E1**: إضافة `<SalaryCertificateModal>` لـ`EmployeesView` + توصيل `setCertEmployee` في `SaudiComplianceView` | إصلاح موضعي في ملفين. **يحتاج بناء + نشر + اختبار حي** بعده |
+| ✅ تم | **E1**: إضافة `<SalaryCertificateModal>` لـ`EmployeesView` + شيل الكود الميت من `SaudiComplianceView` | **اتعمل** — commit `aa86c4a` · اتنشر على `massobi-payroll-app-1` · اتأكد حيًّا إن الزر بيفتح المودال بالبيانات الصح (§9) |
 | 🔴 P1 | **E2**: إضافة route `/verify-cert/:code` بصفحة عامة تعرض الشهادة | صفحة بسيطة تقرأ الكود من المسار وبتعرضValidity + التاريخ + الموظف |
 | 🟠 P2 | **E3**: فتح `GET /api/salary-certificates/verify/:code` للعموم | **قرار نطاق**: فتح endpoint عام = تغيير في سياسة الوصول — محتاج موافقة. البديل: route عام في الواجهة تستدعي endpoint محمي بعد login (شكلها هيفضل زي النهارده) |
 | 🟡 P3 | بوابة E2E في المتصفح لزر واحد على الأقل في كل شاشة | يمنع تكرار صنف العيوب ده |
@@ -151,3 +152,36 @@ curl.exe -sS -m 8 http://127.0.0.1:13000/api/health
 # logs الإصدار أثناء الاختبار
 docker logs massobi-payroll-app-1 --since 12m | Select-String "auth/login|forms|change-password"
 ```
+
+---
+
+## 9. إصلاح E1 — الزر الميت في شاشة الموظفين (اتنفّذ 21 نوفمبر 2026)
+
+**الإصلاح (commit `aa86c4a`):**
+
+| الملف | التعديل |
+|---|---|
+| `src/components/EmployeesView.tsx` | **`<SalaryCertificateModal>` اتعرض** جنب الجدول: `{certEmployee && <SalaryCertificateModal employee={certEmployee} isOpen={Boolean(certEmployee)} onClose={() => setCertEmployee(null)} />}` — الزر في الجدول بقى بيفتح المودال فعلاً |
+| `src/components/SaudiComplianceView.tsx` | **الكود الميت اتشال**: المودال كان معرّضاً بس `setCertEmployee` مش بيتنادى من أي مكان، والشاشة دي **مافيش فيها قائمة موظفين أصلاً** ⇒ مفيش زر طبيعي يربطهم. اتشال الـmodal والـstate والـimport بدل ما يفضل كود ميت |
+
+**النشر:** الصورة اتبنت من **نسخة نضيفة** (`git worktree` على commit `aa86c4a`) — **مش** من شجرة العمل، لأن شجرة العمل فيها شغل **غير مكتمل** من session تانية (`server/lib/attendance-absence.ts` غير متتبَّع + `attendance-sync.ts` معدَّل) واختباراتها مكسورة (6 اختبارات فاشلة). يعني النشر ده بيضمّ إصلاحي بس، من غير أي كود نصف مكتمل.
+
+```powershell
+docker build -t massobi-payroll-app:latest -f <worktree>/Dockerfile <worktree>
+docker compose -p massobi-payroll up -d --no-deps --no-build app   # الـDB ماتمسّش
+```
+
+**الفحص الحي بعد النشر:** `health` 200 · `ready` 200 · تحذير الترحيل المتوقع ظهر (5 ملفات متخطّاة بأرقام نسخ محجوزة — **مافيش DDL اتنفّذ**) · الحاوية اتعملها recreate بدون لمس `massobi-payroll-db-1` (healthy، 55 موظف).
+
+**اختبار المتصفح (بعد النشر، على `127.0.0.1:13000`):**
+
+| الخطوة | النتيجة |
+|---|---|
+| sidebar → «الموظفين والإقامات» | ✅ الجدول اتعرض (55 صف) |
+| زر «إصدار شهادة تعريف بالراتب» في أول صف | ✅ **المودال اتفتح** (قبل الإصلاح: مفيش أي رد فعل) |
+| محتوى المودال | ✅ «إصدار شهادة تعريف بالراتب معتمدة» · **عمر عبدالله عبدالرزاق عبدالوهاب** · `2580708275` · «عامل تحميل وتنزيل» · **1,500 ر.س** · زر «توليد الشهادة الرسمية» |
+
+> **الدرس العملي:** العطل كان **4 كلمات ناقصة** في JSX. مفيش اختبار API، ولا `tsc`، ولا بوابة الـsnapshot كان هيكتشفه — لأن `import` مستخدم فعلاً والـstate بيتغيّر فعلاً، بس **مافيش DOM بيتعرض**.
+
+**اللي فاضل:** E2 (رابط الـQR بلا route) و E3 (مصدر التحقق محمي بتوكن) — **مفتوحين**، محتاجين قرار نطاق (§6).
+
