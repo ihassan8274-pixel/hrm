@@ -211,6 +211,13 @@
     margin: 12mm;
   }
 
+  /* الورق أبيض: خلفية التطبيق كانت بترسم مستطيل ملوّن تحت الشهادة
+     بلا معنى. الورقة بياخد لونها من الورق نفسه. */
+  html,
+  body {
+    background: #ffffff !important;
+  }
+
   /* الترويسة التي تُطبع فقط على الورق. */
   .print-only {
     display: block !important;
@@ -272,6 +279,18 @@
     left: 0 !important;
     top: 0 !important;
     width: 100% !important;
+  }
+
+  /* شهادة الراتب: تملأ الورقة A4 كلها، والتوقيع والـQR في آخر الصفحة.
+     (ارتفاع أقل من الـ12mm الهامش × 2 عشان ما تتكسرش لصفحة تانية.) */
+  body:has(.print-document) .salary-certificate-document {
+    min-height: 265mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  body:has(.print-document) .salary-certificate-document .cert-footer {
+    margin-top: auto !important;
   }
 
   /* الورق ما بياخدش ارتفاع التطبيق. إخفاء العنصر (visibility) بيخفيه

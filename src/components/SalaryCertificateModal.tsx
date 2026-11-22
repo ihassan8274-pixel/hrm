@@ -201,7 +201,7 @@ export default function SalaryCertificateModal({ employee, isOpen, onClose, onCe
             {/* Printable Document Preview */}
             <div 
               ref={printRef}
-              className="print-document bg-white border-2 border-slate-200 rounded-2xl p-8 text-slate-800 space-y-6 print:m-0 print:border-none print:p-0"
+              className="print-document salary-certificate-document bg-white border-2 border-slate-200 rounded-2xl p-8 text-slate-800 space-y-6 print:m-0 print:border-none print:p-0"
               style={{ minHeight: '520px' }}
             >
               {/* Certificate Header — الترويسة الموحّدة لكل مخرجات النظام */}
@@ -302,7 +302,7 @@ export default function SalaryCertificateModal({ employee, isOpen, onClose, onCe
               </div>
 
               {/* Seal and QR Footer */}
-              <div className="flex justify-between items-end pt-4 border-t border-slate-200">
+              <div className="cert-footer flex justify-between items-end pt-4 border-t border-slate-200">
                 <div className="space-y-1">
                   <p className="text-xs font-black text-slate-900">إدارة الموارد البشرية والامتثال</p>
                   <p className="text-[11px] text-slate-500">شركة المسار الرقمي للحلول المتكاملة</p>
