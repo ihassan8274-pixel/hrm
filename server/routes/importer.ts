@@ -516,15 +516,20 @@ function extractGrid(filename: string, buf: Buffer): string[][] {
 
 export function registerImporter(app: express.Express) {
   // Module catalog + current row counts (drives the screen).
-  app.get("/api/import/modules", (req, res) => {
+  app.get("/api/import/modules", async (req, res) => {
     try {
-      res.json(IMPORT_MODULES.map(async m => ({
+      // The count of every module is a separate query, so the catalog is built
+      // with Promise.all. Mapping with an async callback and answering with
+      // the array would send a list of promises, which JSON turns into a list
+      // of empty objects — and the screen would show no modules at all.
+      const modules = await Promise.all(IMPORT_MODULES.map(async m => ({
         key: m.key,
         label: m.label,
         description: m.description,
         count: (await db.prepare(`SELECT COUNT(*) as c FROM ${m.table}`).get() as any).c,
         columns: m.columns.map(c => ({ key: c.key, label: c.label, type: c.type, required: !!c.required, options: c.options?.map(o => o.label) })),
       })));
+      res.json(modules);
     } catch (e) { res.status(500).json({ error: (e as Error).message }); }
   });
 

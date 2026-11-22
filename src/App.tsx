@@ -510,6 +510,7 @@ function AuthenticatedApp() {
                 return (
                   <button
                     key={item.id}
+                    data-view={item.id}
                     onClick={() => {
                       setActiveView(item.id as View);
                       if (!window.matchMedia('(min-width: 768px)').matches) setIsSidebarOpen(false);
@@ -622,7 +623,7 @@ function AuthenticatedApp() {
           </div>
         </header>
 
-        <div className="p-3 sm:p-6 md:p-8 flex-1 min-w-0">
+        <div className="p-3 sm:p-6 md:p-8 flex-1 min-w-0" data-screen={activeView}>
           {/* No AnimatePresence mode="wait" here: its exit gating deadlocks with
               lazy (Suspense) screens — the first navigation after load never
               swaps the view. Enter-only animation swaps unconditionally. */}

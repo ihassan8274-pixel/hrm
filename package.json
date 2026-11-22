@@ -24,7 +24,8 @@
     "db:test-schema": "tsx scripts/build-test-schema.ts",
     "gen:test-data": "tsx scripts/generate-test-data.ts --reset",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "test:db": "npm run db:test-schema && npm run gen:test-data && npm run test:integration"
+    "test:db": "npm run db:test-schema && npm run gen:test-data && npm run test:integration",
+    "ui:smoke": "node scripts/ui-smoke.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

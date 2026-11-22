@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plane, Plus, Search, CheckCircle, XCircle, Clock, Calendar, MessageSquare, User } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
+import { Modal, FormField } from './ui';
 import type { Leave, Employee } from '../types';
 
 export default function LeavesView() {
@@ -147,99 +148,82 @@ export default function LeavesView() {
 
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white w-full max-w-lg rounded-3xl p-8 shadow-2xl relative"
-            >
-              <h3 className="text-xl font-bold mb-8">تقديم طلب إجازة</h3>
+          <Modal title="تقديم طلب إجازة" onClose={() => setIsModalOpen(false)}>
+            <div className="space-y-6">
+              <FormField
+                label="الموظف"
+                required
+                options={[
+                  { value: 0, label: "اختر موظفاً..." },
+                  ...employees.map((e) => ({ value: e.id, label: e.name })),
+                ]}
+                value={formData.employee_id}
+                onChange={(value) => setFormData({ ...formData, employee_id: Number(value) })}
+              />
 
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">الموظف</label>
-                  <select 
-                    value={formData.employee_id}
-                    onChange={e => setFormData({ ...formData, employee_id: Number(e.target.value) })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
-                  >
-                    <option value="0">اختر موظفاً...</option>
-                    {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">نوع الإجازة</label>
-                    <select 
-                      value={formData.type}
-                      onChange={e => setFormData({ ...formData, type: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
-                    >
-                      <option value="annual">سنوية</option>
-                      <option value="sick">مرضية</option>
-                      <option value="unpaid">بدون راتب</option>
-                      <option value="emergency">اضطرارية</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">حالة الراتب</label>
-                    <select 
-                      value={formData.is_paid}
-                      onChange={e => setFormData({ ...formData, is_paid: Number(e.target.value) })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
-                    >
-                      <option value="1">مدفوعة</option>
-                      <option value="0">غير مدفوعة</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                   <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">من تاريخ</label>
-                    <input 
-                      type="date"
-                      value={formData.start_date}
-                      onChange={e => setFormData({ ...formData, start_date: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">إلى تاريخ</label>
-                    <input 
-                      type="date"
-                      value={formData.end_date}
-                      onChange={e => setFormData({ ...formData, end_date: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-bold"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">السبب</label>
-                  <textarea 
-                    value={formData.reason}
-                    onChange={e => setFormData({ ...formData, reason: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right min-h-[100px]"
-                    placeholder="اكتب سبب طلب الإجازة هنا..."
-                  />
-                </div>
-
-                <div className="flex gap-4">
-                   <button 
-                    onClick={() => setIsModalOpen(false)}
-                    className="flex-1 bg-slate-100 text-slate-600 py-4 rounded-2xl font-bold hover:bg-slate-200 transition-all"
-                  >إلغاء</button>
-                   <button 
-                    onClick={handleSubmit}
-                    className="flex-[2] bg-brand-600 text-white py-4 rounded-2xl font-bold hover:bg-brand-700 transition-all shadow-xl shadow-brand-100"
-                  >حفظ الطلب</button>
-                </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  half
+                  label="نوع الإجازة"
+                  options={[
+                    { value: "annual", label: "سنوية" },
+                    { value: "sick", label: "مرضية" },
+                    { value: "unpaid", label: "بدون راتب" },
+                    { value: "emergency", label: "اضطرارية" },
+                  ]}
+                  value={formData.type}
+                  onChange={(value) => setFormData({ ...formData, type: value })}
+                />
+                <FormField
+                  half
+                  label="حالة الراتب"
+                  options={[
+                    { value: 1, label: "مدفوعة" },
+                    { value: 0, label: "غير مدفوعة" },
+                  ]}
+                  value={formData.is_paid}
+                  onChange={(value) => setFormData({ ...formData, is_paid: Number(value) })}
+                />
               </div>
-            </motion.div>
-          </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  half
+                  label="من تاريخ"
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(value) => setFormData({ ...formData, start_date: value })}
+                />
+                <FormField
+                  half
+                  label="إلى تاريخ"
+                  type="date"
+                  value={formData.end_date}
+                  onChange={(value) => setFormData({ ...formData, end_date: value })}
+                />
+              </div>
+
+              <FormField
+                label="السبب"
+                type="textarea"
+                value={formData.reason}
+                onChange={(value) => setFormData({ ...formData, reason: value })}
+                placeholder="اكتب سبب طلب الإجازة هنا..."
+                className="min-h-[100px]"
+              />
+
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 bg-slate-100 text-slate-600 py-4 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                >إلغاء</button>
+                <button
+                  onClick={handleSubmit}
+                  className="flex-[2] bg-brand-600 text-white py-4 rounded-2xl font-bold hover:bg-brand-700 transition-all shadow-xl shadow-brand-100"
+                >حفظ الطلب</button>
+              </div>
+            </div>
+          </Modal>
         )}
       </AnimatePresence>
     </div>

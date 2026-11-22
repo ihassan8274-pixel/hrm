@@ -176,3 +176,74 @@ jobs:
 
       - name: Run the integration tests
         run: npm run test:integration
+
+  ui-smoke:
+    # Walks every screen of the built application in a real browser.
+    #
+    # The other gates see the server and the routes. This one sees the
+    # screens: a screen that throws while it renders, a screen that asks for
+    # a field the API stopped sending, a screen that shows nothing at all —
+    # none of them reach a test that never opens a browser.
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: payroll_app
+          POSTGRES_PASSWORD: testpass123
+          POSTGRES_DB: payroll_test
+        ports:
+          - '5432:5432'
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Write the test environment file
+        run: |
+          mkdir -p scripts/.build
+          {
+            echo 'PGSCHEMA=payroll_test'
+            echo 'DATABASE_URL=postgresql://payroll_app:testpass123@127.0.0.1:5432/payroll_test'
+            echo 'PG_POOL_MAX=4'
+            echo 'NODE_ENV=test'
+            echo 'JWT_SECRET=integration-test-secret-not-used-in-production'
+            echo 'CORS_ORIGINS=http://localhost:13000'
+          } > scripts/.build/test.env
+
+      - name: Build the test schema
+        run: npm run db:test-schema
+
+      - name: Generate the dataset
+        run: npm run gen:test-data
+
+      - name: Build the application
+        run: npm run build
+
+      - name: Walk every screen
+        run: npm run ui:smoke
+
+      - name: Upload the screen report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-smoke-report
+          path: scripts/.build/ui-smoke-report.json
+          retention-days: 7
