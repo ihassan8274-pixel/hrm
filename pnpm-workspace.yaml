@@ -4,3 +4,23 @@ allowBuilds:
   core-js: set this to true or false
   esbuild: set this to true or false
   protobufjs: set this to true or false
+minimumReleaseAgeExclude:
+  - '@vitest/mocker@5.1.2'
+  - '@vitest/pretty-format@5.1.2'
+  - '@vitest/spy@5.1.2'
+  - '@vitest/ui@5.1.2'
+  - '@vitest/utils@5.1.2'
+  - vitest@5.1.2
+# Keep the pnpm lockfile on the same patched versions as package-lock.json.
+# Dependabot scans every committed lockfile, so a stale pnpm graph kept
+# reporting fixed vulnerabilities even though CI installs with `npm ci`.
+overrides:
+  vite: 6.4.6
+  zod: 4.6.7
+  qs: 6.17.1
+  ip-address: 10.7.6
+  proxy-addr: 2.0.8
+  dompurify: 3.5.0
+  source-map-js: 1.2.4
+  'body-parser@^2.2.2': 2.4.0
+  'express>body-parser': 1.20.9
