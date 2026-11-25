@@ -96,6 +96,7 @@ const BonusesView = lazy(() => import('./components/BonusesView'));
 const LoansView = lazy(() => import('./components/LoansView'));
 const AttendanceView = lazy(() => import('./components/AttendanceView'));
 const ReportsView = lazy(() => import('./components/ReportsView'));
+const ExtendedReportsView = lazy(() => import('./components/ExtendedReportsView'));
 const LeavesView = lazy(() => import('./components/LeavesView'));
 const AssetsView = lazy(() => import('./components/AssetsView'));
 const DocumentsView = lazy(() => import('./components/DocumentsView'));
@@ -189,6 +190,7 @@ type View =
   | 'loans' 
   | 'attendance' 
   | 'reports' 
+  | 'extended_reports'
   | 'departments' 
   | 'bonuses' 
   | 'leaves' 
@@ -345,7 +347,7 @@ function AuthenticatedApp() {
     if (id === 'users') return role === 'admin';
     if (role === 'admin' || role === 'hr_manager') return true;
     if (role === 'employee_ess') return id === 'ess';
-    if (role === 'finance') return ['dashboard', 'payroll', 'wps_audit', 'loans', 'bonuses', 'expenses', 'allowances', 'reports', 'salary_reports', 'consolidated_reports', 'provisions', 'cost_employment', 'budgeting', 'annual_cycle'].includes(id);
+    if (role === 'finance') return ['dashboard', 'payroll', 'wps_audit', 'loans', 'bonuses', 'expenses', 'allowances', 'reports', 'salary_reports', 'consolidated_reports', 'provisions', 'cost_employment', 'budgeting', 'annual_cycle', 'extended_reports'].includes(id);
     if (role === 'branch_manager') return ['dashboard', 'attendance', 'attendance_kiosk', 'attendance_live', 'employees', 'leaves', 'approval_workflows', 'manager_inbox', 'ess', 'alerts_center', 'forms_center', 'annual_cycle'].includes(id);
     // Fail-closed: an unrecognised role must never inherit every screen.
     return false;
@@ -395,6 +397,7 @@ function AuthenticatedApp() {
         { id: 'dashboard', key: 'nav.dashboard', defaultLabel: 'لوحة التحكم العامة', icon: LayoutDashboard },
         { id: 'executive_board', key: 'nav.executive_board', defaultLabel: 'لوحة القيادة التنفيذية ومجلس الإدارة (ROI)', icon: Award },
         { id: 'reports', key: 'nav.reports', defaultLabel: 'التقارير والتحليلات', icon: TrendingUp },
+        { id: 'extended_reports', key: 'nav.extended_reports', defaultLabel: 'التقارير التشغيلية المتقدمة', icon: FileText },
         { id: 'consolidated_reports', key: 'nav.consolidated_reports', defaultLabel: 'التقارير المجمعة بين الفروع', icon: Network },
         { id: 'budgeting', key: 'nav.budgeting', defaultLabel: 'ميزانية الموارد وتكاليف التعيين', icon: DollarSign },
         { id: 'cost_employment', key: 'nav.cost_employment', defaultLabel: 'التكلفة الشاملة (TCOE)', icon: DollarSign },
@@ -889,6 +892,7 @@ function AuthenticatedApp() {
               {activeView === 'loans' && <LoansView />}
               {activeView === 'attendance' && <AttendanceView />}
               {activeView === 'reports' && <ReportsView />}
+              {activeView === 'extended_reports' && <ExtendedReportsView />}
               {activeView === 'departments' && <DepartmentsView />}
               {activeView === 'bonuses' && <BonusesView />}
               {activeView === 'leaves' && <LeavesView />}

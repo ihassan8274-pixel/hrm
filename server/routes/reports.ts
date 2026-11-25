@@ -8,6 +8,7 @@ import { buildConsolidatedReport } from "../lib/consolidated-report";
 import { buildCompanySalaryReport, buildBranchSalaryReport, buildPayrollStatement, buildProvisionsReport } from "../lib/salary-reports";
 import { buildExecutiveAnalytics } from "../lib/executive-analytics";
 import { buildDashboardStats, buildPayrollTrends, buildHeadcount } from "../lib/dashboard-analytics";
+import { extendedReportBuilders, type ExtendedReportKey } from "../lib/extended-reports";
 import { csvDocument } from "../lib/csv";
 
 export function registerReports(app: express.Express) {
@@ -18,6 +19,21 @@ export function registerReports(app: express.Express) {
   async function sendScoped(res: express.Response, build: () => Promise<unknown>) {
     try {
       res.json(await build());
+    } catch (e) {
+      if (e instanceof ScopeError) return res.status(e.status).json({ error: e.message });
+      throw e;
+    }
+  }
+
+  // CSV uses the same scoped builder as the screen, so an exported file can
+  // never contain rows the caller was not allowed to see on screen.
+  async function sendScopedCsv(res: express.Response, filename: string, build: () => Promise<{ columns: string[]; rows: unknown[][] }>) {
+    try {
+      const report = await build();
+      const csv = csvDocument(report.columns, report.rows);
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}.csv`);
+      res.send('\uFEFF' + csv);
     } catch (e) {
       if (e instanceof ScopeError) return res.status(e.status).json({ error: e.message });
       throw e;
@@ -119,5 +135,25 @@ export function registerReports(app: express.Express) {
       next(error);
     }
   });
+
+  // ---- Extended reports (extended_reports screen: admin, hr_manager, finance) ----
+  // All endpoints live under /api/reports, so REPORTS_VIEW already gates them.
+
+  const extendedRoutes: Array<{ key: ExtendedReportKey; path: string; filename: string }> = [
+    { key: 'attendance', path: 'attendance-duty', filename: 'attendance-duty-report' },
+    { key: 'payroll', path: 'payroll-overtime', filename: 'payroll-overtime-report' },
+    { key: 'expiry', path: 'expiry-alerts', filename: 'expiry-alerts-report' },
+    { key: 'ksa', path: 'ksa-compliance', filename: 'ksa-compliance-report' },
+    { key: 'training', path: 'training-promotions', filename: 'training-promotions-report' },
+    { key: 'termination', path: 'service-termination', filename: 'service-termination-report' },
+  ];
+
+  for (const route of extendedRoutes) {
+    app.get(`/api/reports/${route.path}`, requireOrganizationScope, (req, res) =>
+      sendScoped(res, () => extendedReportBuilders[route.key](db, organizationScope(res), req.query)));
+
+    app.get(`/api/reports/${route.path}/csv`, requireOrganizationScope, (req, res) =>
+      sendScopedCsv(res, route.filename, () => extendedReportBuilders[route.key](db, organizationScope(res), req.query)));
+  }
 
 }

@@ -8,6 +8,13 @@ Write-Output "SHA256: $hash"
 
 $css = (Get-ChildItem (Join-Path (Get-Location) 'dist\assets') -Filter 'index-*.css' | Select-Object -First 1).Name
 $js  = (Get-ChildItem (Join-Path (Get-Location) 'dist\assets') -Filter 'index-*.js' | Select-Object -First 1).Name
+$ext = (Get-ChildItem (Join-Path (Get-Location) 'dist\assets') -Filter 'ExtendedReportsView-*.js' | Select-Object -First 1).Name
+$metaPath = Join-Path (Get-Location) 'android\app\build\outputs\apk\debug\output-metadata.json'
+if (Test-Path -LiteralPath $metaPath) {
+  $meta = Get-Content -LiteralPath $metaPath -Raw | ConvertFrom-Json
+  Write-Output "VERSION_CODE: $($meta.elements[0].versionCode)"
+  Write-Output "VERSION_NAME: $($meta.elements[0].versionName)"
+}
 $zip = [System.IO.Compression.ZipFile]::OpenRead($apk)
 try {
   $names = $zip.Entries | ForEach-Object { $_.FullName }
@@ -15,6 +22,17 @@ try {
   Write-Output "DIST_JS: $js"
   Write-Output "HAS_CURRENT_CSS: $([bool]($names -contains "assets/public/assets/$css"))"
   Write-Output "HAS_CURRENT_JS: $([bool]($names -contains "assets/public/assets/$js"))"
+  $extEntry = $zip.GetEntry("assets/public/assets/$ext")
+  $hasExt = [bool]$extEntry
+  $extPaths = $false
+  if ($extEntry) {
+    $reader = New-Object System.IO.StreamReader($extEntry.Open())
+    $extText = $reader.ReadToEnd(); $reader.Dispose()
+    $extPaths = $extText.Contains('/api/reports/attendance-duty') -and $extText.Contains('/api/reports/service-termination')
+  }
+  Write-Output "EXTENDED_REPORT_CHUNK: $ext"
+  Write-Output "HAS_EXTENDED_REPORTS: $hasExt"
+  Write-Output "EXTENDED_REPORT_PATHS: $extPaths"
   $wanted = @('assets/public/index.html','assets/public/sw.js','assets/public/m-manifest.json','assets/public/brand/empower-3d-icon.png')
   foreach ($name in $wanted) { Write-Output "ENTRY $name : $([bool]($names -contains $name))" }
 
