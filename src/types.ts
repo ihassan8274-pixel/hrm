@@ -123,6 +123,7 @@ export interface Employee {
   // GOSI (التأمينات الاجتماعية)
   gosi_number?: string; // رقم المشترك في التأمينات
   gosi_registered_salary?: number; // أجر الاشتراك الخاضع للتأمينات (الأساسي + السكن)
+  gosi_exempt?: number | boolean; // 1 = معفى من الخصم؛ المنشأة تتحمل حصتي العامل والمنشأة
   housing_allowance?: number; // بدل السكن
   transport_allowance?: number; // بدل النقل
   other_allowances?: number; // بدلات أخرى
@@ -144,12 +145,21 @@ export interface Employee {
   contract_start_date?: string;
   contract_end_date?: string;
   join_date?: string; // تاريخ الالتحاق (مرادف contract_start_date في بعض المسارات)
+  hire_date?: string; // تاريخ التعيين الكامل؛ أساس تنبيه الزيادة السنوية
+  hire_month?: number; // شهر التعيين عند عدم توفر اليوم
+  sponsorship_type?: 'saudi' | 'company_sponsored' | 'leased'; // فئة الكفالة
 
   // Passport & health certificate (compliance documents)
   passport_number?: string;
   passport_expiry?: string; // YYYY-MM-DD
   health_cert_number?: string;
   health_cert_expiry?: string; // YYYY-MM-DD
+  health_cert_required?: number | boolean; // 1 = خاضع لإلزام الشهادة الصحية (تداول الطعام)
+
+  // Employment lifecycle — 'terminated' employees are excluded from new payroll runs
+  status?: string;
+  end_service_date?: string;
+  end_service_reason?: string;
 
   // ESS / self-service derived fields
   annual_leave_balance?: number;
@@ -229,6 +239,14 @@ export interface PayrollRecord {
   payment_method?: string;
   cash_amount?: number;
   bank_amount?: number;
+  approval_status?: 'draft' | 'approved' | 'rejected' | null;
+  approved_by?: string;
+  approved_at?: string;
+  payment_status?: 'pending' | 'paid';
+  paid_at?: string;
+  eos_amount?: number;
+  is_final_settlement?: number;
+  final_settlement_id?: number;
 }
 
 export interface SaudiComplianceSummary {
@@ -276,6 +294,7 @@ export interface SaudiGovernmentRenewal {
 }
 
 export interface EndOfServiceCalculation {
+  id?: number;
   employee_name: string;
   national_id_iqama?: string;
   start_date: string;
@@ -305,6 +324,10 @@ export interface Loan {
   total_amount: number;
   remaining_amount: number;
   monthly_installment: number;
+  deduction_start_month?: number | null;
+  deduction_start_year?: number | null;
+  deduction_months?: number | null;
+  deduction_applied_months?: number;
   status: 'pending' | 'active' | 'rejected' | 'completed';
   created_at: string;
   workflow_status?: string | null;

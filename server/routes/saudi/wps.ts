@@ -69,6 +69,14 @@ export function registerWpsAudit(app: express.Express) {
       WHERE p.month = ? AND p.year = ?
     `).all(month, year)) as any[];
     payrollRecords = payrollRecords.filter(inScope);
+    // A final settlement replaces the ordinary payslip of the same period;
+    // counting both would overstate disbursements in the audit and the bank file.
+    const finalEmployees = new Set(
+      payrollRecords.filter((r) => Number(r.is_final_settlement) === 1).map((r) => Number(r.employee_id))
+    );
+    payrollRecords = payrollRecords.filter(
+      (r) => Number(r.is_final_settlement) === 1 || !finalEmployees.has(Number(r.employee_id))
+    );
     let simulated = false;
     if (payrollRecords.length === 0) {
       simulated = true;

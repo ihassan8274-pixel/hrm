@@ -66,8 +66,9 @@ export async function buildConsolidatedReport(db: any, scope: OrganizationScope,
       SELECT employee_id, COUNT(*) AS contracts_expiring_90d FROM qiwa_contracts
       WHERE substr(CAST(end_date AS TEXT), 1, 10) BETWEEN @today AND @today90 GROUP BY employee_id
     ), certificates AS (
-      SELECT employee_id, COUNT(*) AS health_certs_expiring_60d FROM health_certificates
-      WHERE status = 'active' AND substr(CAST(expiry_date AS TEXT), 1, 10) BETWEEN @today AND @today60 GROUP BY employee_id
+      SELECT hc.employee_id, COUNT(*) AS health_certs_expiring_60d FROM health_certificates hc
+      JOIN employees e ON e.id = hc.employee_id AND COALESCE(e.health_cert_required, 0) = 1
+      WHERE hc.status = 'active' AND substr(CAST(hc.expiry_date AS TEXT), 1, 10) BETWEEN @today AND @today60 GROUP BY hc.employee_id
     )
     SELECT e.entity_id, e.branch_id, 1 AS employee_count,
       CASE WHEN e.is_saudi = 1 OR e.nationality IN ('سعودي', 'سعودية') THEN 1 ELSE 0 END AS saudi_count,

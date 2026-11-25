@@ -132,6 +132,7 @@ export default function ExitClearanceView() {
           <div>
             <h2 className="text-xl font-bold text-slate-800">نظام إخلاء الطرف وإبراء الذمة الإلكتروني</h2>
             <p className="text-sm text-slate-500">مسار اعتماد متعدد المحطات (تقنية المعلومات، المالية، العهد، الموارد البشرية) قبل صرف المستحقات</p>
+            <p className="text-xs text-rose-700 font-bold mt-1">عند اكتمال المحطات الأربع يُنهى خدمة الموظف تلقائياً ويُستبعد من مسيرات الرواتب القادمة.</p>
           </div>
         </div>
         <button
@@ -164,7 +165,7 @@ export default function ExitClearanceView() {
                       {c.overall_status === 'completed' ? (
                         <span className="text-xs px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md font-semibold flex items-center gap-1">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          مكتمل ومبرأ الذمة
+                          مكتمل · الخدمة منتهية · خارج الرواتب
                         </span>
                       ) : (
                         <span className="text-xs px-2.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-md font-semibold flex items-center gap-1">

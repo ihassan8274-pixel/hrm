@@ -36,11 +36,18 @@ export default function LoansView() {
   const [busy, setBusy] = useState(false);
   const [printLoan, setPrintLoan] = useState<Loan | null>(null);
 
+  const nextMonth = new Date();
+  nextMonth.setDate(1);
+  nextMonth.setMonth(nextMonth.getMonth() + 1);
   const [newLoan, setNewLoan] = useState({
     employee_id: 0,
     total_amount: 0,
-    monthly_installment: 0
+    monthly_installment: 0,
+    deduction_start_month: nextMonth.getMonth() + 1,
+    deduction_start_year: nextMonth.getFullYear(),
+    deduction_months: 12,
   });
+  const [deleteTarget, setDeleteTarget] = useState<Loan | null>(null);
 
   const fetchData = async () => {
     try {
@@ -79,7 +86,12 @@ export default function LoansView() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'تعذّر رفع طلب السلفة');
       setIsModalOpen(false);
-      setNewLoan({ employee_id: 0, total_amount: 0, monthly_installment: 0 });
+      setNewLoan({
+        employee_id: 0, total_amount: 0, monthly_installment: 0,
+        deduction_start_month: nextMonth.getMonth() + 1,
+        deduction_start_year: nextMonth.getFullYear(),
+        deduction_months: 12,
+      });
       await fetchData();
     } catch (e: any) {
       setError(e?.message || 'تعذّر رفع الطلب');
@@ -104,6 +116,22 @@ export default function LoansView() {
       await fetchData();
     } catch (e: any) {
       setError(e?.message || 'تعذّر تسجيل القرار');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/loans/${deleteTarget.id}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'تعذّر حذف السلفة');
+      setDeleteTarget(null);
+      await fetchData();
+    } catch (e: any) {
+      setError(e?.message || 'تعذّر حذف السلفة');
     } finally {
       setBusy(false);
     }
@@ -173,7 +201,8 @@ export default function LoansView() {
               <th className="px-4 py-4 text-xs font-bold text-slate-500">الموظف</th>
               <th className="px-4 py-4 text-xs font-bold text-slate-500 text-center">المبلغ الكلي</th>
               <th className="px-4 py-4 text-xs font-bold text-slate-500 text-center">المتبقي</th>
-              <th className="px-4 py-4 text-xs font-bold text-slate-500 text-center">القسط الشهري</th>
+              <th className="px-4 py-4 text-xs font-bold text-slate-500 text-center">الخصم الشهري</th>
+              <th className="px-4 py-4 text-xs font-bold text-slate-500 text-center">جدول الخصم</th>
               <th className="px-4 py-4 text-xs font-bold text-slate-500 text-center">تاريخ الطلب</th>
               <th className="px-4 py-4 text-xs font-bold text-slate-500 text-center">الحالة / المسار</th>
               <th className="px-4 py-4 text-xs font-bold text-slate-500 text-center">إجراءات</th>
@@ -188,12 +217,13 @@ export default function LoansView() {
                 onToggle={() => setExpandedId(expandedId === loan.id ? null : loan.id)}
                 onDecide={(action) => { setDecision({ loan, action }); setDecisionComment(''); }}
                 onPrint={() => setPrintLoan(loan)}
+                onDelete={() => setDeleteTarget(loan)}
                 statusBadge={statusBadge}
               />
             ))}
             {filteredLoans.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-20 text-center text-slate-300">
+                <td colSpan={8} className="px-6 py-20 text-center text-slate-300">
                    <Landmark className="w-12 h-12 mx-auto mb-4 opacity-10" />
                    <p>لا توجد سلف حالياً</p>
                 </td>
@@ -230,7 +260,7 @@ export default function LoansView() {
               <tr className="border-b border-slate-300">
                 <td className="p-2 font-bold bg-slate-50">قيمة السلفة</td>
                 <td className="p-2 font-mono font-bold">{(printLoan.total_amount || 0).toLocaleString()} ر.س</td>
-                <td className="p-2 font-bold bg-slate-50">القسط الشهري</td>
+                <td className="p-2 font-bold bg-slate-50">الخصم الشهري</td>
                 <td className="p-2 font-mono">{(printLoan.monthly_installment || 0).toLocaleString()} ر.س</td>
               </tr>
               <tr className="border-b border-slate-300">
@@ -240,8 +270,13 @@ export default function LoansView() {
                 <td className="p-2 font-bold">{STATUS_LABEL[printLoan.status] || printLoan.status}</td>
               </tr>
               <tr>
-                <td className="p-2 font-bold bg-slate-50">طريقة السداد</td>
-                <td className="p-2" colSpan={3}>خصم شهري من الراتب بدءاً من مسير الشهر التالي للاعتماد</td>
+                <td className="p-2 font-bold bg-slate-50">جدول الخصم</td>
+                <td className="p-2" colSpan={3}>
+                  {printLoan.deduction_start_month && printLoan.deduction_start_year
+                    ? `خصم راتبي يبدأ من ${printLoan.deduction_start_month}/${printLoan.deduction_start_year}`
+                    : 'خصم راتبي من مسير الشهر التالي للاعتماد'}
+                  {printLoan.deduction_months ? ` — لمدة ${printLoan.deduction_months} شهر فقط` : ' — حتى تسديد الرصيد'}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -338,7 +373,7 @@ export default function LoansView() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-2">القسط الشهري (ر.س)</label>
+                    <label className="block text-xs font-bold text-slate-500 mb-2">الخصم من الراتب شهرياً (ر.س)</label>
                     <input
                       type="number"
                       value={newLoan.monthly_installment}
@@ -348,19 +383,54 @@ export default function LoansView() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-2">شهر بداية الخصم</label>
+                    <select
+                      value={newLoan.deduction_start_month}
+                      onChange={e => setNewLoan({ ...newLoan, deduction_start_month: Number(e.target.value) })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right"
+                    >
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-2">سنة البداية</label>
+                    <input
+                      type="number"
+                      min={2000}
+                      max={2100}
+                      value={newLoan.deduction_start_year}
+                      onChange={e => setNewLoan({ ...newLoan, deduction_start_year: Number(e.target.value) })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-2">عدد أشهر الخصم</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={240}
+                      value={newLoan.deduction_months}
+                      onChange={e => setNewLoan({ ...newLoan, deduction_months: Number(e.target.value) })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-right font-mono"
+                    />
+                  </div>
+                </div>
+
                 <div className="bg-brand-50 p-4 rounded-2xl flex justify-between items-center">
                    <div className="text-right">
-                      <p className="text-xs font-bold text-brand-900">مدة السداد المتوقعة</p>
-                      <p className="text-[10px] text-brand-600">يُخصم القسط تلقائياً من الرواتب بعد الاعتماد</p>
+                      <p className="text-xs font-bold text-brand-900">مدة الخصم المحددة</p>
+                      <p className="text-[10px] text-brand-600">خصم راتبي ببداية وعدد أشهر — وليس قسطاً متواصلاً</p>
                    </div>
                    <div className="text-xl font-bold text-brand-700">
-                     {newLoan.monthly_installment > 0 ? Math.ceil(newLoan.total_amount / newLoan.monthly_installment) : 0} <span className="text-[10px]">شهر</span>
+                     {newLoan.deduction_months || 0} <span className="text-[10px]">شهر</span>
                    </div>
                 </div>
 
                 <button
                   onClick={handleCreate}
-                  disabled={busy || !newLoan.employee_id || newLoan.total_amount <= 0 || newLoan.monthly_installment <= 0}
+                  disabled={busy || !newLoan.employee_id || newLoan.total_amount <= 0 || newLoan.monthly_installment <= 0 || newLoan.deduction_months <= 0 || !newLoan.deduction_start_year}
                   className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all active:scale-95 shadow-xl shadow-slate-200 mt-4 disabled:opacity-40"
                 >
                   {busy ? 'جارٍ الرفع...' : 'رفع الطلب للاعتماد'}
@@ -408,16 +478,52 @@ export default function LoansView() {
           </div>
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+        {deleteTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm no-print">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl"
+            >
+              <h3 className="text-lg font-bold mb-2 flex items-center gap-2 text-red-600">
+                <XCircle className="w-5 h-5" /> حذف حركة السلفة
+              </h3>
+              <p className="text-sm text-slate-600 mb-2">
+                ستُحذف سلفة {deleteTarget.employee_name} بمبلغ {(deleteTarget.total_amount || 0).toLocaleString()} ر.س نهائياً.
+              </p>
+              {(deleteTarget.deduction_applied_months || 0) > 0 && (
+                <p className="text-xs text-amber-700 bg-amber-50 rounded-xl p-3 mb-4">
+                  خُصمت هذه السلفة في {deleteTarget.deduction_applied_months} مسير سابق. يجب فتح المسيرات المتأثرة وإعادة توليدها بعد الحذف حتى لا تختفي الأثر الرجعي.
+                </p>
+              )}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDelete}
+                  disabled={busy}
+                  className="flex-1 text-white py-3 rounded-2xl font-bold disabled:opacity-40 bg-red-600 hover:bg-red-700"
+                >
+                  {busy ? 'جارٍ الحذف...' : 'تأكيد الحذف'}
+                </button>
+                <button onClick={() => setDeleteTarget(null)} className="px-6 py-3 rounded-2xl font-bold bg-slate-100 text-slate-600">إلغاء</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function FragmentRow({ loan, expanded, onToggle, onDecide, onPrint, statusBadge }: {
+function FragmentRow({ loan, expanded, onToggle, onDecide, onPrint, onDelete, statusBadge }: {
   loan: Loan;
   expanded: boolean;
   onToggle: () => void;
   onDecide: (action: 'active' | 'rejected') => void;
   onPrint: () => void;
+  onDelete: () => void;
   statusBadge: (status: string) => JSX.Element;
 }) {
   const history = loan.workflow_history || [];
@@ -435,6 +541,16 @@ function FragmentRow({ loan, expanded, onToggle, onDecide, onPrint, statusBadge 
         <td className="px-4 py-4 text-center font-mono text-sm">{(loan.total_amount || 0).toLocaleString()}</td>
         <td className="px-4 py-4 text-center font-mono text-sm text-red-500 font-bold">{(loan.remaining_amount || 0).toLocaleString()}</td>
         <td className="px-4 py-4 text-center font-mono text-sm text-brand-600">{(loan.monthly_installment || 0).toLocaleString()}</td>
+        <td className="px-4 py-4 text-center text-xs text-slate-500">
+          {loan.deduction_start_month && loan.deduction_start_year
+            ? `من ${loan.deduction_start_month}/${loan.deduction_start_year}`
+            : 'فوري'}
+          <br />
+          <span className="text-[10px] text-slate-400">
+            {loan.deduction_months ? `${loan.deduction_months} شهر` : 'حتى السداد'}
+            {loan.deduction_applied_months ? ` · نُفّذ ${loan.deduction_applied_months}` : ''}
+          </span>
+        </td>
         <td className="px-4 py-4 text-center text-xs text-slate-400">
           {new Date(loan.created_at).toLocaleDateString('ar-EG')}
         </td>
@@ -478,12 +594,19 @@ function FragmentRow({ loan, expanded, onToggle, onDecide, onPrint, statusBadge 
             >
               <Printer className="w-4 h-4" />
             </button>
+            <button
+              onClick={onDelete}
+              title="حذف الحركة"
+              className="p-2 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </td>
       </tr>
       {expanded && (
         <tr className="bg-slate-50/70">
-          <td colSpan={7} className="px-8 py-4">
+          <td colSpan={8} className="px-8 py-4">
             <p className="text-xs font-bold text-slate-500 mb-2">{loan.workflow_title || 'مسار الاعتماد'}</p>
             {history.length === 0 ? (
               <p className="text-xs text-slate-400">لا قرارات مسجلة بعد — الطلب بانتظار أول اعتماد.</p>

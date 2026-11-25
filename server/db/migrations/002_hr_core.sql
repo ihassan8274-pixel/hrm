@@ -67,6 +67,9 @@ CREATE TABLE IF NOT EXISTS employees (
   passport_expiry TEXT,
   health_cert_number TEXT,
   health_cert_expiry TEXT,
+  health_cert_required INTEGER NOT NULL DEFAULT 0,
+  -- 1 = exempt from the employee GOSI deduction; the employer bears both shares.
+  gosi_exempt INTEGER NOT NULL DEFAULT 0,
   payment_method TEXT DEFAULT 'bank',
   cash_percentage REAL DEFAULT 0,
   face_template TEXT,

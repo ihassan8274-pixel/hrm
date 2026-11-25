@@ -1,0 +1,310 @@
+/* تمكين | EMPOWER — واجهة الجوال (PWA)
+   كل الألوان من بالِتة الهوية المعتمدة. الوضع الليلي داخل النظام فقط. */
+
+.mpwa {
+  --navy: #102A56;
+  --blue: #1769D1;
+  --teal: #14B8B5;
+  --coral: #F26B5B;
+  --bg: #F5F8FC;
+  --line: #DCE8F5;
+  --card: #FFFFFF;
+  --ink: #0F172A;
+  --muted: #64748B;
+  --soft: #EEF4FB;
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "IBM Plex Sans Arabic", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dark .mpwa {
+  --bg: #0B1220;
+  --line: #1F2E45;
+  --card: #111C2E;
+  --ink: #E8EEF7;
+  --muted: #93A4B8;
+  --soft: #16233A;
+}
+
+.mpwa * { box-sizing: border-box; }
+.mpwa button, .mpwa input, .mpwa select, .mpwa textarea { font: inherit; }
+.mpwa button { cursor: pointer; }
+.mpwa a { color: var(--blue); text-decoration: none; }
+
+.mpwa-shell { max-width: 520px; margin: 0 auto; min-height: 100%; }
+
+/* ---------- رأس التطبيق ---------- */
+.mpwa-top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px 18px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--navy) 0%, #163F7C 55%, var(--blue) 140%);
+  border-bottom-left-radius: 26px;
+  border-bottom-right-radius: 26px;
+  box-shadow: 0 12px 30px rgba(16, 42, 86, .18);
+}
+.mpwa-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mpwa-mark {
+  width: 38px; height: 38px; flex: 0 0 38px;
+  display: grid; place-items: center;
+  border-radius: 12px;
+  background: rgba(255,255,255,.14);
+  border: 1px solid rgba(255,255,255,.22);
+  font-weight: 800; font-size: 15px;
+  letter-spacing: .02em;
+}
+.mpwa-brand-text { min-width: 0; }
+.mpwa-brand-text b { display: block; font-size: 15px; line-height: 1.1; }
+.mpwa-brand-text small { display: block; font-size: 10px; opacity: .72; margin-top: 2px; }
+.mpwa-top-actions { display: flex; gap: 8px; align-items: center; }
+.mpwa-icon-btn {
+  width: 38px; height: 38px; flex: 0 0 38px;
+  display: grid; place-items: center;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.2);
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  position: relative;
+}
+.mpwa-dot {
+  position: absolute; top: 6px; left: 6px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--coral); border: 2px solid var(--navy);
+}
+.mpwa-online { display: flex; align-items: center; gap: 5px; font-size: 10px; opacity: .85; }
+.mpwa-online i { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); display: block; }
+.mpwa-online.off i { background: var(--coral); }
+
+/* ---------- المحتوى ---------- */
+.mpwa-main { padding: 16px 16px 8px; }
+.mpwa-greeting { margin: 2px 2px 16px; }
+.mpwa-greeting b { display: block; font-size: 20px; font-weight: 800; }
+.mpwa-greeting span { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+.mpwa-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(16,42,86,.05);
+  margin-bottom: 14px;
+}
+.mpwa-card.tight { padding: 13px 14px; }
+.mpwa-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.mpwa-card-head h3 { margin: 0; font-size: 14px; font-weight: 800; }
+.mpwa-card-head button {
+  border: 0; background: transparent; color: var(--blue);
+  font-size: 12px; font-weight: 700; padding: 4px;
+}
+
+.mpwa-hero {
+  background: linear-gradient(135deg, #123A73, var(--navy));
+  color: #fff; border: 0; position: relative; overflow: hidden;
+}
+.mpwa-hero::after {
+  content: ""; position: absolute; width: 170px; height: 170px;
+  border-radius: 50%; left: -70px; top: -90px;
+  background: radial-gradient(circle, rgba(20,184,181,.35), transparent 68%);
+}
+.mpwa-hero-row { display: flex; align-items: center; gap: 12px; position: relative; z-index: 1; }
+.mpwa-avatar {
+  width: 52px; height: 52px; flex: 0 0 52px;
+  border-radius: 16px; display: grid; place-items: center;
+  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.24);
+  font-size: 20px; font-weight: 800;
+}
+.mpwa-hero-name { font-size: 16px; font-weight: 800; }
+.mpwa-hero-meta { font-size: 11px; opacity: .78; margin-top: 4px; line-height: 1.6; }
+.mpwa-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 9px; border-radius: 999px;
+  font-size: 10px; font-weight: 700;
+  background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.18);
+}
+.mpwa-pill.teal { background: rgba(20,184,181,.2); border-color: rgba(20,184,181,.45); }
+.mpwa-pill.coral { background: rgba(242,107,91,.18); border-color: rgba(242,107,91,.45); }
+.mpwa-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; position: relative; z-index: 1; }
+
+.mpwa-salary { display: flex; align-items: end; justify-content: space-between; gap: 10px; }
+.mpwa-salary b { font-family: "IBM Plex Sans", sans-serif; font-size: 26px; line-height: 1; color: var(--blue); direction: ltr; display: inline-block; }
+.mpwa-salary small { color: var(--muted); font-size: 11px; }
+.mpwa-split { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.mpwa-mini {
+  background: var(--soft); border-radius: 14px; padding: 10px 12px;
+  border: 1px solid var(--line);
+}
+.mpwa-mini span { display: block; color: var(--muted); font-size: 10px; }
+.mpwa-mini b { display: block; font-family: "IBM Plex Sans", sans-serif; font-size: 14px; margin-top: 3px; direction: ltr; text-align: right; }
+
+/* ---------- شبكة الخدمات ---------- */
+.mpwa-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+.mpwa-action {
+  min-height: 92px;
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between;
+  gap: 10px; text-align: right;
+  padding: 13px;
+  background: var(--card); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 18px;
+  box-shadow: 0 6px 18px rgba(16,42,86,.04);
+}
+.mpwa-action:active { transform: scale(.98); }
+.mpwa-action .ico {
+  width: 34px; height: 34px; display: grid; place-items: center;
+  border-radius: 11px; background: var(--soft); color: var(--blue);
+}
+.mpwa-action.teal .ico { background: rgba(20,184,181,.12); color: #0E8F8C; }
+.mpwa-action.coral .ico { background: rgba(242,107,91,.12); color: #C34E3F; }
+.mpwa-action b { font-size: 12px; font-weight: 800; }
+.mpwa-action small { display: block; color: var(--muted); font-size: 10px; font-weight: 500; margin-top: 2px; }
+
+/* ---------- القوائم ---------- */
+.mpwa-list { display: flex; flex-direction: column; gap: 8px; }
+.mpwa-row {
+  display: flex; align-items: center; gap: 11px;
+  padding: 12px; border-radius: 14px;
+  background: var(--soft); border: 1px solid var(--line);
+}
+.mpwa-row .ico {
+  width: 34px; height: 34px; flex: 0 0 34px; border-radius: 11px;
+  display: grid; place-items: center; background: var(--card); color: var(--blue);
+  border: 1px solid var(--line);
+}
+.mpwa-row-main { min-width: 0; flex: 1; }
+.mpwa-row-main b { display: block; font-size: 12px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mpwa-row-main span { display: block; font-size: 10px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+.mpwa-row-side { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex: 0 0 auto; }
+.mpwa-status {
+  font-size: 9px; font-weight: 800; padding: 3px 8px; border-radius: 999px;
+  background: rgba(23,105,209,.1); color: var(--blue);
+}
+.mpwa-status.pending { background: rgba(242,107,91,.12); color: #C34E3F; }
+.mpwa-status.done { background: rgba(20,184,181,.14); color: #0E8F8C; }
+
+.mpwa-empty { text-align: center; padding: 26px 14px; color: var(--muted); font-size: 12px; }
+.mpwa-empty b { display: block; color: var(--ink); font-size: 14px; margin-bottom: 5px; }
+.mpwa-note { font-size: 11px; color: var(--muted); line-height: 1.7; }
+.mpwa-error {
+  background: rgba(242,107,91,.1); border: 1px solid rgba(242,107,91,.3);
+  color: #A43E32; border-radius: 12px; padding: 10px 12px; font-size: 11px; margin-bottom: 10px;
+}
+.dark .mpwa-error { color: #F6A89F; }
+
+/* ---------- التبويب السفلي ---------- */
+.mpwa-tabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  height: calc(66px + env(safe-area-inset-bottom));
+  padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -8px 24px rgba(16,42,86,.06);
+}
+.mpwa-tab {
+  border: 0; background: transparent; color: var(--muted);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; font-size: 10px; font-weight: 700; border-radius: 14px;
+  position: relative;
+}
+.mpwa-tab.active { color: var(--blue); background: rgba(23,105,209,.08); }
+.mpwa-tab .badge {
+  position: absolute; top: 3px; left: calc(50% - 20px);
+  min-width: 17px; height: 17px; padding: 0 4px;
+  border-radius: 999px; background: var(--coral); color: #fff;
+  font-size: 9px; display: grid; place-items: center;
+}
+
+/* ---------- النماذج واللوحات ---------- */
+.mpwa-field { margin-bottom: 12px; }
+.mpwa-field label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+.mpwa-input, .mpwa-select, .mpwa-textarea {
+  width: 100%; min-height: 46px;
+  border: 1px solid var(--line); border-radius: 13px;
+  background: var(--card); color: var(--ink);
+  padding: 10px 12px; font-size: 13px; outline: none;
+}
+.mpwa-textarea { min-height: 92px; resize: vertical; }
+.mpwa-input:focus, .mpwa-select:focus, .mpwa-textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(23,105,209,.1); }
+.mpwa-btn {
+  width: 100%; min-height: 48px; border: 0; border-radius: 14px;
+  background: var(--blue); color: #fff; font-weight: 800; font-size: 13px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.mpwa-btn:disabled { opacity: .55; cursor: not-allowed; }
+.mpwa-btn.ghost { background: var(--soft); color: var(--blue); border: 1px solid var(--line); }
+.mpwa-btn.danger { background: rgba(242,107,91,.12); color: #C34E3F; border: 1px solid rgba(242,107,91,.3); }
+.mpwa-btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.mpwa-sheet {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(10,18,34,.5);
+  display: flex; align-items: flex-end; justify-content: center;
+  padding-top: env(safe-area-inset-top);
+}
+.mpwa-sheet-panel {
+  width: 100%; max-width: 520px; max-height: 88vh; overflow-y: auto;
+  background: var(--card); color: var(--ink);
+  border-radius: 24px 24px 0 0;
+  padding: 18px 18px calc(24px + env(safe-area-inset-bottom));
+  box-shadow: 0 -18px 50px rgba(10,18,34,.25);
+}
+.mpwa-sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.mpwa-sheet-head b { font-size: 16px; }
+.mpwa-sheet-head button {
+  width: 34px; height: 34px; border-radius: 11px; border: 1px solid var(--line);
+  background: var(--soft); color: var(--muted); display: grid; place-items: center;
+}
+
+.mpwa-login {
+  min-height: 100%; display: flex; flex-direction: column; justify-content: center;
+  padding: 22px 20px calc(30px + env(safe-area-inset-bottom));
+  max-width: 520px; margin: 0 auto;
+}
+.mpwa-login-brand { text-align: center; margin-bottom: 26px; }
+.mpwa-login-brand .mpwa-mark { margin: 0 auto 12px; width: 58px; height: 58px; flex-basis: 58px; border-radius: 18px; font-size: 19px; background: linear-gradient(135deg,var(--navy),var(--blue)); }
+.mpwa-login-brand b { display: block; font-size: 24px; font-weight: 800; color: var(--navy); }
+.dark .mpwa-login-brand b { color: #fff; }
+.mpwa-login-brand span { display: block; color: var(--muted); font-size: 11px; margin-top: 6px; line-height: 1.7; }
+.mpwa-login-card { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 20px; box-shadow: 0 14px 40px rgba(16,42,86,.08); }
+.mpwa-login-foot { text-align: center; color: var(--muted); font-size: 10px; margin-top: 18px; line-height: 1.8; }
+
+/* ---------- الدخول الزجاجي ثلاثي الأبعاد (نفس هوية الشاشة الرئيسية) ---------- */
+.mpwa.auth3d .mpwa-login { position: relative; z-index: 1; }
+.mpwa-login-mark {
+  width: 66px; height: 66px; object-fit: contain; border-radius: 18px; padding: 6px;
+  background: rgba(255,255,255,.82); box-shadow: 0 14px 30px rgba(16,42,86,.24);
+}
+.dark .mpwa-login-mark { background: rgba(15,23,42,.7); }
+.mpwa-auth-tabs { display: flex; gap: 4px; border-radius: 14px; padding: 4px; margin-bottom: 14px; }
+.mpwa-auth-tabs .auth3d__tab {
+  flex: 1; border: 0; border-radius: 10px; padding: 9px 6px; font-size: 12px; font-weight: 800;
+  background: transparent; color: var(--muted);
+}
+.mpwa-login-card.auth3d__shell { backdrop-filter: blur(18px); }
+.mpwa .auth3d__cta { color: #fff; border: 0; }
+
+.mpwa-skeleton { background: linear-gradient(90deg, var(--soft), var(--line), var(--soft)); background-size: 200% 100%; animation: mpwa-shine 1.2s infinite linear; border-radius: 10px; }
+@keyframes mpwa-shine { to { background-position: -200% 0; } }
+.mpwa-spinner {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.35); border-top-color: #fff;
+  animation: mpwa-spin .7s linear infinite;
+}
+@keyframes mpwa-spin { to { transform: rotate(360deg); } }
+
+@media (min-width: 560px) {
+  .mpwa { padding-left: max(0px, calc((100vw - 520px) / 2)); padding-right: max(0px, calc((100vw - 520px) / 2)); }
+}

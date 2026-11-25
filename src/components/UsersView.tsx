@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { KeyRound, Plus, Search, ShieldCheck, UserCog, X, Copy, Check, AlertTriangle } from 'lucide-react';
+import { KeyRound, Plus, Search, ShieldCheck, UserCog, X, Copy, Check, AlertTriangle, Inbox } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Btn, inputCls } from './ui';
 
@@ -18,6 +18,30 @@ interface AccountRow {
 
 interface EntityOption { id: number; name_ar: string }
 interface EmployeeOption { id: number; name: string }
+
+interface SignupRequestRow {
+  id: number;
+  full_name: string;
+  email: string;
+  phone: string;
+  username: string;
+  status: string;
+  review_note: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+}
+
+interface PasswordResetRequestRow {
+  id: number;
+  user_id: number;
+  username: string;
+  contact_email: string;
+  status: string;
+  created_at: string;
+  reviewed_at: string | null;
+  review_note: string | null;
+  account_status: string | null;
+}
 
 const ROLES: Array<{ value: string; label: string }> = [
   { value: 'admin', label: 'مدير النظام' },
@@ -53,6 +77,25 @@ export default function UsersView() {
   const [busyId, setBusyId] = useState<number | null>(null);
   const [issued, setIssued] = useState<{ username: string; password: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [requests, setRequests] = useState<SignupRequestRow[]>([]);
+  const [requestRole, setRequestRole] = useState<Record<number, string>>({});
+  const [requestBusy, setRequestBusy] = useState<number | null>(null);
+  const [resetRequests, setResetRequests] = useState<PasswordResetRequestRow[]>([]);
+  const [resetBusy, setResetBusy] = useState<number | null>(null);
+
+  const loadRequests = () => {
+    fetch('/api/auth/signup-requests')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setRequests(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  };
+
+  const loadResetRequests = () => {
+    fetch('/api/auth/password-reset-requests')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setResetRequests(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  };
 
   const load = () => {
     fetch('/api/auth/users')
@@ -64,6 +107,8 @@ export default function UsersView() {
 
   useEffect(() => {
     load();
+    loadRequests();
+    loadResetRequests();
     fetch('/api/entities').then((r) => (r.ok ? r.json() : [])).then((d) => setEntities(Array.isArray(d) ? d : [])).catch(() => {});
     fetch('/api/employees').then((r) => (r.ok ? r.json() : [])).then((d) => setEmployees(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
@@ -194,6 +239,68 @@ export default function UsersView() {
     }
   };
 
+  const decideRequest = async (row: SignupRequestRow, action: 'approve' | 'reject') => {
+    if (action === 'reject' && !confirm(`رفض طلب التسجيل لـ «${row.full_name}»؟`)) return;
+    if (action === 'approve' && !confirm(`اعتماد طلب «${row.full_name}» وإنشاء حساب بصلاحية ${roleLabel(requestRole[row.id] || 'employee_ess')}؟`)) return;
+    setRequestBusy(row.id);
+    setNotice(null);
+    try {
+      await send(`/api/auth/signup-requests/${row.id}/${action}`, 'POST',
+        action === 'approve' ? { role: requestRole[row.id] || 'employee_ess' } : {});
+      setNotice({
+        kind: 'ok',
+        text: action === 'approve'
+          ? `تم اعتماد الطلب وإنشاء حساب «${row.username}» — سيُطلب تغيير كلمة المرور عند أول دخول`
+          : `تم رفض طلب «${row.full_name}»`,
+      });
+      loadRequests();
+      if (action === 'approve') load();
+    } catch (err) {
+      setNotice({ kind: 'err', text: (err as Error).message });
+    } finally {
+      setRequestBusy(null);
+    }
+  };
+
+  const issueResetPassword = async (row: PasswordResetRequestRow) => {
+    const message = `إصدار كلمة مرور مؤقتة للمستخدم «${row.username}»؟ سيُطلب منه تغييرها عند أول دخول، وتُبطل جلساته الحالية.`;
+    if (!confirm(message)) return;
+    setResetBusy(row.id);
+    setNotice(null);
+    try {
+      // The existing admin-only route is the single place that hashes a new
+      // credential, revokes sessions and forces a password change. Closing the
+      // request here only records the decision — it never invents a credential.
+      const result = await send(`/api/auth/users/${row.user_id}/password`, 'PUT', {});
+      await send(`/api/auth/password-reset-requests/${row.id}/resolve`, 'POST', {
+        review_note: 'تم إصدار كلمة مرور مؤقتة وتسليمها للمدير',
+      });
+      setIssued({ username: row.username, password: String(result?.password || '') });
+      setCopied(false);
+      setNotice({ kind: 'ok', text: `تم إصدار كلمة مرور مؤقتة لـ «${row.username}» — انسخها الآن، لا ستظهر مرة أخرى.` });
+      loadResetRequests();
+    } catch (err) {
+      setNotice({ kind: 'err', text: (err as Error).message });
+    } finally {
+      setResetBusy(null);
+    }
+  };
+
+  const rejectResetRequest = async (row: PasswordResetRequestRow) => {
+    if (!confirm(`رفض طلب استعادة كلمة المرور للمستخدم «${row.username}»؟`)) return;
+    setResetBusy(row.id);
+    setNotice(null);
+    try {
+      await send(`/api/auth/password-reset-requests/${row.id}/reject`, 'POST', { review_note: 'مرفوض من المدير' });
+      setNotice({ kind: 'ok', text: `تم رفض طلب «${row.username}» دون تغيير كلمة المرور.` });
+      loadResetRequests();
+    } catch (err) {
+      setNotice({ kind: 'err', text: (err as Error).message });
+    } finally {
+      setResetBusy(null);
+    }
+  };
+
   const labelCls = 'block text-xs font-black text-slate-600 mb-1';
   const thCls = 'px-3 py-3 text-right text-xs font-black text-slate-500 whitespace-nowrap';
   const tdCls = 'px-3 py-3 text-sm text-slate-700 align-middle';
@@ -275,6 +382,154 @@ export default function UsersView() {
           </div>
         </div>
       )}
+
+      <section className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+        <div className="p-4 border-b border-slate-100 flex flex-wrap items-center gap-3">
+          <Inbox className="w-5 h-5 text-brand-600" />
+          <h2 className="font-black text-navy-800">طلبات التسجيل</h2>
+          <span className="rounded-lg bg-amber-100 px-2 py-1 text-[11px] font-black text-amber-800">
+            {requests.filter((r) => r.status === 'pending').length} بانتظار المراجعة
+          </span>
+          <span className="text-xs text-slate-500">الطلب لا ينشئ حساباً إلا بعد اعتمادك — الدور الافتراضي: خدمة ذاتية.</span>
+        </div>
+        {requests.length === 0 ? (
+          <p className="p-6 text-sm text-slate-500">لا توجد طلبات تسجيل حالياً.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead className="bg-shell-100">
+                <tr>
+                  <th className={thCls}>مقدم الطلب</th>
+                  <th className={thCls}>اسم المستخدم</th>
+                  <th className={thCls}>البريد / الجوال</th>
+                  <th className={thCls}>التاريخ</th>
+                  <th className={thCls}>الحالة</th>
+                  <th className={thCls}>الدور عند الاعتماد</th>
+                  <th className={thCls}>إجراء</th>
+                </tr>
+              </thead>
+              <tbody>
+                {requests.map((row) => {
+                  const pending = row.status === 'pending';
+                  const busy = requestBusy === row.id;
+                  return (
+                    <tr key={row.id} className="border-t border-slate-100 hover:bg-shell-50">
+                      <td className={tdCls}>
+                        <span className="font-bold text-navy-800 block">{row.full_name}</span>
+                        <span className="text-[11px] text-slate-400">#{row.id}</span>
+                      </td>
+                      <td className={tdCls}><span dir="ltr" className="font-mono text-xs">{row.username}</span></td>
+                      <td className={tdCls}>
+                        <span dir="ltr" className="text-xs block">{row.email}</span>
+                        <span dir="ltr" className="text-[11px] text-slate-500">{row.phone}</span>
+                      </td>
+                      <td className={tdCls}><span className="text-[11px] text-slate-500">{new Date(row.created_at).toLocaleDateString('ar-SA')}</span></td>
+                      <td className={tdCls}>
+                        <span className={`rounded-lg px-2 py-1 text-[11px] font-bold ${
+                          pending ? 'bg-amber-50 text-amber-700' : row.status === 'approved' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                        }`}>
+                          {pending ? 'قيد المراجعة' : row.status === 'approved' ? 'معتمد' : 'مرفوض'}
+                        </span>
+                        {row.review_note && <span className="block text-[10px] text-slate-500 mt-1">{row.review_note}</span>}
+                      </td>
+                      <td className={tdCls}>
+                        {pending ? (
+                          <select
+                            className={inputCls}
+                            aria-label={`دور اعتماد ${row.username}`}
+                            value={requestRole[row.id] || 'employee_ess'}
+                            onChange={(e) => setRequestRole((prev) => ({ ...prev, [row.id]: e.target.value }))}
+                          >
+                            {ROLES.filter((r) => r.value !== 'admin').map((r) => (
+                              <option key={r.value} value={r.value}>{r.label}</option>
+                            ))}
+                          </select>
+                        ) : <span className="text-xs text-slate-400">—</span>}
+                      </td>
+                      <td className={tdCls}>
+                        {pending ? (
+                          <div className="flex gap-2">
+                            <Btn loading={busy} loadingText="..." onClick={() => decideRequest(row, 'approve')}>اعتماد</Btn>
+                            <Btn variant="ghost" disabled={busy} onClick={() => decideRequest(row, 'reject')}>رفض</Btn>
+                          </div>
+                        ) : <span className="text-xs text-slate-400">تمت المراجعة</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+        <div className="p-4 border-b border-slate-100 flex flex-wrap items-center gap-3">
+          <KeyRound className="w-5 h-5 text-brand-600" />
+          <h2 className="font-black text-navy-800">طلبات استعادة كلمة المرور</h2>
+          <span className="rounded-lg bg-amber-100 px-2 py-1 text-[11px] font-black text-amber-800">
+            {resetRequests.filter((r) => r.status === 'pending').length} بانتظار المراجعة
+          </span>
+          <span className="text-xs text-slate-500">الطلب لا يكشف وجود الحساب ولا يمنح جلسة — أنت من يصدر كلمة المرور المؤقتة.</span>
+        </div>
+        {resetRequests.length === 0 ? (
+          <p className="p-6 text-sm text-slate-500">لا توجد طلبات استعادة حالياً.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead className="bg-shell-100">
+                <tr>
+                  <th className={thCls}>اسم المستخدم</th>
+                  <th className={thCls}>البريد المسجل</th>
+                  <th className={thCls}>حالة الحساب</th>
+                  <th className={thCls}>التاريخ</th>
+                  <th className={thCls}>الحالة</th>
+                  <th className={thCls}>إجراء</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resetRequests.map((row) => {
+                  const pending = row.status === 'pending';
+                  const busy = resetBusy === row.id;
+                  return (
+                    <tr key={row.id} className="border-t border-slate-100 hover:bg-shell-50">
+                      <td className={tdCls}>
+                        <span dir="ltr" className="font-mono text-xs">{row.username}</span>
+                        <span className="block text-[11px] text-slate-400">#{row.id} · مستخدم #{row.user_id}</span>
+                      </td>
+                      <td className={tdCls}><span dir="ltr" className="text-xs">{row.contact_email}</span></td>
+                      <td className={tdCls}>
+                        <span className={`rounded-lg px-2 py-1 text-[11px] font-bold ${
+                          row.account_status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                        }`}>
+                          {row.account_status === 'active' ? 'نشط' : row.account_status || 'غير معروف'}
+                        </span>
+                      </td>
+                      <td className={tdCls}><span className="text-[11px] text-slate-500">{new Date(row.created_at).toLocaleDateString('ar-SA')}</span></td>
+                      <td className={tdCls}>
+                        <span className={`rounded-lg px-2 py-1 text-[11px] font-bold ${
+                          pending ? 'bg-amber-50 text-amber-700' : row.status === 'resolved' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                        }`}>
+                          {pending ? 'قيد المراجعة' : row.status === 'resolved' ? 'تمت الاستعادة' : 'مرفوض'}
+                        </span>
+                        {row.review_note && <span className="mt-1 block text-[10px] text-slate-500">{row.review_note}</span>}
+                      </td>
+                      <td className={tdCls}>
+                        {pending ? (
+                          <div className="flex gap-2">
+                            <Btn loading={busy} loadingText="..." onClick={() => issueResetPassword(row)}>إصدار مؤقتة</Btn>
+                            <Btn variant="ghost" disabled={busy} onClick={() => rejectResetRequest(row)}>رفض</Btn>
+                          </div>
+                        ) : <span className="text-xs text-slate-400">تمت المراجعة</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       {creating && (
         <form onSubmit={createAccount} className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">

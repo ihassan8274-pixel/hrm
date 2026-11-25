@@ -2,16 +2,33 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link rel="manifest" href="/manifest.json" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <title>المسار | نظام الموارد البشرية المتكامل</title>
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- أيقونة التثبيت: نفس شعار تمكين ثلاثي الأبعاد على الويب والجوال -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/brand/empower-3d-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/brand/pwa-icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/brand/apple-touch-icon-180.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/brand/pwa-icon-192.png" />
+    <meta name="apple-mobile-web-app-title" content="تمكين" />
+    <meta name="application-name" content="تمكين" />
+    <meta name="theme-color" content="#102A56" />
+    <meta name="description" content="تمكين | EMPOWER — نظام إدارة الموارد البشرية والرواتب والامتثال السعودي" />
+    <title>تمكين | EMPOWER — Human Resources Management System</title>
+    <script>
+      // The mobile shell at /m installs as a separate app; everything else keeps
+      // the full desktop manifest and start URL.
+      if (/^\/m\/?($|\?)/.test(location.pathname + location.search)) {
+        document.querySelector('link[rel="manifest"]').setAttribute('href', '/m-manifest.json');
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', '#1769D1');
+        document.title = 'تمكين | EMPOWER — تطبيق الجوال';
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

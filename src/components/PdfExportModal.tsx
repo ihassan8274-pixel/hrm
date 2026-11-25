@@ -146,35 +146,35 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white w-full max-w-5xl rounded-3xl shadow-2xl border border-slate-100 flex flex-col max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-5xl rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 flex flex-col max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Modal Header */}
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/60 shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-md shadow-emerald-600/30">
               <FileText className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-lg font-black text-slate-800">{t('pdf.modal_title')}</h3>
-              <p className="text-xs text-slate-500">{t('pdf.modal_subtitle')}</p>
+              <h3 className="text-lg font-black text-slate-800 dark:text-white">{t('pdf.modal_title')}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{t('pdf.modal_subtitle')}</p>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="p-2 hover:bg-slate-200 text-slate-400 hover:text-slate-700 rounded-xl transition-colors"
+            className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Controls Bar */}
-        <div className="p-4 bg-slate-100/80 border-b border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-3 shrink-0 text-xs">
+        <div className="p-4 bg-slate-100/80 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700 grid grid-cols-1 md:grid-cols-4 gap-3 shrink-0 text-xs">
           <div>
-            <label className="block font-bold text-slate-600 mb-1">{t('pdf.select_report')}</label>
+            <label className="block font-bold text-slate-600 dark:text-slate-300 mb-1">{t('pdf.select_report')}</label>
             <select 
               value={reportType}
               onChange={e => setReportType(e.target.value as any)}
-              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-emerald-500"
             >
               <option value="payroll">{t('pdf.report_payroll')}</option>
               <option value="payslip">{t('pdf.report_payslip')}</option>
@@ -186,15 +186,15 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
 
           {reportType === 'payslip' && (
             <div>
-              <label className="block font-bold text-slate-600 mb-1">الموظف المعني</label>
+              <label className="block font-bold text-slate-600 dark:text-slate-300 mb-1">الموظف المعني</label>
               <select 
                 value={selectedEmployeeId}
                 onChange={e => setSelectedEmployeeId(e.target.value as any)}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none"
+                className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-100 outline-none"
               >
                 <option value="all">كافة الموظفين (دفعة واحدة)</option>
                 {employees.map(emp => (
-                  <option key={emp.id} value={emp.id}>{emp.name} ({emp.nationality || 'سعودي'})</option>
+                  <option key={emp.id} value={emp.id}>{emp.name} ({emp.nationality || 'غير مسجل'})</option>
                 ))}
               </select>
             </div>
@@ -202,11 +202,11 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
 
           <div className="flex items-center gap-2">
             <div className="flex-1">
-              <label className="block font-bold text-slate-600 mb-1">الشهر</label>
+              <label className="block font-bold text-slate-600 dark:text-slate-300 mb-1">الشهر</label>
               <select 
                 value={selectedMonth}
                 onChange={e => setSelectedMonth(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none"
+                className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-100 outline-none"
               >
                 {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                   <option key={m} value={m}>شهر {m}</option>
@@ -214,12 +214,12 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
               </select>
             </div>
             <div className="w-24">
-              <label className="block font-bold text-slate-600 mb-1">السنة</label>
+              <label className="block font-bold text-slate-600 dark:text-slate-300 mb-1">السنة</label>
               <input 
                 type="number"
                 value={selectedYear}
                 onChange={e => setSelectedYear(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none"
+                className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-100 outline-none"
               />
             </div>
           </div>
@@ -233,7 +233,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                 onChange={e => setIncludeStamp(e.target.checked)}
                 className="rounded text-emerald-600 focus:ring-emerald-500" 
               />
-              <span className="font-bold text-slate-700 text-[11px]">{t('pdf.include_stamp')}</span>
+              <span className="font-bold text-slate-700 dark:text-slate-200 text-[11px]">{t('pdf.include_stamp')}</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input 
@@ -242,7 +242,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                 onChange={e => setIncludeQr(e.target.checked)}
                 className="rounded text-emerald-600 focus:ring-emerald-500" 
               />
-              <span className="font-bold text-slate-700 text-[11px]">{t('pdf.include_qr')}</span>
+              <span className="font-bold text-slate-700 dark:text-slate-200 text-[11px]">{t('pdf.include_qr')}</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input 
@@ -251,13 +251,13 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                 onChange={e => setIncludeSignatures(e.target.checked)}
                 className="rounded text-emerald-600 focus:ring-emerald-500" 
               />
-              <span className="font-bold text-slate-700 text-[11px]">{t('pdf.include_signatures')}</span>
+              <span className="font-bold text-slate-700 dark:text-slate-200 text-[11px]">{t('pdf.include_signatures')}</span>
             </label>
           </div>
         </div>
 
         {/* PDF Document Preview Canvas */}
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-200/60 flex justify-center custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-200/60 dark:bg-slate-950/50 flex justify-center custom-scrollbar">
           <div 
             ref={printRef}
             className={`bg-white text-slate-900 shadow-xl border border-slate-300 p-8 rounded-none transition-all ${
@@ -319,8 +319,8 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                     {(currentPayrollFiltered.length > 0 ? currentPayrollFiltered : employees).map((item, idx) => {
                       const isSaudi = item.is_saudi === 1 || item.nationality === 'سعودي';
                       const basic = Number(item.basic_salary) || 0;
-                      const housing = Number(item.housing_allowance) || basic * 0.25;
-                      const transport = Number(item.transport_allowance) || 500;
+                      const housing = Number(item.housing_allowance) || 0;
+                      const transport = Number(item.transport_allowance) || 0;
                       const totalGross = basic + housing + transport;
                       const gosiEmp = isSaudi ? Math.round((basic + housing) * 0.0975) : 0;
                       const deductions = Number(item.deductions) || 0;
@@ -330,7 +330,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                         <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                           <td className="border border-slate-300 p-2 text-center font-mono">{idx + 1}</td>
                           <td className="border border-slate-300 p-2 font-bold">{item.name || item.employee_name}</td>
-                          <td className="border border-slate-300 p-2 text-center font-mono">{item.national_id_iqama || '1089456123'}</td>
+                          <td className="border border-slate-300 p-2 text-center font-mono">{item.national_id_iqama || 'غير مسجل'}</td>
                           <td className="border border-slate-300 p-2 text-center">{isSaudi ? 'سعودي 🇸🇦' : (item.nationality || 'مقيم')}</td>
                           <td className="border border-slate-300 p-2 text-center font-mono">{basic.toLocaleString()}</td>
                           <td className="border border-slate-300 p-2 text-center font-mono">{housing.toLocaleString()}</td>
@@ -339,7 +339,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                           <td className="border border-slate-300 p-2 text-center font-mono text-red-600">{gosiEmp.toLocaleString()}</td>
                           <td className="border border-slate-300 p-2 text-center font-mono text-red-600">{deductions.toLocaleString()}</td>
                           <td className="border border-slate-300 p-2 text-center font-mono font-black text-emerald-800 bg-emerald-50/50">{net.toLocaleString()}</td>
-                          <td className="border border-slate-300 p-2 text-center font-mono text-[9px]">{item.saudi_iban || 'SA0380000000608010123456'}</td>
+                          <td className="border border-slate-300 p-2 text-center font-mono text-[9px]">{item.saudi_iban || 'غير مسجل'}</td>
                         </tr>
                       );
                     })}
@@ -358,9 +358,9 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                     <p className="text-slate-500 mt-1">القسم / الإدارة: <span className="font-bold text-slate-900">{selectedEmployeeObj.department_name || 'الشؤون الإدارية'}</span></p>
                   </div>
                   <div>
-                    <p className="text-slate-500">رقم الهوية / الإقامة: <span className="font-bold font-mono text-slate-900">{selectedEmployeeObj.national_id_iqama || '1089456123'}</span></p>
-                    <p className="text-slate-500 mt-1">الجنسية: <span className="font-bold text-slate-900">{selectedEmployeeObj.nationality || 'سعودي'}</span></p>
-                    <p className="text-slate-500 mt-1">البنك والآيبان: <span className="font-bold font-mono text-slate-900">{selectedEmployeeObj.saudi_iban || 'SA4410000001234567890123'}</span></p>
+                    <p className="text-slate-500">رقم الهوية / الإقامة: <span className="font-bold font-mono text-slate-900">{selectedEmployeeObj.national_id_iqama || 'غير مسجل'}</span></p>
+                    <p className="text-slate-500 mt-1">الجنسية: <span className="font-bold text-slate-900">{selectedEmployeeObj.nationality || 'غير مسجل'}</span></p>
+                    <p className="text-slate-500 mt-1">البنك والآيبان: <span className="font-bold font-mono text-slate-900">{selectedEmployeeObj.saudi_iban || 'غير مسجل'}</span></p>
                   </div>
                 </div>
 
@@ -629,10 +629,10 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         </div>
 
         {/* Modal Actions Footer */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center shrink-0">
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center shrink-0">
           <button
             onClick={handleBrowserPrint}
-            className="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-2 transition-all shadow-sm"
+            className="px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center gap-2 transition-all shadow-sm"
           >
             <Printer className="w-4 h-4" />
             <span>{t('btn.print')}</span>
@@ -641,7 +641,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="px-6 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs transition-colors"
+              className="px-6 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs transition-colors"
             >
               {t('btn.close')}
             </button>

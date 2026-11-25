@@ -7,7 +7,6 @@ import fs from "fs";
 import cors from "cors";
 import helmet from "helmet";
 import bodyParser from "body-parser";
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import https from "https";
@@ -43,10 +42,13 @@ import { registerWorkflows } from "./routes/workflows";
 import { registerCompliance } from "./routes/compliance";
 import { registerAi } from "./routes/ai";
 import { registerHrModules } from "./routes/hrModules";
-import { registerHealthCertificates } from "./routes/healthCertificates";
+import { registerHealthCertificates, needsHealthCert } from "./routes/healthCertificates";
 import { registerImporter } from "./routes/importer";
 import { registerForms } from "./routes/forms";
 import { registerEssRequests } from "./routes/essRequests";
+import { registerAnnualCycle, startAnnualCycleScheduler } from "./routes/annualCycle";
+import { registerPushTokens } from "./routes/pushTokens";
+import { startPayrollAutoScheduler } from "./lib/payroll-auto-scheduler";
 import { enforceTenantWriteScope } from "./middleware/tenantScope";
 import { assertEnvFileShape } from "./config/env";
 import { log, requestLogger } from "./lib/logger";
@@ -140,6 +142,10 @@ async function startServer() {
   assertEnvFileShape();
   await runMigrationsWithRetry();
   const app = express();
+  // The production instance sits behind Cloudflare Tunnel. Without this the
+  // socket peer is always the local connector, so express-rate-limit groups
+  // every visitor under one IP and logs a validation warning on every request.
+  app.set("trust proxy", 1);
   installAsyncRouteForwarding(app);
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
@@ -148,6 +154,14 @@ async function startServer() {
 
   // CORS: allow same-origin by default; restrict via CORS_ORIGINS env (comma-separated)
   const corsOrigins = (process.env.CORS_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
+  // WebView الأصلي يرسل requests من أصل محلي خاص بالمنصة؛ ليست مواقع خارجية
+  // ولا يمكن لصفحة ويب عادية انتحالها. تُسمح هذه الأصول دائماً بغض النظر عن CORS_ORIGINS.
+  const nativeWebViewOrigins = new Set([
+    "capacitor://localhost",
+    "http://localhost",
+    "https://localhost",
+    "ionic://localhost",
+  ]);
   // An empty allow-list means "any origin", which on a system that holds
   // payroll data is a cross-site request forgery surface. In production that
   // is a configuration error, not a default: refuse to start instead of
@@ -163,6 +177,7 @@ async function startServer() {
   app.use((req, res, next) => {
     const origin = req.headers.origin;
     if (!origin) return cors()(req, res, next);
+    if (nativeWebViewOrigins.has(origin)) return cors()(req, res, next);
     // The app serving its own UI is always allowed, even when the allow-list
     // names other origins — otherwise setting CORS_ORIGINS would break the
     // application's own pages. The forwarded host is checked as well for
@@ -239,6 +254,25 @@ async function startServer() {
     res.json(snapshotMetrics());
   });
 
+  // Protected training guides. The HTML files live outside dist with mode 600;
+  // only a signed-in user can read them, and the name is allowlisted so a
+  // caller cannot traverse to any other file on the server.
+  const TRAINING_GUIDES = new Set([
+    "TRAINING_INDEX.html",
+    "TRAINING_EMPLOYEE.html",
+    "TRAINING_HR.html",
+    "TRAINING_FINANCE.html",
+    "TRAINING_SETTINGS.html",
+  ]);
+  app.get("/api/guides/:name", (req, res) => {
+    const name = String(req.params.name || "");
+    if (!TRAINING_GUIDES.has(name)) return res.status(404).json({ error: "الدليل غير موجود" });
+    const file = path.join(process.cwd(), "private-prototypes", name);
+    if (!fs.existsSync(file)) return res.status(404).json({ error: "الدليل غير منشور على الخادم" });
+    res.setHeader("Cache-Control", "private, no-store");
+    res.type("html; charset=utf-8").sendFile(file);
+  });
+
   // The write-side tenant guard runs right after the auth gate, so every
   // authenticated write is checked against the caller's entity and branch
   // before it reaches a handler. It has to sit here and not inside the route
@@ -261,6 +295,10 @@ async function startServer() {
   registerImporter(app);
   registerForms(app);
   registerEssRequests(app);
+  registerAnnualCycle(app);
+  registerPushTokens(app);
+  startAnnualCycleScheduler();
+  startPayrollAutoScheduler();
 
 
   await seedExtendedModules();
@@ -324,21 +362,24 @@ async function startServer() {
         } else if (e.iqama_expiry_gregorian && e.iqama_expiry_gregorian <= in30) {
           await notify("قرب انتهاء إقامة", `إقامة ${e.name} تنتهي ${e.iqama_expiry_gregorian}`, "warning");
         }
-        if (e.health_cert_expiry && e.health_cert_expiry <= today) {
-          await notify("شهادة صحية منتهية", `الشهادة الصحية لـ ${e.name} منتهية منذ ${e.health_cert_expiry} — الموظف غير مسموح له بالعمل`, "error");
-        } else if (e.health_cert_expiry && e.health_cert_expiry <= in30) {
-          await notify("شهادة صحية", `الشهادة الصحية لـ ${e.name} تنتهي ${e.health_cert_expiry}`, "warning");
+        // الشهادة الصحية إلزامية لخاضعي تداول الطعام فقط.
+        if (needsHealthCert(e)) {
+          if (e.health_cert_expiry && e.health_cert_expiry <= today) {
+            await notify("شهادة صحية منتهية", `الشهادة الصحية لـ ${e.name} منتهية منذ ${e.health_cert_expiry} — الموظف غير مسموح له بالعمل`, "error");
+          } else if (e.health_cert_expiry && e.health_cert_expiry <= in30) {
+            await notify("شهادة صحية", `الشهادة الصحية لـ ${e.name} تنتهي ${e.health_cert_expiry}`, "warning");
+          }
         }
         if (e.medical_insurance_expiry && e.medical_insurance_expiry <= in30) {
           await notify("تأمين طبي", `تأمين ${e.name} ينتهي ${e.medical_insurance_expiry}`, "warning");
         }
       }
-      // Food-sector requirement: every active employee needs a valid health
-      // certificate. Aggregate alert (one per day max) instead of one per employee.
+      // Food-sector requirement: only employees flagged as health-cert
+      // subjects (food handlers) are counted. Aggregate alert, once per day.
       const missingCerts = ((await db
         .prepare(
           `SELECT COUNT(*) as c FROM employees e
-           WHERE e.status = 'active' AND NOT EXISTS (
+           WHERE e.status = 'active' AND COALESCE(e.health_cert_required, 0) = 1 AND NOT EXISTS (
              SELECT 1 FROM health_certificates hc
               WHERE hc.employee_id = e.id AND hc.status = 'active' AND hc.expiry_date::date >= CURRENT_DATE
            )`

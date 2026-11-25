@@ -13,6 +13,7 @@ export default function QiwaContractsView() {
   const [contracts, setContracts] = useState<QiwaContract[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
@@ -40,15 +41,25 @@ export default function QiwaContractsView() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      setError('');
       const [cRes, eRes] = await Promise.all([
         fetch('/api/qiwa/contracts'),
         fetch('/api/employees')
       ]);
+      if (!cRes.ok || !eRes.ok) {
+        const failed = !cRes.ok ? 'العقود' : 'الموظفين';
+        const status = !cRes.ok ? cRes.status : eRes.status;
+        throw new Error(`تعذّر تحميل ${failed} (رمز الاستجابة ${status})`);
+      }
       const [cData, eData] = await Promise.all([cRes.json(), eRes.json()]);
-      setContracts(cData);
-      setEmployees(eData);
+      // An API error body is an object, never an array — never let it reach .filter().
+      setContracts(Array.isArray(cData) ? cData : []);
+      setEmployees(Array.isArray(eData) ? eData : []);
     } catch (err) {
       console.error(err);
+      setError(err instanceof Error ? err.message : 'تعذّر تحميل البيانات');
+      setContracts([]);
+      setEmployees([]);
     } finally {
       setLoading(false);
     }
@@ -96,6 +107,9 @@ export default function QiwaContractsView() {
       if (res.ok) {
         setShowModal(false);
         fetchData();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'تعذّر حفظ العقد');
       }
     } catch (err) {
       console.error(err);
@@ -132,8 +146,12 @@ export default function QiwaContractsView() {
           <button
             onClick={async () => {
               const res = await fetch('/api/qiwa/draft-from-employees', { method: 'POST' });
-              const data = await res.json();
-              alert(data.error || `تم إنشاء ${data.created || 0} مسودة عقد من بيانات الموظفين`);
+              const data = await res.json().catch(() => ({}));
+              if (!res.ok) {
+                alert(data.error || 'تعذّر إنشاء المسودات');
+                return;
+              }
+              alert(`تم إنشاء ${data.created || 0} مسودة عقد من بيانات الموظفين`);
               fetchData();
             }}
             className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-sm font-semibold"
@@ -149,6 +167,16 @@ export default function QiwaContractsView() {
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <span className="flex-1">{error}</span>
+          <button onClick={fetchData} className="rounded-lg bg-white px-3 py-1.5 font-semibold text-red-700 border border-red-200">
+            إعادة المحاولة
+          </button>
+        </div>
+      )}
 
       {/* KPI Alert Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -259,7 +287,7 @@ export default function QiwaContractsView() {
                     </td>
                     <td className="px-4 py-3.5">
                       <p className="font-bold text-slate-800">{c.employee_name}</p>
-                      <span className="text-xs text-slate-500">{c.job_title} • {c.nationality || 'سعودي'}</span>
+                      <span className="text-xs text-slate-500">{c.job_title} • {c.nationality || 'غير مسجل'}</span>
                     </td>
                     <td className="px-4 py-3.5">
                       <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium">
@@ -546,7 +574,7 @@ export default function QiwaContractsView() {
                   <p className="font-bold text-slate-900">الطرف الثاني (العامل):</p>
                   <p>الاسم: {viewingContract.employee_name}</p>
                   <p>الهوية / الإقامة: {viewingContract.national_id_iqama || 'سجل رسمي'}</p>
-                  <p>الجنسية: {viewingContract.nationality || 'سعودي'}</p>
+                  <p>الجنسية: {viewingContract.nationality || 'غير مسجل'}</p>
                 </div>
               </div>
 

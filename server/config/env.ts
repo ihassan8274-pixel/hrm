@@ -45,6 +45,9 @@ export const config = {
   PORT: process.env.PORT ? parseInt(process.env.PORT, 10) : 8090,
   JWT_SECRET: jwtSecret,
   JWT_EXPIRY: "24h",
+  // A signed-in workstation must not stay authenticated when nobody is using it.
+  // The browser tracks real user input with the same value (src/lib/sessionIdle.ts).
+  IDLE_TIMEOUT_MS: Math.max(60_000, Number(process.env.IDLE_TIMEOUT_MS) || 15 * 60 * 1000),
   DB_PATH: process.env.DB_PATH || "payroll.db",
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
   APP_URL: process.env.APP_URL || "http://localhost:8090",

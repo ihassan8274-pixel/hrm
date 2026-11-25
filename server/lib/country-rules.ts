@@ -38,6 +38,18 @@ export function isInsuranceCovered(employee: {
 }
 
 /**
+ * Whether the employee is exempt from the GOSI deduction.
+ *
+ * An exempt employee keeps the full salary: the employee share is not
+ * withheld and the employer carries it in addition to its own share.
+ */
+export function isGosiExempt(employee: {
+  gosi_exempt?: number | boolean | null;
+} | null | undefined): boolean {
+  return Number(employee?.gosi_exempt) === 1;
+}
+
+/**
  * The employer's rate for a worker the social insurance scheme does not
  * cover — 2% in Saudi Arabia.
  *

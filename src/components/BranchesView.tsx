@@ -140,9 +140,11 @@ export default function BranchesView() {
             <div className="mt-3 text-xs text-slate-400 font-mono">
               {branch.latitude != null ? `📍 ${branch.latitude}, ${branch.longitude} · نطاق ${branch.geofence_radius_m}م` : '⚠️ لا توجد إحداثيات (لن يعمل التحقق الجغرافي)'}
             </div>
-            <button onClick={() => startEdit(branch)} className="mt-3 text-xs font-bold text-brand-600 hover:text-brand-700">✏️ تعديل الإحداثيات</button>
+            <button onClick={() => startEdit(branch)} className="mt-3 text-xs font-bold text-brand-600 hover:text-brand-700">✏️ تعديل الفرع</button>
             {editingId === branch.id && (
               <div className="mt-3 space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <input className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" value={editBranch.name} onChange={e => setEditBranch({ ...editBranch, name: e.target.value })} placeholder="اسم الفرع" />
+                <input className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" value={editBranch.location} onChange={e => setEditBranch({ ...editBranch, location: e.target.value })} placeholder="الموقع" />
                 <input className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" value={editBranch.latitude} onChange={e => setEditBranch({ ...editBranch, latitude: e.target.value })} placeholder="خط العرض" />
                 <input className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" value={editBranch.longitude} onChange={e => setEditBranch({ ...editBranch, longitude: e.target.value })} placeholder="خط الطول" />
                 <input className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" value={editBranch.geofence_radius_m} onChange={e => setEditBranch({ ...editBranch, geofence_radius_m: Number(e.target.value) })} placeholder="شعاع النطاق (متر)" />

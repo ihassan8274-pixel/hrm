@@ -210,7 +210,7 @@ export default function HealthCertificatesView() {
               </span>
             </h1>
             <p className="text-sm text-slate-500 mt-1">
-              متابعة سريان الشهادات الصحية لجميع الموظفين، التجديد قبل الانتهاء، وتنبيهات فورية للمنتهية وغير المسجلين.
+              متابعة سريان الشهادات الصحية للموظفين الخاضعين لتداول الطعام فقط، التجديد قبل الانتهاء، وتنبيهات فورية للمنتهية وغير المسجلين.
             </p>
           </div>
         </div>
@@ -229,7 +229,7 @@ export default function HealthCertificatesView() {
           {kpi('شهادات سارية', stats.valid, CheckCircle2, 'bg-emerald-50 text-emerald-600')}
           {kpi('قاربت على الانتهاء (60 يوم)', stats.expiring, CalendarClock, 'bg-amber-50 text-amber-600', 'تتطلب تجديدًا قريبًا')}
           {kpi('شهادات منتهية', stats.expired, AlertCircle, 'bg-rose-50 text-rose-600', 'ممنوع العمل قبل التجديد')}
-          {kpi('بدون شهادة', stats.missing, Users, 'bg-slate-100 text-slate-600', `من إجمالي ${stats.total_employees} موظف`)}
+          {kpi('بدون شهادة', stats.missing, Users, 'bg-slate-100 text-slate-600', `من إجمالي ${stats.total_employees} موظف خاضع`)}
           {kpi('نسبة الالتزام', stats.coverage_pct, BadgeCheck, 'bg-sky-50 text-sky-600', 'موظفون بشهادة سارية')}
         </div>
       )}
@@ -360,7 +360,7 @@ export default function HealthCertificatesView() {
           <div className="p-5 border-b border-slate-100">
             <h2 className="font-bold text-slate-800 text-base flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-rose-500" />
-              موظفون بدون شهادة صحية سارية — ممنوع توظيفهم في الأعمال الغذائية قبل الاستخراج
+              الموظفون الخاضعون لتداول الطعام وبدون شهادة صحية سارية — ممنوع توظيفهم في الأعمال الغذائية قبل الاستخراج
             </h2>
           </div>
           <div className="overflow-x-auto">
@@ -394,7 +394,7 @@ export default function HealthCertificatesView() {
                   <tr>
                     <td colSpan={4} className="p-8 text-center">
                       <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                      <span className="text-emerald-700 font-bold">جميع الموظفين لديهم شهادة صحية سارية</span>
+                      <span className="text-emerald-700 font-bold">جميع الموظفين الخاضعين لديهم شهادة صحية سارية</span>
                     </td>
                   </tr>
                 )}

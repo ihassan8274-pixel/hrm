@@ -1,6 +1,8 @@
 // Route module. Registered from server/index.ts; the order there is the route order.
 import db, { logAction, createNotification } from "../config/postgres";
 import { kioskLimiter, pairPhoneLimiter, enrollLimiter } from "../middleware/auth";
+import { requireOrganizationScope, organizationScope } from "../middleware/organizationScope";
+import { scopeFilter } from "../lib/organization-scope";
 import crypto from "crypto";
 import express from "express";
 import { log } from "../lib/logger";
@@ -13,6 +15,48 @@ import {
   expectedOriginFor as resolveOrigin,
   kioskRpId as resolveRpId,
 } from "../lib/webauthn-challenges";
+
+// Single-use proof minted only after a real WebAuthn assertion succeeds.
+// The check-in/out endpoints must never trust a bare employee_id: a holder of
+// the branch device token could otherwise punch for any employee in the company.
+interface AttendanceProof { employeeId: number; expires: number }
+const attendanceProofs = new Map<string, AttendanceProof>();
+const PROOF_TTL_MS = 120_000;
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, proof] of attendanceProofs) if (proof.expires < now) attendanceProofs.delete(token);
+}, 60_000).unref?.();
+
+function mintAttendanceProof(employeeId: number): string {
+  const token = crypto.randomBytes(24).toString("hex");
+  attendanceProofs.set(token, { employeeId: Number(employeeId), expires: Date.now() + PROOF_TTL_MS });
+  return token;
+}
+
+async function requireIdentityProof(emp: any, body: any, device: any): Promise<{ ok: boolean; status?: number; error?: string; via?: string }> {
+  const proof = String(body.attendance_proof || body.biometric_proof || "").trim();
+  if (proof) {
+    const pending = attendanceProofs.get(proof);
+    if (pending && pending.expires >= Date.now() && Number(pending.employeeId) === Number(emp.id)) {
+      attendanceProofs.delete(proof); // single use
+      return { ok: true, via: "webauthn" };
+    }
+    await db.prepare("INSERT INTO kiosk_security_logs (device_id, reason, details) VALUES (?, ?, ?)")
+      .run(device.id, "bad_attendance_proof", `إثبات حضور غير صالح للموظف ${emp.id}`);
+    return { ok: false, status: 403, error: "إثبات البصمة غير صالح أو منتهي — أعد التحقق من البصمة" };
+  }
+  const pin = String(body.pin || body.attendance_pin || "").trim();
+  if (pin && emp.attendance_pin && String(emp.attendance_pin) === pin) {
+    return { ok: true, via: "pin" };
+  }
+  await db.prepare("INSERT INTO kiosk_security_logs (device_id, reason, details) VALUES (?, ?, ?)")
+    .run(device.id, "missing_identity_proof", `تسجيل بدون إثبات هوية للموظف ${emp.id}`);
+  return {
+    ok: false,
+    status: 403,
+    error: "يجب إثبات هوية الموظف قبل التسجيل — افحص البصمة أو أدخل الرقم السري الخاص بك",
+  };
+}
 
 export function registerAttendance(app: express.Express) {
 
@@ -51,12 +95,19 @@ export function registerAttendance(app: express.Express) {
 
     // ---- Attendance Devices ----
 
-  app.get("/api/attendance/devices", async (req, res) => {
+  app.get("/api/attendance/devices", requireOrganizationScope, async (req, res) => {
     try {
+      // The list carries device_token and pairing_pin — the credentials a
+      // paired kiosk uses to punch attendance. Scope it to the caller's branch
+      // so a branch manager cannot enumerate other branches' kiosk secrets.
+      const scope = organizationScope(res);
       const rows = await db.prepare(`
         SELECT d.*, b.name as branch_name FROM attendance_devices d
-        LEFT JOIN branches b ON b.id = d.branch_id ORDER BY d.id DESC
-      `).all();
+        LEFT JOIN branches b ON b.id = d.branch_id
+        WHERE (? IS NULL OR b.entity_id = ?)
+          AND (? IS NULL OR d.branch_id = ?)
+        ORDER BY d.id DESC
+      `).all(scope.entityId, scope.entityId, scope.branchId, scope.branchId);
       res.json(rows);
     } catch (e) { res.status(500).json({ error: (e as Error).message }); }
   });
@@ -256,6 +307,8 @@ app.patch("/api/attendance/devices/:id", async (req, res) => {
       if (emp.branch_id && Number(emp.branch_id) !== Number(device.branch_id)) {
         return res.status(403).json({ error: "الموظف غير تابع لهذا الفرع — يُمنع التسجيل على هاتف فرع آخر" });
       }
+      const identity = await requireIdentityProof(emp, req.body, device);
+      if (!identity.ok) return res.status(identity.status || 403).json({ error: identity.error });
       const today = new Date().toISOString().slice(0, 10);
       const existing = await db.prepare(`
         SELECT * FROM attendance_logs WHERE employee_id = ? AND check_in_time::date = ?
@@ -292,6 +345,10 @@ app.patch("/api/attendance/devices/:id", async (req, res) => {
       if (!device) return res.status(404).json({ error: "الجهاز غير مسجل" });
       const gate = await requirePairedPhoneAtBranch(device, latitude, longitude, device_fingerprint);
       if (!gate.ok) return res.status(gate.status || 403).json({ error: gate.error, allowed: false });
+      const emp = await db.prepare("SELECT id, name, attendance_pin FROM employees WHERE id = ?").get(employee_id) as any;
+      if (!emp) return res.status(404).json({ error: "الموظف غير موجود" });
+      const identity = await requireIdentityProof(emp, req.body, device);
+      if (!identity.ok) return res.status(identity.status || 403).json({ error: identity.error });
       const today = new Date().toISOString().slice(0, 10);
       const existing = await db.prepare(`
         SELECT * FROM attendance_logs WHERE employee_id = ? AND check_in_time::date = ? AND check_out_time IS NULL
@@ -300,7 +357,6 @@ app.patch("/api/attendance/devices/:id", async (req, res) => {
       const now = new Date().toISOString();
       await db.prepare("UPDATE attendance_logs SET check_out_time = ?, check_out_lat = ?, check_out_lng = ? WHERE id = ?")
         .run(now, latitude || null, longitude || null, existing.id);
-      const emp = await db.prepare("SELECT name FROM employees WHERE id = ?").get(employee_id) as any;
       await createNotification('تسجيل انصراف', `تم تسجيل انصراف ${emp?.name || ''}` , 'info');
       res.json({ success: true, message: 'تم تسجيل الانصراف' });
     } catch (e) { res.status(500).json({ error: (e as Error).message }); }
@@ -308,15 +364,23 @@ app.patch("/api/attendance/devices/:id", async (req, res) => {
 
     // ---- Attendance logs ----
 
-  app.get("/api/attendance/logs", async (req, res) => {
+  app.get("/api/attendance/logs", requireOrganizationScope, async (req, res) => {
     try {
+      // employee_ess is allowlisted for this route as "own attendance". Without
+      // the scope predicate the query returned every punch in the company, so
+      // any employee could read colleagues' check-in/out times. scopeFilter()
+      // narrows by entity, branch and — for ESS — the linked employee id only.
+      const scope = organizationScope(res);
       const rows = await db.prepare(`
         SELECT l.*, e.name as employee_name, b.name as branch_name
         FROM attendance_logs l
         LEFT JOIN employees e ON e.id = l.employee_id
         LEFT JOIN branches b ON b.id = l.branch_id
+        WHERE (? IS NULL OR e.entity_id = ?)
+          AND (? IS NULL OR e.branch_id = ?)
+          AND (? IS NULL OR e.id = ?)
         ORDER BY l.check_in_time DESC
-      `).all();
+      `).all(...scopeFilter(scope));
       res.json(rows);
     } catch (e) { res.status(500).json({ error: (e as Error).message }); }
   });
@@ -370,6 +434,17 @@ app.patch("/api/attendance/devices/:id", async (req, res) => {
         phone_bound: !!device.phone_bound,
         needs_pairing: !device.phone_bound,
       });
+    } catch (e) { res.status(500).json({ error: (e as Error).message }); }
+  });
+
+  // Branch roster for the PIN fallback on phones without platform biometrics.
+  // Only id/name are exposed, scoped to the branch of the paired device.
+  app.get("/api/kiosk/:token/employees", kioskLimiter, async (req, res) => {
+    try {
+      const device = await db.prepare("SELECT branch_id FROM attendance_devices WHERE device_token = ?").get(req.params.token) as any;
+      if (!device || device.is_active === 0) return res.status(404).json({ error: "رابط الفرع غير صالح" });
+      const rows = await db.prepare("SELECT id, name FROM employees WHERE branch_id = ? ORDER BY name").all(device.branch_id);
+      res.json(rows);
     } catch (e) { res.status(500).json({ error: (e as Error).message }); }
   });
 
@@ -524,6 +599,7 @@ app.patch("/api/attendance/devices/:id", async (req, res) => {
 
         return res.json({
           success: true,
+          attendance_proof: mintAttendanceProof(credential.employee_id),
           employee: {
             id: credential.employee_id,
             name: credential.name,

@@ -4,7 +4,7 @@ import { authenticateToken, requireRole } from "../middleware/auth";
 import { uploadsDir } from "../services/helpers";
 import { requireOrganizationScope, organizationScope } from "../middleware/organizationScope";
 import { assertWritableScope, resolveWritableEntity, ScopeError } from "../lib/organization-scope";
-import bcrypt from "bcryptjs";
+import { verifyPassword } from "../lib/password";
 import { CountryRulesService } from "../../src/lib/payroll/CountryRulesService";
 import express from "express";
 import { log } from "../lib/logger";
@@ -82,7 +82,16 @@ export function registerCore(app: express.Express) {
   });
 
   app.put("/api/notifications/read-all", async (req, res) => {
-    (await db.prepare("UPDATE notifications SET is_read = 1").run());
+    // Every concurrent caller used to UPDATE the whole table in an arbitrary
+    // row order, which produced PostgreSQL deadlocks (40P01) under load.
+    // Lock the unread rows in a fixed id order first, then update only those.
+    await db.prepare(`
+      WITH ordered AS MATERIALIZED (
+        SELECT id FROM notifications WHERE is_read = 0 ORDER BY id FOR UPDATE
+      )
+      UPDATE notifications n SET is_read = 1
+      FROM ordered WHERE n.id = ordered.id
+    `).run();
     res.json({ success: true });
   });
 
@@ -269,7 +278,14 @@ export function registerCore(app: express.Express) {
 
   app.put("/api/notifications/read-all", async (req, res) => {
     try {
-      (await db.prepare("UPDATE notifications SET is_read = 1").run());
+      // Fixed lock order prevents the 40P01 deadlocks seen under concurrent load.
+      await db.prepare(`
+        WITH ordered AS MATERIALIZED (
+          SELECT id FROM notifications WHERE is_read = 0 ORDER BY id FOR UPDATE
+        )
+        UPDATE notifications n SET is_read = 1
+        FROM ordered WHERE n.id = ordered.id
+      `).run();
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ error: "Failed to update notifications" });
@@ -402,7 +418,7 @@ export function registerCore(app: express.Express) {
     try {
       const { password, confirm_text } = req.body;
       const adminUser = (await db.prepare("SELECT password_hash FROM users WHERE id = ?").get((req as any).user?.id)) as any;
-      if (!password || !adminUser || !(await bcrypt.compare(String(password), adminUser.password_hash))) {
+      if (!password || !adminUser || !(await verifyPassword(String(password), adminUser.password_hash))) {
         return res.status(403).json({ error: "كلمة المرور غير صحيحة" });
       }
       if (confirm_text !== 'تفريغ') {

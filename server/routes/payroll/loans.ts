@@ -3,6 +3,7 @@ import express from "express";
 import { requireOrganizationScope, organizationScope, denyEmployee } from "../../middleware/organizationScope";
 import { scopeFilter } from "../../lib/organization-scope";
 import { validateBody, loanCreateSchema, loanStatusUpdateSchema } from "../../middleware/validation";
+import { firstLockedPeriodFrom } from "./lock";
 
 /**
  * Employee loans (السلف): a request that goes through the approval workflow
@@ -48,7 +49,12 @@ export function registerLoans(app: express.Express) {
 
   // ينشئ طلب اعتماد مرتبطاً بالسلفة عبر مسار loan_advance النشط، بنفس منطق
   // بوابة الموظف (essRequests) حتى يظهر الطلب في صندوق اعتماد المدير.
-  const createLoanApproval = async (loanId: number, employee: { id: number; name: string }, total: number) => {
+  const createLoanApproval = async (
+    loanId: number,
+    employee: { id: number; name: string },
+    total: number,
+    details: string,
+  ) => {
     const workflow = await db
       .prepare("SELECT id, levels_json FROM approval_workflows WHERE workflow_type = 'loan_advance' AND is_active = 1 LIMIT 1")
       .get() as any;
@@ -66,7 +72,7 @@ export function registerLoans(app: express.Express) {
       employee.id,
       `طلب سلفة بمبلغ ${total.toLocaleString("ar-SA")} ر.س — ${employee.name}`,
       total,
-      `سلفة للموظف ${employee.name} بقسط شهري يُخصم من الراتب`,
+      details,
       levels.length || 1,
       loanId,
     );
@@ -74,18 +80,42 @@ export function registerLoans(app: express.Express) {
   };
 
   app.post("/api/loans", requireOrganizationScope, validateBody(loanCreateSchema), async (req, res) => {
-    const { employee_id, total_amount, monthly_installment } = req.body;
+    const { employee_id, total_amount, monthly_installment, deduction_start_month, deduction_start_year, deduction_months } = req.body;
     if (await denyEmployee(res, organizationScope(res), Number(employee_id))) return;
     if (Number(monthly_installment) > Number(total_amount)) {
-      return res.status(400).json({ error: 'القسط الشهري أكبر من قيمة السلفة' });
+      return res.status(400).json({ error: 'الخصم الشهري أكبر من قيمة السلفة' });
+    }
+    const hasMonth = deduction_start_month != null && deduction_start_month !== "";
+    const hasYear = deduction_start_year != null && deduction_start_year !== "";
+    if (hasMonth !== hasYear) {
+      return res.status(400).json({ error: 'شهر البداية والسنة معاً مطلوبان' });
+    }
+    const now = new Date();
+    const startMonth = hasMonth ? Number(deduction_start_month) : now.getMonth() + 1;
+    const startYear = hasYear ? Number(deduction_start_year) : now.getFullYear();
+    const lockedPeriod = await firstLockedPeriodFrom(startMonth, startYear);
+    if (lockedPeriod) {
+      return res.status(409).json({ error: `افتح مسير ${lockedPeriod} أولاً قبل إنشاء سلفة تبدأ من أو بعد هذا التاريخ` });
     }
     const employee = await db.prepare('SELECT id, name FROM employees WHERE id = ?').get(employee_id) as any;
     const info = (await db.prepare(`
-      INSERT INTO loans (employee_id, total_amount, remaining_amount, monthly_installment, status)
-      VALUES (?, ?, ?, ?, 'pending')
-    `).run(employee_id, total_amount, total_amount, monthly_installment));
+      INSERT INTO loans (
+        employee_id, total_amount, remaining_amount, monthly_installment,
+        deduction_start_month, deduction_start_year, deduction_months, status
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
+    `).run(
+      employee_id, total_amount, total_amount, monthly_installment,
+      hasMonth ? Number(deduction_start_month) : null,
+      hasYear ? Number(deduction_start_year) : null,
+      deduction_months == null || deduction_months === "" ? null : Number(deduction_months),
+    ));
     const loanId = Number(info.lastInsertRowid);
-    const approvalRequestId = await createLoanApproval(loanId, employee, Number(total_amount));
+    const scheduleDetails =
+      `سلفة للموظف ${employee?.name || employee_id} — خصم راتبي ${Number(monthly_installment).toLocaleString("ar-SA")} ر.س` +
+      (hasMonth ? ` من ${deduction_start_month}/${deduction_start_year}` : "") +
+      (deduction_months ? ` لمدة ${deduction_months} شهر` : "");
+    const approvalRequestId = await createLoanApproval(loanId, employee, Number(total_amount), scheduleDetails);
     await logAction('create', 'loan', loanId, `Created loan request for employee ${employee_id} of ${total_amount} (pending approval)`);
     await createNotification(
       'طلب سلفة جديد',
@@ -105,6 +135,16 @@ export function registerLoans(app: express.Express) {
     if (await denyEmployee(res, organizationScope(res), loan.employee_id, 'السلفة')) return;
     if (loan.status !== 'pending') {
       return res.status(400).json({ error: 'لا يمكن تغيير حالة سلفة غير معلّقة' });
+    }
+    if (status === 'active') {
+      const now = new Date();
+      const lockedPeriod = await firstLockedPeriodFrom(
+        Number(loan.deduction_start_month) || now.getMonth() + 1,
+        Number(loan.deduction_start_year) || now.getFullYear(),
+      );
+      if (lockedPeriod) {
+        return res.status(409).json({ error: `افتح مسير ${lockedPeriod} أولاً قبل تفعيل سلفة تخصم من فترات مقفلة` });
+      }
     }
     await db.prepare('UPDATE loans SET status = ? WHERE id = ?').run(status, loan.id);
 
@@ -139,5 +179,42 @@ export function registerLoans(app: express.Express) {
       status === 'active' ? 'success' : 'warning',
     );
     res.json({ success: true, id: loan.id, status });
+  });
+
+  /**
+   * Delete a loan movement. A loan that already had deductions applied to a
+   * generated payroll can only be removed after the affected periods are
+   * unlocked and their payroll rows are regenerated, so the historical payslips
+   * never silently diverge from the loan ledger.
+   */
+  app.delete("/api/loans/:id", requireOrganizationScope, async (req, res) => {
+    const loan = (await db.prepare(`
+      SELECT l.*, e.name as employee_name FROM loans l
+      JOIN employees e ON l.employee_id = e.id WHERE l.id = ?
+    `).get(req.params.id)) as any;
+    if (!loan) return res.status(404).json({ error: 'السلفة غير موجودة' });
+    if (await denyEmployee(res, organizationScope(res), loan.employee_id, 'السلفة')) return;
+
+    if (Number(loan.deduction_applied_months || 0) > 0) {
+      const startMonth = Number(loan.deduction_start_month) || 1;
+      const startYear = Number(loan.deduction_start_year) || Number(new Date().getFullYear());
+      // Reject deletion while any period from the first deduction onwards is
+      // locked. The caller is told exactly what to do instead of silently
+      // rewriting a closed payslip.
+      const lockedPeriod = await firstLockedPeriodFrom(startMonth, startYear);
+      if (lockedPeriod) {
+        return res.status(409).json({ error: `افتح مسير ${lockedPeriod} أولاً قبل حذف السلفة` });
+      }
+    }
+
+    // Close the linked approval request rather than leaving an orphaned task
+    // in the manager inbox after the movement is removed.
+    await db.prepare(`
+      UPDATE approval_requests SET status = 'cancelled'
+      WHERE entity_type = 'loan' AND entity_id = ? AND status = 'pending'
+    `).run(loan.id);
+    await db.prepare('DELETE FROM loans WHERE id = ?').run(loan.id);
+    await logAction('delete', 'loan', Number(loan.id), `حذف حركة سلفة للموظف ${loan.employee_name} بمبلغ ${loan.total_amount}`);
+    res.json({ success: true, id: Number(loan.id) });
   });
 }

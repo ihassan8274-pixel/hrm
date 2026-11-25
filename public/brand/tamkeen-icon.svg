@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="تمكين | EMPOWER app icon">
+<title>تمكين | EMPOWER</title>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#12825F"/><stop offset="1" stop-color="#0B513C"/></linearGradient>
+  
+  <linearGradient id="emerald" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#12825F"/><stop offset="1" stop-color="#0B513C"/>
+  </linearGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#E6C283"/><stop offset="1" stop-color="#A9762E"/>
+  </linearGradient>
+
+  <radialGradient id="glow" cx="0.5" cy="0.35" r="0.65"><stop offset="0" stop-color="#fff" stop-opacity="0.18"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+</defs>
+<rect x="8" y="8" width="1008" height="1008" rx="228" fill="url(#bg)"/>
+<rect x="8" y="8" width="1008" height="1008" rx="228" fill="url(#glow)"/>
+<rect x="8" y="8" width="1008" height="1008" rx="228" fill="none" stroke="#fff" stroke-opacity="0.16" stroke-width="6"/>
+<g transform="translate(512 512) scale(4.6) translate(-100 -100)">
+  <path d="M 38 126 C 44 158 66 174 94 168" fill="none" stroke="url(#gold)" stroke-width="8" stroke-linecap="round"/>
+  <path d="M 162 126 C 156 158 134 174 106 168" fill="none" stroke="url(#gold)" stroke-width="8" stroke-linecap="round"/>
+  <path d="M 66 148 C 66 110 82 92 100 92 C 118 92 134 110 134 148 Z" fill="#fff"/>
+  <circle cx="100" cy="70" r="17" fill="#fff"/>
+  <path d="M 100 34 C 114 42 114 58 100 64 C 86 58 86 42 100 34 Z" fill="url(#gold)"/>
+  <path d="M 100 64 L 100 52" stroke="#0B513C" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
+  <path d="M 100 100 L 100 140" stroke="#0B513C" stroke-width="3" stroke-linecap="round" opacity="0.25"/>
+</g>
+</svg>

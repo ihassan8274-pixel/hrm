@@ -65,10 +65,11 @@ export default function WorkInjuriesView() {
 
   const handleReportGosi = async (id: number) => {
     try {
-      const res = await fetch(`/api/work-injuries/${id}/report-gosi`, {
-        method: 'POST',
+      const res = await fetch(`/api/work-injuries/${id}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          gosi_reported: 1,
           gosi_claim_number: `GOSI-INJ-${Math.floor(100000 + Math.random() * 900000)}`
         })
       });

@@ -14,7 +14,7 @@ beforeEach(() => {
     CREATE TABLE entities (id INTEGER PRIMARY KEY, name_ar TEXT, name_en TEXT, currency TEXT);
     CREATE TABLE branches (id INTEGER PRIMARY KEY, entity_id INTEGER, name TEXT, location TEXT, is_active INTEGER);
     CREATE TABLE users (id INTEGER PRIMARY KEY, role TEXT, entity_id INTEGER, employee_id INTEGER, status TEXT);
-    CREATE TABLE employees (id INTEGER PRIMARY KEY, entity_id INTEGER, branch_id INTEGER, is_saudi INTEGER, nationality TEXT);
+    CREATE TABLE employees (id INTEGER PRIMARY KEY, entity_id INTEGER, branch_id INTEGER, is_saudi INTEGER, nationality TEXT, health_cert_required INTEGER DEFAULT 0);
     CREATE TABLE payroll (employee_id INTEGER, month INTEGER, year INTEGER, basic_salary REAL, allowances REAL, deductions REAL, net_salary REAL, insurance_comp_share REAL);
     CREATE TABLE attendance (employee_id INTEGER, month INTEGER, year INTEGER, absence_days REAL);
     CREATE TABLE attendance_logs (employee_id INTEGER, check_in_time TEXT);
@@ -24,7 +24,7 @@ beforeEach(() => {
     CREATE TABLE hse_inspections (branch_id INTEGER, inspection_date TEXT);
     INSERT INTO entities VALUES (1, 'كيان أ', NULL, 'SAR'), (2, 'كيان ب', NULL, 'SAR');
     INSERT INTO branches VALUES (1, 1, 'الدمام', NULL, 1), (2, 1, 'غير نشط', NULL, 0), (3, 2, 'فرع ب', NULL, 1);
-    INSERT INTO employees VALUES (1,1,1,1,'سعودي'), (2,1,2,0,'وافد'), (3,1,NULL,0,'وافد'), (4,2,3,0,'وافد'), (5,1,3,0,'وافد');
+    INSERT INTO employees VALUES (1,1,1,1,'سعودي',1), (2,1,2,0,'وافد',0), (3,1,NULL,0,'وافد',0), (4,2,3,0,'وافد',0), (5,1,3,0,'وافد',0);
     INSERT INTO users VALUES (1,'admin',1,NULL,'active'), (2,'hr_manager',1,NULL,'active'),
       (3,'branch_manager',1,1,'active'), (4,'employee_ess',1,1,'active'), (5,'employee_ess',1,NULL,'active'),
       (6,'branch_manager',1,NULL,'active'), (7,'finance',NULL,NULL,'active'), (8,'admin',NULL,NULL,'disabled');
@@ -122,7 +122,7 @@ describe('consolidated report', () => {
     expect(r.entities.find(e => e.id === 2)?.totals.net).toBe(600);
   });
   it('keeps employees with no entity visible in an explicit group', async () => {
-    db.exec("INSERT INTO employees VALUES (6,NULL,NULL,0,'وافد'); INSERT INTO payroll VALUES (6,10,2026,800,0,0,800,16)");
+    db.exec("INSERT INTO employees VALUES (6,NULL,NULL,0,'وافد',0); INSERT INTO payroll VALUES (6,10,2026,800,0,0,800,16)");
     const r = await report();
     expect(r.grand.employee_count).toBe(6);
     expect(r.entities.find(e => e.id === null)?.totals.net).toBe(800);

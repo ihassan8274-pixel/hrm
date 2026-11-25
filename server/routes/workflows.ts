@@ -2,6 +2,7 @@
 import db, { logAction, createNotification } from "../config/postgres";
 import express from "express";
 import { log } from "../lib/logger";
+import { needsHealthCert } from "./healthCertificates";
 
 /**
  * يضمن وجود مسارات اعتماد بوابة الموظف (شكاوى/مقترحات/تطوير إجراءات).
@@ -582,7 +583,7 @@ export function registerWorkflows(app: express.Express) {
         if (e.iqama_expiry_gregorian && e.iqama_expiry_gregorian <= in30) {
           alerts.push({ employee_id: e.id, name: e.name, type: 'iqama', label: 'إقامة', expiry: e.iqama_expiry_gregorian, days_left: Math.ceil((new Date(e.iqama_expiry_gregorian).getTime() - now.getTime()) / 86400000) });
         }
-        if (e.health_cert_expiry && e.health_cert_expiry <= in30) {
+        if (needsHealthCert(e) && e.health_cert_expiry && e.health_cert_expiry <= in30) {
           alerts.push({ employee_id: e.id, name: e.name, type: 'health_cert', label: 'شهادة صحية', expiry: e.health_cert_expiry, days_left: Math.ceil((new Date(e.health_cert_expiry).getTime() - now.getTime()) / 86400000) });
         }
         if (e.passport_expiry && e.passport_expiry <= in180) {

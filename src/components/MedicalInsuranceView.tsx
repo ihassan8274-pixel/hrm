@@ -11,6 +11,7 @@ export default function MedicalInsuranceView() {
   const [dependents, setDependents] = useState<MedicalDependent[]>([]);
   const [policies, setPolicies] = useState<MedicalPolicy[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [companies, setCompanies] = useState<string[]>(['التعاونية للتأمين']);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'summary' | 'dependents' | 'policies' | 'endorsements'>('summary');
   
@@ -41,17 +42,26 @@ export default function MedicalInsuranceView() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [sumRes, depRes, polRes, empRes] = await Promise.all([
+      const [sumRes, depRes, polRes, empRes, companyRes] = await Promise.all([
         fetch('/api/medical/summary'),
         fetch('/api/medical/dependents'),
         fetch('/api/medical/policies'),
-        fetch('/api/employees')
+        fetch('/api/employees'),
+        fetch('/api/medical/insurance-companies')
       ]);
 
       if (sumRes.ok) setSummary(await sumRes.json());
       if (depRes.ok) setDependents(await depRes.json());
       if (polRes.ok) setPolicies(await polRes.json());
       if (empRes.ok) setEmployees(await empRes.json());
+      if (companyRes.ok) {
+        const rows = await companyRes.json();
+        const options = (Array.isArray(rows) ? rows : [])
+          .filter((c: any) => Boolean(c.is_active))
+          .map((c: any) => String(c.name || '').trim())
+          .filter(Boolean);
+        if (options.length) setCompanies(options);
+      }
     } catch (err) {
       console.error('Error fetching medical data:', err);
     } finally {
@@ -600,11 +610,9 @@ export default function MedicalInsuranceView() {
                     onChange={e => setPolicyForm({ ...policyForm, insurance_company: e.target.value })}
                     className="w-full p-2.5 border border-slate-200 rounded-xl text-sm"
                   >
-                    <option value="التعاونية للتأمين">التعاونية للتأمين</option>
-                    <option value="بوبا العربية">بوبا العربية</option>
-                    <option value="تكافل الراجحي">تكافل الراجحي</option>
-                    <option value="ميدغلف">ميدغلف</option>
-                    <option value="سلامة للتأمين">سلامة للتأمين</option>
+                    {[...new Set([policyForm.insurance_company, ...companies])]
+                      .filter(Boolean)
+                      .map(company => <option key={company} value={company}>{company}</option>)}
                   </select>
                 </div>
               </div>

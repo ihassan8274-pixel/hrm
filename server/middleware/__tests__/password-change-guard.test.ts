@@ -18,6 +18,8 @@ describe('password-change allowlist', () => {
   it('lets the account inspect and end its own session', () => {
     expect(PASSWORD_CHANGE_ALLOWLIST).toContain('/api/auth/me');
     expect(PASSWORD_CHANGE_ALLOWLIST).toContain('/api/auth/logout');
+    // Heartbeat only advances the idle clock; it exposes no data.
+    expect(PASSWORD_CHANGE_ALLOWLIST).toContain('/api/auth/activity');
   });
 
   // Every one of these would otherwise expose payroll or employee data while

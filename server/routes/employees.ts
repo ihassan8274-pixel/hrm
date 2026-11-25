@@ -2,8 +2,10 @@
 import db, { logAction, createNotification } from "../config/postgres";
 import { uploadsDir } from "../services/helpers";
 import { requireRole, authenticateToken } from "../middleware/auth";
-import { requireOrganizationScope, organizationScope } from "../middleware/organizationScope";
+import { requireOrganizationScope, organizationScope, denyEmployee } from "../middleware/organizationScope";
 import { assertWritableScope, resolveWritableEntity, ScopeError } from "../lib/organization-scope";
+import { endEmployeeService } from "../lib/end-service";
+import { checkPromotionEvidence } from "../lib/promotion-evidence";
 import path from "path";
 import fs from "fs";
 import express from "express";
@@ -34,7 +36,10 @@ export function registerEmployees(app: express.Express) {
         JOIN allowance_types at ON ea.allowance_type_id = at.id
         WHERE ea.employee_id = ?
       `).all((emp as any).id));
-      return { ...emp, allowances_details: allowancesDetails };
+      // The kiosk PIN is an authentication secret: never send it to the UI,
+      // not even to an administrator listing employees.
+      const { attendance_pin: _pin, ...safeEmployee } = emp as any;
+      return { ...safeEmployee, allowances_details: allowancesDetails };
     }));
     res.json(employeesWithDetails);
   });
@@ -55,7 +60,7 @@ export function registerEmployees(app: express.Express) {
       medical_dependents_count = 0, saudi_iban = '', bank_name = 'مصرف الراجحي',
       contract_type = 'fixed', contract_start_date = '', contract_end_date = '',
       passport_number = '', passport_expiry = '', health_cert_number = '', health_cert_expiry = '',
-      payment_method = 'bank'
+      health_cert_required = 0, gosi_exempt = 0, payment_method = 'bank'
     } = req.body;
 
     // A new employee has to land inside the caller's organization, and the branch
@@ -101,7 +106,7 @@ export function registerEmployees(app: express.Express) {
         gosi_number, gosi_registered_salary, housing_allowance, transport_allowance, other_allowances,
         insurance_company, medical_insurance_category, medical_insurance_policy, medical_insurance_expiry,
         medical_dependents_count, saudi_iban, bank_name, contract_type, contract_start_date, contract_end_date,
-        passport_number, passport_expiry, health_cert_number, health_cert_expiry, payment_method
+        passport_number, passport_expiry, health_cert_number, health_cert_expiry, health_cert_required, gosi_exempt, payment_method
       )
       VALUES (
         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
@@ -111,7 +116,7 @@ export function registerEmployees(app: express.Express) {
         ?, ?, ?, ?, ?,
         ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?
+        ?, ?, ?, ?, ?, ?, ?
       )
     `);
     const insertAllowance = db.prepare(`
@@ -128,7 +133,7 @@ export function registerEmployees(app: express.Express) {
         gosi_number, computedGosiSalary, housing_allowance, transport_allowance, other_allowances,
         insurance_company, medical_insurance_category, medical_insurance_policy, medical_insurance_expiry,
         medical_dependents_count, saudi_iban, bank_name, contract_type, contract_start_date, contract_end_date,
-        passport_number, passport_expiry, health_cert_number, health_cert_expiry, payment_method
+        passport_number, passport_expiry, health_cert_number, health_cert_expiry, health_cert_required, gosi_exempt, payment_method
       );
       const employeeId = info.lastInsertRowid;
       if (allowances_list && Array.isArray(allowances_list)) {
@@ -143,6 +148,27 @@ export function registerEmployees(app: express.Express) {
     const id = await transaction();
     await logAction('create', 'employee', Number(id), `Created employee with KSA compliance: ${name}`);
     res.json({ id });
+  });
+
+  // HR issues the per-employee kiosk PIN used as an identity proof on phones
+  // that have no WebAuthn enrolment. It is 4-8 digits and never echoed back.
+  app.put("/api/employees/:id/attendance-pin", requireOrganizationScope, async (req, res) => {
+    const { pin } = req.body || {};
+    const emp = (await db.prepare("SELECT id, name, entity_id, branch_id FROM employees WHERE id = ?").get(req.params.id)) as any;
+    if (!emp) return res.status(404).json({ error: "الموظف غير موجود" });
+    try {
+      assertWritableScope(organizationScope(res), { entityId: emp.entity_id, branchId: emp.branch_id }, 'الموظف');
+      const clean = String(pin || "").trim();
+      if (clean && !/^\d{4,8}$/.test(clean)) {
+        return res.status(400).json({ error: "الرقم السري يجب أن يكون من 4 إلى 8 أرقام" });
+      }
+      await db.prepare("UPDATE employees SET attendance_pin = ? WHERE id = ?").run(clean || null, emp.id);
+      await logAction('update', 'employee', Number(emp.id), clean ? "Attendance PIN issued" : "Attendance PIN cleared");
+      res.json({ success: true, employee_id: Number(emp.id), issued: !!clean });
+    } catch (err) {
+      if (err instanceof ScopeError) return res.status(err.status).json({ error: err.message });
+      throw err;
+    }
   });
 
   app.put("/api/employees/:id", requireOrganizationScope, async (req, res) => {
@@ -161,13 +187,36 @@ export function registerEmployees(app: express.Express) {
       medical_dependents_count = 0, saudi_iban = '', bank_name = 'مصرف الراجحي',
       contract_type = 'fixed', contract_start_date = '', contract_end_date = '',
       passport_number = '', passport_expiry = '', health_cert_number = '', health_cert_expiry = '',
-      payment_method = 'bank'
+      health_cert_required = 0, gosi_exempt = 0, payment_method = 'bank',
+      hire_date, hire_month, sponsorship_type
     } = req.body;
 
     const existing = (await db.prepare('SELECT id, entity_id, branch_id FROM employees WHERE id = ?').get(req.params.id)) as {
       id: number; entity_id: number | null; branch_id: number | null;
     } | undefined;
     if (!existing) return res.status(404).json({ error: "الموظف غير موجود" });
+
+    // Anniversary data drives the annual-increase notifier. Validate it here
+    // because this endpoint historically accepted an untyped body; a partial
+    // update must not erase a previously recorded hire date.
+    const hasHireDate = Object.prototype.hasOwnProperty.call(req.body, 'hire_date');
+    const hasHireMonth = Object.prototype.hasOwnProperty.call(req.body, 'hire_month');
+    const hasSponsorship = Object.prototype.hasOwnProperty.call(req.body, 'sponsorship_type');
+    const hireDateRaw = String(hire_date ?? '').trim().slice(0, 10);
+    const hireDate = /^\d{4}-\d{2}-\d{2}$/.test(hireDateRaw) ? hireDateRaw : null;
+    const hireMonthRaw = String(hire_month ?? '').trim();
+    const hireMonth = hireMonthRaw ? Number(hireMonthRaw) : null;
+    const sponsorship = String(sponsorship_type ?? '').trim();
+    if (hasHireDate && hireDateRaw && !hireDate) {
+      return res.status(400).json({ error: "تاريخ التعيين يجب أن يكون بصيغة YYYY-MM-DD" });
+    }
+    if (hasHireMonth && hireMonthRaw && (!Number.isInteger(hireMonth) || Number(hireMonth) < 1 || Number(hireMonth) > 12)) {
+      return res.status(400).json({ error: "شهر التعيين يجب أن يكون بين 1 و 12" });
+    }
+    if (hasSponsorship && sponsorship && !["saudi", "company_sponsored", "leased"].includes(sponsorship)) {
+      return res.status(400).json({ error: "فئة الكفالة غير صحيحة" });
+    }
+
     try {
       assertWritableScope(scope, { entityId: existing.entity_id, branchId: existing.branch_id }, 'الموظف');
       if (branch_id) {
@@ -206,7 +255,10 @@ export function registerEmployees(app: express.Express) {
           gosi_number = ?, gosi_registered_salary = ?, housing_allowance = ?, transport_allowance = ?, other_allowances = ?,
           insurance_company = ?, medical_insurance_category = ?, medical_insurance_policy = ?, medical_insurance_expiry = ?,
           medical_dependents_count = ?, saudi_iban = ?, bank_name = ?, contract_type = ?, contract_start_date = ?, contract_end_date = ?,
-          passport_number = ?, passport_expiry = ?, health_cert_number = ?, health_cert_expiry = ?, payment_method = ?
+          passport_number = ?, passport_expiry = ?, health_cert_number = ?, health_cert_expiry = ?, health_cert_required = ?, gosi_exempt = ?, payment_method = ?,
+          hire_date = CASE WHEN ? = 1 THEN ? ELSE hire_date END,
+          hire_month = CASE WHEN ? = 1 THEN ? ELSE hire_month END,
+          sponsorship_type = CASE WHEN ? = 1 THEN ? ELSE sponsorship_type END
         WHERE id = ?
       `).run(
         branch_id || null, department_id || null,
@@ -218,7 +270,10 @@ export function registerEmployees(app: express.Express) {
         gosi_number, computedGosiSalary, housing_allowance, transport_allowance, other_allowances,
         insurance_company, medical_insurance_category, medical_insurance_policy, medical_insurance_expiry,
         medical_dependents_count, saudi_iban, bank_name, contract_type, contract_start_date, contract_end_date,
-        passport_number, passport_expiry, health_cert_number, health_cert_expiry, payment_method,
+        passport_number, passport_expiry, health_cert_number, health_cert_expiry, health_cert_required, gosi_exempt, payment_method,
+        hasHireDate ? 1 : 0, hireDate,
+        hasHireMonth ? 1 : 0, hireMonth,
+        hasSponsorship ? 1 : 0, sponsorship || null,
         req.params.id
       ));
       (await db.prepare("DELETE FROM employee_allowances WHERE employee_id = ?").run(req.params.id));
@@ -233,6 +288,36 @@ export function registerEmployees(app: express.Express) {
     transaction();
     await logAction('update', 'employee', Number(req.params.id), `Updated employee details: ${name}`);
     res.json({ success: true });
+  });
+
+  // إنهاء الخدمة: يوقف الموظف ويُخرجه من مسيرات الرواتب القادمة.
+  app.post("/api/employees/:id/end-service", authenticateToken, requireOrganizationScope, async (req, res) => {
+    const scope = organizationScope(res);
+    const existing = (await db.prepare('SELECT id, name, entity_id, branch_id FROM employees WHERE id = ?').get(req.params.id)) as {
+      id: number; name: string; entity_id: number | null; branch_id: number | null;
+    } | undefined;
+    if (!existing) return res.status(404).json({ error: "الموظف غير موجود" });
+    try {
+      assertWritableScope(scope, { entityId: existing.entity_id, branchId: existing.branch_id }, 'الموظف');
+    } catch (error) {
+      if (error instanceof ScopeError) return res.status(error.status).json({ error: error.message });
+      throw error;
+    }
+    const { last_working_day, reason } = req.body || {};
+    if (last_working_day && !/^\d{4}-\d{2}-\d{2}$/.test(String(last_working_day))) {
+      return res.status(400).json({ error: "تاريخ آخر يوم عمل يجب أن يكون بصيغة YYYY-MM-DD" });
+    }
+    try {
+      const result = await endEmployeeService({
+        employeeId: existing.id,
+        lastWorkingDay: last_working_day || null,
+        reason: reason || null,
+        source: "employee_screen",
+      });
+      res.json({ success: true, ...result });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
   });
 
   app.delete("/api/employees/:id", requireOrganizationScope, async (req, res) => {
@@ -335,14 +420,39 @@ export function registerEmployees(app: express.Express) {
     res.json(data);
   });
 
-  app.post('/api/promotions', async (req, res) => {
-    const { employee_id, old_position, new_position, old_salary, new_salary, promotion_date } = req.body;
-    (await db.prepare(`
-      INSERT INTO promotions (employee_id, old_position, new_position, old_salary, new_salary, promotion_date)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(employee_id, old_position, new_position, old_salary, new_salary, promotion_date));
-    (await db.prepare('UPDATE employees SET position = ?, basic_salary = ? WHERE id = ?').run(new_position, new_salary, employee_id));
-    res.json({ success: true });
+  app.post('/api/promotions', authenticateToken, requireOrganizationScope, async (req, res) => {
+    try {
+      const { employee_id, old_position, new_position, old_salary, new_salary, promotion_date, appraisal_id, training_enrollment_id } = req.body;
+      if (!employee_id) return res.status(400).json({ error: "employee_id مطلوب" });
+      if (await denyEmployee(res, organizationScope(res), Number(employee_id))) return;
+
+      // A promotion is the last leg of performance -> training -> promotion.
+      // Refuse it when the evidence chain is missing instead of silently
+      // rewriting the employee's position and salary.
+      const { appraisal, enrollment } = await checkPromotionEvidence(
+        db, Number(employee_id), new_position, appraisal_id, training_enrollment_id,
+      );
+      const user = (req as any).user;
+      const approver = user?.username || 'system';
+      const info = await db.prepare(`
+        INSERT INTO promotions
+          (employee_id, old_position, new_position, old_salary, new_salary, promotion_date,
+           training_enrollment_id, appraisal_id, approval_status, approved_by, approved_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'approved', ?, ?)
+      `).run(employee_id, old_position, new_position, old_salary, new_salary, promotion_date,
+        enrollment.id, appraisal.id, approver, new Date().toISOString());
+      await db.prepare('UPDATE employees SET position = ?, basic_salary = ? WHERE id = ?')
+        .run(new_position, new_salary, employee_id);
+      await logAction('approve', 'promotion', Number(info.lastInsertRowid),
+        `ترقية موظف ${employee_id} بتقييم ${appraisal.rating} وشهادة ${enrollment.certificate_number}`);
+      res.json({ success: true, id: Number(info.lastInsertRowid), appraisal_id: appraisal.id, training_enrollment_id: enrollment.id });
+    } catch (e) {
+      const message = (e as Error).message;
+      if (/تقييم الأداء|شهادة|سجل التدريب|تقييم/.test(message)) {
+        return res.status(422).json({ error: message });
+      }
+      res.status(500).json({ error: message });
+    }
   });
 
     // ---- Employee Documents ----

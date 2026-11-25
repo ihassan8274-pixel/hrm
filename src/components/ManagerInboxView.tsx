@@ -52,7 +52,7 @@ export default function ManagerInboxView() {
             <div key={ln.id} className="border-b border-slate-100 py-3">
               <p className="font-bold text-sm">{ln.employee_name} — {(ln.total_amount || 0).toLocaleString()} ر.س</p>
               <p className="text-xs text-slate-500">
-                قسط شهري {(ln.monthly_installment || 0).toLocaleString()} ر.س
+                خصم راتبي {(ln.monthly_installment || 0).toLocaleString()} ر.س
                 {ln.workflow_max_levels ? ` — المستوى ${ln.workflow_level} من ${ln.workflow_max_levels}` : ''}
               </p>
               <div className="flex gap-2 mt-2">

@@ -5,6 +5,16 @@ import { log } from "../lib/logger";
 // A certificate counts as "expiring" this many days before its expiry date.
 const EXPIRING_WINDOW_DAYS = 60;
 
+/**
+ * الشهادة الصحية شرط على العاملين في تداول الطعام فقط، لا على كل موظف.
+ * غياب العلامة (صفوف قديمة أو بيانات غير مهاجرة) يُعامل كـ"غير خاضع"،
+ * لأن التنبيه الخاطئ أضرّ من التنبيه المفقود في متابعة البلدية.
+ */
+export function needsHealthCert(e: { health_cert_required?: number | boolean | null } | null | undefined) {
+  if (!e) return false;
+  return Number(e.health_cert_required) === 1;
+}
+
 function computeStatus(expiryDate: string): { cert_status: string; days_left: number } {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -55,23 +65,26 @@ export function registerHealthCertificates(app: express.Express) {
 
   app.get("/api/health-certificates/stats", async (req, res) => {
     try {
-      const employees = await db
-        .prepare("SELECT id, name, position, nationality, is_saudi FROM employees WHERE status = 'active'")
+      const allEmployees = await db
+        .prepare("SELECT id, name, position, nationality, is_saudi, health_cert_required FROM employees WHERE status = 'active'")
         .all() as any[];
-      const certs = await db
+      const employees = allEmployees.filter(needsHealthCert);
+      const requiredIds = new Set(employees.map((e) => Number(e.id)));
+      const certs = (await db
         .prepare("SELECT employee_id, expiry_date FROM health_certificates WHERE status = 'active'")
-        .all() as any[];
+        .all() as any[]).filter((c) => requiredIds.has(Number(c.employee_id)));
 
       let valid = 0, expiring = 0, expired = 0;
       const covered = new Set<number>();
       for (const c of certs) {
         const { cert_status } = computeStatus(c.expiry_date);
-        covered.add(c.employee_id);
+        // الشهادة المنتهية لا تغطي الموظف — وإلا ظهر في «سارية» وهو ليس كذلك.
+        if (cert_status !== "expired") covered.add(Number(c.employee_id));
         if (cert_status === "valid") valid++;
         else if (cert_status === "expiring") expiring++;
         else expired++;
       }
-      const missing = employees.filter(e => !covered.has(e.id));
+      const missing = employees.filter(e => !covered.has(Number(e.id)));
       res.json({
         total_employees: employees.length,
         active_certificates: certs.length,

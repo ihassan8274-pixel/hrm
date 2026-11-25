@@ -17,6 +17,9 @@ interface Promotion {
 export default function PromotionsView() {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [appraisals, setAppraisals] = useState<any[]>([]);
+  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [form, setForm] = useState({ 
     employee_id: '', 
@@ -24,16 +27,28 @@ export default function PromotionsView() {
     new_position: '', 
     old_salary: 0, 
     new_salary: 0, 
-    promotion_date: new Date().toISOString().split('T')[0] 
+    promotion_date: new Date().toISOString().split('T')[0],
+    appraisal_id: '',
+    training_enrollment_id: '',
   });
 
   const fetchData = async () => {
-    const [pRes, eRes] = await Promise.all([
+    const [pRes, eRes, aRes, tRes] = await Promise.all([
       fetch('/api/promotions'),
-      fetch('/api/employees')
+      fetch('/api/employees'),
+      fetch('/api/appraisals'),
+      fetch('/api/training/enrollments?status=completed'),
     ]);
-    setPromotions(await pRes.json());
-    setEmployees(await eRes.json());
+    const [p, e, a, t] = await Promise.all([
+      pRes.json().catch(() => []),
+      eRes.json().catch(() => []),
+      aRes.json().catch(() => []),
+      tRes.json().catch(() => []),
+    ]);
+    setPromotions(Array.isArray(p) ? p : []);
+    setEmployees(Array.isArray(e) ? e : []);
+    setAppraisals(Array.isArray(a) ? a : []);
+    setEnrollments(Array.isArray(t) ? t : []);
   };
 
   useEffect(() => {
@@ -49,18 +64,34 @@ export default function PromotionsView() {
         old_position: emp.position,
         old_salary: emp.salary,
         new_position: emp.position,
-        new_salary: emp.salary
+        new_salary: emp.salary,
+        appraisal_id: '',
+        training_enrollment_id: '',
       });
     }
   };
 
+  const employeeAppraisals = appraisals.filter(a => Number(a.employee_id) === Number(form.employee_id));
+  const employeeCertificates = enrollments.filter(e => Number(e.employee_id) === Number(form.employee_id) && e.certificate_number);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetch('/api/promotions', {
+    setError(null);
+    const res = await fetch('/api/promotions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form)
+      body: JSON.stringify({
+        ...form,
+        employee_id: Number(form.employee_id),
+        appraisal_id: form.appraisal_id ? Number(form.appraisal_id) : undefined,
+        training_enrollment_id: form.training_enrollment_id ? Number(form.training_enrollment_id) : undefined,
+      })
     });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(data.error || 'تعذّر تسجيل الترقية');
+      return;
+    }
     setIsAdding(false);
     fetchData();
   };
@@ -185,6 +216,35 @@ export default function PromotionsView() {
                   onChange={e => setForm({...form, promotion_date: e.target.value})}
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-black text-slate-400 uppercase mb-2">تقييم الأداء المعتمد</label>
+                  <select
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700 text-sm"
+                    value={form.appraisal_id}
+                    onChange={e => setForm({...form, appraisal_id: e.target.value})}
+                  >
+                    <option value="">أحدث تقييم مسجل</option>
+                    {employeeAppraisals.map(a => <option key={a.id} value={a.id}>{a.rating} — {a.period || a.appraisal_date || a.id}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-black text-slate-400 uppercase mb-2">شهادة التدريب ذات الصلة</label>
+                  <select
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-bold text-slate-700 text-sm"
+                    value={form.training_enrollment_id}
+                    onChange={e => setForm({...form, training_enrollment_id: e.target.value})}
+                  >
+                    <option value="">أحدث شهادة مكتملة</option>
+                    {employeeCertificates.map(t => <option key={t.id} value={t.id}>{t.course_title || 'دورة'} — {t.certificate_number}</option>)}
+                  </select>
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-500 bg-slate-50 rounded-xl p-3">
+                لا تُعدّل الترقية الراتب أو المسمى إلا بعد التحقق من تقييم أداء (≥ 3) وشهادة تدريب مكتملة؛ يُرفض الطلب مع سبب واضح إذا غاب أي منهما.
+              </p>
+              {error && <div className="bg-rose-50 text-rose-700 rounded-xl p-3 text-xs font-bold">{error}</div>}
 
               <div className="flex gap-3 pt-6">
                 <button type="submit" className="flex-1 bg-brand-600 text-white py-3 rounded-2xl font-bold hover:bg-brand-700 transition-all shadow-lg shadow-brand-100">حفظ التغييرات</button>

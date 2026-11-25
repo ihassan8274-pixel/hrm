@@ -238,7 +238,7 @@ export default function SalaryCertificateModal({ employee, isOpen, onClose, onCe
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px] font-bold">الجنسية:</span>
-                    <span className="font-bold text-slate-800">{employee.nationality || 'سعودي'}</span>
+                    <span className="font-bold text-slate-800">{employee.nationality || 'غير مسجل'}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px] font-bold">رقم الهوية / الإقامة:</span>

@@ -216,8 +216,30 @@ export async function buildSifExport(db: any, options: SifExportOptions): Promis
     throw new SifError(400, "NO_PAYROLL_RUN", "لا يوجد مسير رواتب مسجل لهذا الشهر ضمن نطاقك");
   }
 
+  // A final settlement supersedes the regular payslip of the same period.
+  // Without this rule one employee would be paid twice in the same bank file.
+  const finalEmployees = new Set(
+    scoped.filter((row) => Number(row.is_final_settlement) === 1).map((row) => Number(row.employee_id))
+  );
+  const payable = scoped.filter(
+    (row) => Number(row.is_final_settlement) === 1 || !finalEmployees.has(Number(row.employee_id))
+  );
+
+  // A generated run is not a payment instruction. NULL rows are legacy runs
+  // created before the approval gate; every new row must carry an explicit
+  // decision before any bank file can leave the building.
+  const unapproved = payable.filter((row) => row.approval_status != null && row.approval_status !== 'approved');
+  if (unapproved.length) {
+    throw new SifError(
+      409,
+      "PAYROLL_NOT_APPROVED",
+      "لم يُعتمد مسير الرواتب — اعتمده قبل تصدير ملف البنك",
+      { unapproved_count: unapproved.length }
+    );
+  }
+
   const identityIssues = validateSifIdentities(
-    scoped.map((row) => ({
+    payable.map((row) => ({
       employee_id: row.employee_id,
       employee_name: row.employee_name,
       saudi_iban: row.saudi_iban,
@@ -247,7 +269,7 @@ export async function buildSifExport(db: any, options: SifExportOptions): Promis
   const records: { employee_id: number; employee_name: string; line: string; net: number }[] = [];
   const cashExcluded: { employee_id: number; employee_name: string; amount: number }[] = [];
 
-  for (const row of scoped) {
+  for (const row of payable) {
     const code = bankCodeOf(row);
     if (!code) continue;
     if (!SAFE_FIELD_RE.test(code)) {

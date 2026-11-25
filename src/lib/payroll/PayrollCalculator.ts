@@ -49,8 +49,16 @@ export class PayrollCalculator {
       insuranceBase = rules.insurance.floor;
     }
     
-    const insuranceEmployee = insuranceBase * (employeeRate / 100);
-    const insuranceEmployer = insuranceBase * (employerRate / 100);
+    let insuranceEmployee = insuranceBase * (employeeRate / 100);
+    let insuranceEmployer = insuranceBase * (employerRate / 100);
+
+    // An exempt employee pays no GOSI contribution. The employer carries both
+    // shares: the employee share moves into the employer cost, and nothing is
+    // withheld from the salary.
+    if (input.gosiExempt) {
+      insuranceEmployer += insuranceEmployee;
+      insuranceEmployee = 0;
+    }
     
     // 5. Overtime pay
     //

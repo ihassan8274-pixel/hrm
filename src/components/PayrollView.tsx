@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { Calendar, Download, RefreshCw, CheckCircle2, History, Printer, X, User, Search, ShieldCheck, Building, FileText, Lock, Receipt } from 'lucide-react';
+import { Calendar, Download, RefreshCw, CheckCircle2, History, Printer, X, User, Search, ShieldCheck, Building, FileText, Lock, Receipt, Trash2, Plus, AlertTriangle } from 'lucide-react';
 import type { PayrollRecord, Employee } from '../types';
 import { downloadProtectedFile } from '../lib/api';
 import { Letterhead, DocumentFooter } from '../lib/print/letterhead';
@@ -30,6 +30,26 @@ export default function PayrollView() {
   const [locked, setLocked] = useState(false);
   const [valueDate, setValueDate] = useState(todayAsInputValue);
   const [exportingSif, setExportingSif] = useState(false);
+  // قرار الاعتماد منفصل عن إقفال الفترة: الإقفال يمنع التعديل، والاعتماد هو
+  // الإذن الوحيد الذي يسمح بخروج ملف بنك إلى مدد.
+  const [approval, setApproval] = useState<any>(null);
+  const [approving, setApproving] = useState(false);
+
+  // أدوات الحركات المرتبطة بالمسير: دفعات خارج الدورة وتصحيح مسير مُقفل.
+  const [offCycleLines, setOffCycleLines] = useState<any[]>([]);
+  const [offCycleBusy, setOffCycleBusy] = useState(false);
+  const [newOffCycle, setNewOffCycle] = useState({ employee_id: 0, type: 'earning', amount: '', reason: '' });
+  const [corrections, setCorrections] = useState<any[]>([]);
+  const [correction, setCorrection] = useState({ employee_id: 0, field: 'bonuses', new_value: '', reason: '' });
+  const [correctionBusy, setCorrectionBusy] = useState(false);
+  const [toolNotice, setToolNotice] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+
+  // جاهزية المسير وإعادة الاحتساب من المصدر مع معاينة الفرق قبل الاعتماد.
+  const [preflight, setPreflight] = useState<any>(null);
+  const [preflightBusy, setPreflightBusy] = useState(false);
+  const [recalcEmployee, setRecalcEmployee] = useState(0);
+  const [recalcPreview, setRecalcPreview] = useState<any>(null);
+  const [recalcBusy, setRecalcBusy] = useState(false);
 
   // إيصالات تسليم الراتب: نطاق الطباعة (الكل/نقدي/إدارة/فرع) ودفعة الطباعة.
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
@@ -45,9 +65,120 @@ export default function PayrollView() {
   }, [receiptBatch]);
 
   const fetchPayroll = async () => {
-    const res = await fetch(`/api/payroll?month=${month}&year=${year}`);
-    const data = await res.json();
-    setPayroll(data);
+    const [res, approvalRes] = await Promise.all([
+      fetch(`/api/payroll?month=${month}&year=${year}`),
+      fetch(`/api/payroll/approval-status?month=${month}&year=${year}`),
+    ]);
+    const [data, approvalData] = await Promise.all([res.json(), approvalRes.json().catch(() => ({}))]);
+    setPayroll(Array.isArray(data) ? data : []);
+    setApproval(approvalRes.ok ? approvalData : null);
+  };
+
+  const handleApprove = async () => {
+    if (!payroll.length) return;
+    if (!window.confirm(`اعتماد مسير ${month}/${year} لعدد ${payroll.length} موظف؟\nبعد الاعتماد لا يمكن تعديل المسير، ويصبح ملف الحوالات جاهزاً للتصدير.`)) return;
+    setApproving(true);
+    try {
+      const res = await fetch('/api/payroll/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ month, year }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'تعذّر اعتماد المسير');
+      setToolNotice({ kind: 'ok', text: `تم اعتماد ${data.approved} سطراً من أصل ${data.totalApproved}` });
+      await fetchPayroll();
+    } catch (e) {
+      setToolNotice({ kind: 'err', text: e instanceof Error ? e.message : 'تعذّر اعتماد المسير' });
+    } finally { setApproving(false); }
+  };
+
+  const fetchTools = async () => {
+    const [linesRes, correctionsRes] = await Promise.all([
+      fetch(`/api/additional-salaries?month=${month}&year=${year}`),
+      fetch(`/api/payroll/corrections?month=${month}&year=${year}`),
+    ]);
+    const [lines, records] = await Promise.all([linesRes.json(), correctionsRes.json()]);
+    setOffCycleLines(Array.isArray(lines) ? lines : []);
+    setCorrections(Array.isArray(records) ? records : []);
+  };
+
+  const payrollEmployees = payroll.map(p => ({ id: Number(p.employee_id), name: p.employee_name }));
+  const selectedOffCycleEmployee = payroll.find(p => Number(p.employee_id) === Number(newOffCycle.employee_id));
+  const selectedCorrectionEmployee = payroll.find(p => Number(p.employee_id) === Number(correction.employee_id));
+
+  const handleAddOffCycle = async () => {
+    if (!newOffCycle.employee_id || Number(newOffCycle.amount) <= 0) {
+      setToolNotice({ kind: 'err', text: 'اختر الموظف وأدخل مبلغاً أكبر من صفر' });
+      return;
+    }
+    setOffCycleBusy(true);
+    try {
+      const res = await fetch('/api/additional-salaries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employee_id: Number(newOffCycle.employee_id),
+          amount: Number(newOffCycle.amount),
+          type: newOffCycle.type,
+          component: 'one-off',
+          reason: newOffCycle.reason,
+          month, year,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'تعذّر إضافة الدفعة');
+      setNewOffCycle({ employee_id: 0, type: 'earning', amount: '', reason: '' });
+      setToolNotice({ kind: 'ok', text: 'تمت إضافة الدفعة الإضافية' });
+      await fetchTools();
+    } catch (e) {
+      setToolNotice({ kind: 'err', text: e instanceof Error ? e.message : 'تعذّر إضافة الدفعة' });
+    } finally { setOffCycleBusy(false); }
+  };
+
+  const handleDeleteOffCycle = async (id: number) => {
+    if (!window.confirm('هل أنت متأكد من حذف هذه الدفعة الإضافية؟')) return;
+    setOffCycleBusy(true);
+    try {
+      const res = await fetch(`/api/additional-salaries/${id}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'تعذّر حذف الدفعة');
+      setToolNotice({ kind: 'ok', text: 'تم حذف الدفعة الإضافية' });
+      await fetchTools();
+    } catch (e) {
+      setToolNotice({ kind: 'err', text: e instanceof Error ? e.message : 'تعذّر حذف الدفعة' });
+    } finally { setOffCycleBusy(false); }
+  };
+
+  const handleCorrection = async () => {
+    if (!correction.employee_id || !correction.new_value || correction.reason.trim().length < 3) {
+      setToolNotice({ kind: 'err', text: 'اختر الموظف وأدخل القيمة وسبباً من 3 أحرف على الأقل' });
+      return;
+    }
+    setCorrectionBusy(true);
+    try {
+      const res = await fetch('/api/payroll/correct', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          month, year,
+          employee_id: Number(correction.employee_id),
+          field: correction.field,
+          new_value: Number(correction.new_value),
+          reason: correction.reason,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'تعذّر تصحيح المسير');
+      setCorrection({ employee_id: 0, field: 'bonuses', new_value: '', reason: '' });
+      setToolNotice({
+        kind: 'ok',
+        text: `تم التصحيح — الصافي ${Number(data.recomputed_net || 0).toLocaleString()} ر.س (نقدي ${Number(data.cash_amount || 0).toLocaleString()} / بنك ${Number(data.bank_amount || 0).toLocaleString()})`,
+      });
+      await Promise.all([fetchPayroll(), fetchTools()]);
+    } catch (e) {
+      setToolNotice({ kind: 'err', text: e instanceof Error ? e.message : 'تعذّر تصحيح المسير' });
+    } finally { setCorrectionBusy(false); }
   };
 
   const filteredPayroll = payroll.filter(record => 
@@ -85,6 +216,7 @@ export default function PayrollView() {
 
   useEffect(() => {
     fetchPayroll();
+    fetchTools();
     fetch(`/api/payroll/lock-status?month=${month}&year=${year}`)
       .then(r => r.json())
       .then(d => setLocked(!!d.locked))
@@ -101,6 +233,59 @@ export default function PayrollView() {
     setLocked(!!data.locked);
   };
 
+  const runPreflight = async () => {
+    setPreflightBusy(true);
+    try {
+      const res = await fetch(`/api/payroll/preflight?month=${month}&year=${year}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'تعذر فحص الجاهزية');
+      setPreflight(data);
+    } catch (e) {
+      setToolNotice({ kind: 'err', text: e instanceof Error ? e.message : 'تعذر فحص الجاهزية' });
+    } finally { setPreflightBusy(false); }
+  };
+
+  const previewRecalc = async () => {
+    if (!recalcEmployee) {
+      setToolNotice({ kind: 'err', text: 'اختر الموظف أولاً' });
+      return;
+    }
+    setRecalcBusy(true);
+    try {
+      const res = await fetch('/api/payroll/recalculate/preview', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ month, year, employee_id: Number(recalcEmployee) }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'تعذرت المعاينة');
+      setRecalcPreview(data);
+    } catch (e) {
+      setToolNotice({ kind: 'err', text: e instanceof Error ? e.message : 'تعذرت المعاينة' });
+    } finally { setRecalcBusy(false); }
+  };
+
+  const applyRecalc = async () => {
+    if (!recalcPreview) return;
+    if (!window.confirm('سيُعاد احتساب البنود المعروضة في المعاينة فقط. هل تريد المتابعة؟')) return;
+    setRecalcBusy(true);
+    try {
+      const res = await fetch('/api/payroll/recalculate/apply', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          month, year, employee_id: recalcPreview.employee_id,
+          expected_net: recalcPreview?.current?.net_salary,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'تعذر تطبيق إعادة الاحتساب');
+      setToolNotice({ kind: 'ok', text: `تم تحديث ${data.changed} بنداً من المصدر` });
+      setRecalcPreview(null);
+      await Promise.all([fetchPayroll(), fetchTools()]);
+    } catch (e) {
+      setToolNotice({ kind: 'err', text: e instanceof Error ? e.message : 'تعذر تطبيق إعادة الاحتساب' });
+    } finally { setRecalcBusy(false); }
+  };
+
   const handleGenerate = async () => {
     setIsLoading(true);
     try {
@@ -110,6 +295,7 @@ export default function PayrollView() {
         body: JSON.stringify({ month, year })
       });
       const data = await res.json().catch(() => ({}));
+      if (data.report) setPreflight(data.report);
       if (!res.ok) alert(data.error || 'تعذر احتساب المسير');
     } finally {
       await fetchPayroll();
@@ -122,8 +308,8 @@ export default function PayrollView() {
       ['اسم الموظف', 'رقم الهوية / الإقامة', 'الآيبان السعودي (IBAN)', 'اسم البنك', 'المبلغ البنكي', 'المبلغ النقدي', 'الصافي', 'العملة'],
       ...payroll.map(p => [
         `"${p.employee_name}"`,
-        p.national_id_iqama || 'N/A',
-        p.saudi_iban || p.bank_account || 'N/A',
+        p.national_id_iqama || 'غير مسجل',
+        p.saudi_iban || p.bank_account || 'غير مسجل',
         p.bank_name || '(غير محدد)',
         (p as any).bank_amount ?? p.net_salary,
         (p as any).cash_amount ?? 0,
@@ -256,6 +442,16 @@ export default function PayrollView() {
               <span>كشف Excel</span>
             </button>
 
+            <button
+              onClick={handleApprove}
+              disabled={approving || payroll.length === 0 || (approval?.pending === 0 && approval?.legacy === 0)}
+              title="اعتماد المسير شرط لتصدير ملف الحوالات (WPS)"
+              className="flex items-center gap-1.5 bg-brand-600 text-white px-4 py-2 rounded-xl font-black hover:bg-brand-700 transition-all text-xs shadow-sm disabled:opacity-50"
+            >
+              <CheckCircle2 className={`w-3.5 h-3.5 ${approving ? 'animate-spin' : ''}`} />
+              <span>{approving ? 'جارٍ الاعتماد...' : approval?.pending ? `اعتماد المسير (${approval.pending})` : 'اعتماد المسير'}</span>
+            </button>
+
             <button 
               onClick={toggleLock}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-xl font-black transition-all text-xs border ${locked ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}
@@ -303,6 +499,16 @@ export default function PayrollView() {
                             <p className="text-[10px] text-slate-400 font-mono font-bold">
                               {record.national_id_iqama || 'N/A'} • {record.department_name}
                             </p>
+                            <span className={`inline-block mt-1 text-[10px] font-black px-2 py-0.5 rounded-full ${
+                              (record as any).payment_status === 'paid' ? 'bg-slate-800 text-white'
+                              : (record as any).approval_status === 'approved' || (record as any).approval_status == null
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : 'bg-amber-50 text-amber-700'
+                            }`}>
+                              {(record as any).payment_status === 'paid' ? 'مصروف'
+                                : (record as any).approval_status === 'approved' || (record as any).approval_status == null
+                                  ? 'معتمد' : 'بانتظار الاعتماد'}
+                            </span>
                           </div>
                         </div>
                       </td>
@@ -413,6 +619,333 @@ export default function PayrollView() {
         </div>
       </div>
 
+      {/* فحص الجاهزية وإعادة الاحتساب من المصدر */}
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h3 className="text-base font-black text-slate-800 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" /> فحص جاهزية المسير قبل الاحتساب
+            </h3>
+            <p className="text-[11px] text-slate-500 mt-1">
+              يمنع إنشاء المسير إذا كان أي موظف غير قابل للدفع (راتب صفر، حساب بنكي مفقود، أو نسبة نقد غير صحيحة).
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {preflight && (
+              <span className={`px-3 py-1 rounded-full text-[10px] font-black ${preflight.ready ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                {preflight.ready ? 'جاهز للاحتساب' : 'غير جاهز'}
+              </span>
+            )}
+            <button
+              onClick={runPreflight}
+              disabled={preflightBusy}
+              className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black disabled:opacity-50"
+            >
+              {preflightBusy ? 'جارٍ الفحص...' : 'فحص الجاهزية'}
+            </button>
+          </div>
+        </div>
+
+        {preflight && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="rounded-2xl bg-slate-50 p-3 text-xs font-bold text-slate-600">
+              موظفون سيُحتسبون: {preflight.checked} — حالياً في المسير: {preflight.existing}
+            </div>
+            <div className="rounded-2xl bg-rose-50 p-3 text-xs font-bold text-rose-700">
+              موانع الدفع: {preflight.blockers?.length || 0}
+            </div>
+            <div className="rounded-2xl bg-amber-50 p-3 text-xs font-bold text-amber-700">
+              تنبيهات: {preflight.warnings?.length || 0}
+            </div>
+          </div>
+        )}
+        {preflight && (preflight.blockers?.length > 0 || preflight.warnings?.length > 0) && (
+          <div className="max-h-64 overflow-y-auto rounded-2xl border border-slate-100 divide-y divide-slate-50">
+            {[...preflight.blockers, ...preflight.warnings].map((issue: any, i: number) => (
+              <div key={i} className="flex items-start gap-3 p-3 text-[11px]">
+                <AlertTriangle className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${issue.severity === 'block' ? 'text-rose-600' : 'text-amber-600'}`} />
+                <span className="font-bold text-slate-700">{issue.employee_name}</span>
+                <span className="text-slate-500">{issue.message}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="border-t border-slate-100 pt-5">
+          <h4 className="text-sm font-black text-slate-800 flex items-center gap-2 mb-1">
+            <RefreshCw className="w-4 h-4 text-brand-600" /> إعادة احتساب مسير من المصدر
+          </h4>
+          <p className="text-[11px] text-slate-500 mb-4">
+            تعرض المعاينة الفرق قبل التطبيق، وتستخدم نفس معادلات إنشاء المسير. لا تُطبَّق على مسير مقفل، ولا تُكرِّر خصم السلفة.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={recalcEmployee}
+              onChange={e => { setRecalcEmployee(Number(e.target.value)); setRecalcPreview(null); }}
+              className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
+            >
+              <option value={0}>اختر موظفاً من المسير...</option>
+              {payrollEmployees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+            <button
+              onClick={previewRecalc}
+              disabled={recalcBusy || !recalcEmployee}
+              className="px-4 py-2.5 rounded-xl bg-brand-600 text-white text-xs font-black disabled:opacity-50"
+            >
+              {recalcBusy ? 'جارٍ...' : 'معاينة الفرق'}
+            </button>
+            {recalcPreview && (
+              <button
+                onClick={applyRecalc}
+                disabled={recalcBusy || recalcPreview.locked || !recalcPreview.diff?.length}
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-black disabled:opacity-50"
+              >
+                اعتماد التحديث ({recalcPreview.diff?.length || 0})
+              </button>
+            )}
+            {recalcPreview?.locked && (
+              <span className="text-[11px] font-bold text-amber-700">المسير مقفل — المعاينة للاطلاع فقط</span>
+            )}
+          </div>
+          {recalcPreview && (
+            <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-100">
+              <table className="w-full text-right text-[11px]">
+                <thead className="bg-slate-50 text-slate-500 font-black">
+                  <tr><th className="px-3 py-2">البند</th><th className="px-3 py-2">الحالي</th><th className="px-3 py-2">بعد الاحتساب</th><th className="px-3 py-2">الفرق</th></tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {(recalcPreview.diff || []).map((d: any, i: number) => (
+                    <tr key={i}>
+                      <td className="px-3 py-2 font-bold text-slate-700">{d.field}</td>
+                      <td className="px-3 py-2 font-mono text-slate-500">{String(d.before ?? '—')}</td>
+                      <td className="px-3 py-2 font-mono font-bold text-slate-800">{String(d.after ?? '—')}</td>
+                      <td className="px-3 py-2 font-mono text-brand-700">
+                        {typeof d.after === 'number' && typeof d.before === 'number'
+                          ? (Number(d.after) - Number(d.before)).toLocaleString() : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                  {!recalcPreview.diff?.length && (
+                    <tr><td colSpan={4} className="px-3 py-4 text-center text-slate-400">لا يوجد فرق — المسير مطابق للمصادر</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* أدوات الحركات المرتبطة بالمسير */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-base font-black text-slate-800 flex items-center gap-2">
+                <Plus className="w-4 h-4 text-brand-600" /> الدفعات الإضافية خارج الدورة
+              </h3>
+              <p className="text-[11px] text-slate-500 mt-1">
+                تُضاف إلى مسير {month}/{year} أو تُخصم منه. الحذف متاح ما دام المسير غير مقفل.
+              </p>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold shrink-0">
+              {offCycleLines.length} دفعة
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <select
+              value={newOffCycle.employee_id}
+              onChange={e => setNewOffCycle({ ...newOffCycle, employee_id: Number(e.target.value) })}
+              className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              <option value={0}>اختر موظفاً...</option>
+              {payrollEmployees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+            <select
+              value={newOffCycle.type}
+              onChange={e => setNewOffCycle({ ...newOffCycle, type: e.target.value })}
+              className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              <option value="earning">مستحق (+)</option>
+              <option value="deduction">خصم (-)</option>
+            </select>
+            <input
+              type="number"
+              min="1"
+              placeholder="المبلغ (ر.س)"
+              value={newOffCycle.amount}
+              onChange={e => setNewOffCycle({ ...newOffCycle, amount: e.target.value })}
+              className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold font-mono outline-none focus:ring-2 focus:ring-brand-500"
+            />
+            <input
+              type="text"
+              placeholder="السبب (اختياري)"
+              value={newOffCycle.reason}
+              onChange={e => setNewOffCycle({ ...newOffCycle, reason: e.target.value })}
+              className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </div>
+
+          {selectedOffCycleEmployee && (
+            <p className="text-[11px] font-bold text-brand-700 bg-brand-50 rounded-xl px-3 py-2">
+              طريقة دفع {selectedOffCycleEmployee.employee_name}: {paymentLabel(selectedOffCycleEmployee)} — ستُطبَّق عند احتساب المسير.
+            </p>
+          )}
+
+          {locked && (
+            <p className="text-[11px] font-bold text-amber-700 bg-amber-50 rounded-xl px-3 py-2">
+              المسير مقفل لهذا الشهر — افتحه أولاً قبل إضافة أو حذف دفعة.
+            </p>
+          )}
+
+          <button
+            onClick={handleAddOffCycle}
+            disabled={offCycleBusy || locked}
+            title={locked ? 'افتح المسير أولاً قبل إضافة دفعة' : 'إضافة دفعة للشهر المفتوح'}
+            className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-black disabled:opacity-40 transition-colors"
+          >
+            إضافة دفعة لهذا الشهر
+          </button>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-right text-xs">
+              <thead className="bg-slate-50 text-slate-500 font-bold">
+                <tr>
+                  <th className="p-3">الموظف</th>
+                  <th className="p-3">النوع</th>
+                  <th className="p-3">المبلغ</th>
+                  <th className="p-3">السبب</th>
+                  <th className="p-3 text-center">إجراء</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {offCycleLines.length === 0 ? (
+                  <tr><td colSpan={5} className="p-6 text-center text-slate-400 font-bold">لا توجد دفعات إضافية لهذا الشهر</td></tr>
+                ) : offCycleLines.map(line => (
+                  <tr key={line.id} className="hover:bg-slate-50/70">
+                    <td className="p-3 font-bold text-slate-700">{line.employee_name}</td>
+                    <td className="p-3">{line.type === 'deduction' ? 'خصم' : 'مستحق'}</td>
+                    <td className={`p-3 font-mono font-bold ${line.type === 'deduction' ? 'text-rose-600' : 'text-emerald-700'}`}>
+                      {line.type === 'deduction' ? '-' : '+'}{Number(line.amount || 0).toLocaleString()} ر.س
+                    </td>
+                    <td className="p-3 text-slate-500 max-w-[180px] truncate">{line.reason || '—'}</td>
+                    <td className="p-3 text-center">
+                      <button
+                        onClick={() => handleDeleteOffCycle(Number(line.id))}
+                        disabled={offCycleBusy || locked}
+                        title={locked ? 'افتح المسير أولاً قبل الحذف' : 'حذف الدفعة'}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg disabled:opacity-30"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-base font-black text-slate-800 flex items-center gap-2">
+                <Lock className="w-4 h-4 text-amber-600" /> تصحيح مسير مقفل
+              </h3>
+              <p className="text-[11px] text-slate-500 mt-1">
+                يعدّل بنداً واحداً في كشف موظف ويُعيد احتساب الصافي تلقائياً، مع سجل تصحيح موثّق.
+              </p>
+            </div>
+            <span className={`px-3 py-1 rounded-full text-[10px] font-bold shrink-0 ${locked ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+              {locked ? 'المسير مقفل' : 'المسير مفتوح'}
+            </span>
+          </div>
+
+          {!locked && (
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 text-amber-800 rounded-2xl p-3 text-[11px] font-bold">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>التصحيح متاح بعد إقفال المسير. أغلق المسير من زر «إقفال واعتماد المسير» ثم استخدم هذه اللوحة.</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <select
+              value={correction.employee_id}
+              onChange={e => setCorrection({ ...correction, employee_id: Number(e.target.value) })}
+              className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              <option value={0}>اختر موظفاً...</option>
+              {payrollEmployees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+            <select
+              value={correction.field}
+              onChange={e => setCorrection({ ...correction, field: e.target.value })}
+              className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              <option value="bonuses">المكافآت</option>
+              <option value="allowances">البدلات</option>
+              <option value="deductions">الاستقطاعات</option>
+              <option value="penalties">الجزاءات</option>
+            </select>
+            <input
+              type="number"
+              min="0"
+              placeholder="القيمة الجديدة (ر.س)"
+              value={correction.new_value}
+              onChange={e => setCorrection({ ...correction, new_value: e.target.value })}
+              className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold font-mono outline-none focus:ring-2 focus:ring-brand-500"
+            />
+            <input
+              type="text"
+              placeholder="سبب التصحيح"
+              value={correction.reason}
+              onChange={e => setCorrection({ ...correction, reason: e.target.value })}
+              className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </div>
+
+          {selectedCorrectionEmployee && (
+            <p className="text-[11px] font-bold text-amber-700 bg-amber-50 rounded-xl px-3 py-2">
+              طريقة دفع {selectedCorrectionEmployee.employee_name}: {paymentLabel(selectedCorrectionEmployee)}
+              {' '}(نقدي {cashOf(selectedCorrectionEmployee).toLocaleString()} / بنك {bankOf(selectedCorrectionEmployee).toLocaleString()}) — يُعاد التقسيم تلقائياً بعد التصحيح.
+            </p>
+          )}
+
+          <button
+            onClick={handleCorrection}
+            disabled={!locked || correctionBusy}
+            className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black disabled:opacity-40 transition-colors"
+          >
+            تطبيق التصحيح وإعادة احتساب الصافي
+          </button>
+
+          <div className="border-t border-slate-100 pt-3">
+            <p className="text-[11px] font-black text-slate-500 mb-2">آخر التصحيحات لهذا الشهر</p>
+            {corrections.length === 0 ? (
+              <p className="text-[11px] text-slate-400">لا توجد تصحيحات مسجلة.</p>
+            ) : (
+              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                {corrections.slice(0, 8).map(c => (
+                  <div key={c.id} className="flex justify-between gap-3 bg-slate-50 rounded-lg px-3 py-2 text-[11px]">
+                    <span className="font-bold text-slate-700">{c.employee_name} — {c.field}</span>
+                    <span className="font-mono text-slate-500">{Number(c.old_value || 0).toLocaleString()} ← {Number(c.new_value || 0).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {toolNotice && (
+        <div className={`flex items-center justify-between gap-3 rounded-2xl px-5 py-3 text-xs font-bold border ${
+          toolNotice.kind === 'ok' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'
+        }`}>
+          <span>{toolNotice.text}</span>
+          <button onClick={() => setToolNotice(null)} className="p-1 hover:bg-white/60 rounded"><X className="w-4 h-4" /></button>
+        </div>
+      )}
+
       {/* Salary Slip Modal */}
       {selectedSlip && employeeDetails && (
         <div className="print-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -501,7 +1034,7 @@ export default function PayrollView() {
                 <div className="flex justify-between items-center bg-slate-900 text-white p-4 rounded-xl">
                   <div>
                     <p className="text-[11px] text-emerald-300 font-bold">صافي الراتب المحول للحساب</p>
-                    <span className="text-[10px] text-slate-400 font-mono">{employeeDetails.saudi_iban || employeeDetails.bank_account || 'IBAN'}</span>
+                    <span className="text-[10px] text-slate-400 font-mono">{employeeDetails.saudi_iban || employeeDetails.bank_account || 'غير مسجل'}</span>
                   </div>
                   <span className="text-xl font-black font-mono text-emerald-400">
                     {selectedSlip.net_salary.toLocaleString()} ر.س

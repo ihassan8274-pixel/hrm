@@ -119,6 +119,8 @@ export default function SaudiComplianceView() {
     deductions: 0
   });
   const [eosResult, setEosResult] = useState<EndOfServiceCalculation | null>(null);
+  const [settlementNotice, setSettlementNotice] = useState<string | null>(null);
+  const [creatingSettlement, setCreatingSettlement] = useState(false);
 
   // WPS Month/Year
   const [wpsMonth, setWpsMonth] = useState(new Date().getMonth() + 1);
@@ -247,11 +249,35 @@ export default function SaudiComplianceView() {
         return;
       }
       setEosError(null);
+      setSettlementNotice(null);
       setEosResult(data);
     } catch (err) {
       console.error(err);
       setEosError('تعذّر الاتصال بالخادم أثناء الاحتساب');
     }
+  };
+
+  // من سجل الاحتساب إلى كشف نهائي قابل للمراجعة والاعتماد — بلا صرف تلقائي.
+  const handleCreateFinalSettlement = async () => {
+    if (!eosResult?.id || !eosForm.employee_id) {
+      setSettlementNotice('احتسب المكافأة أولاً واختر الموظف من القائمة قبل إنشاء الكشف النهائي');
+      return;
+    }
+    if (!window.confirm('إنشاء كشف تسوية نهائية في مسير الشهر الحالي؟ سيبقى بانتظار الاعتماد ولن يُصرف تلقائياً.')) return;
+    setCreatingSettlement(true);
+    try {
+      const now = new Date();
+      const res = await fetch(`/api/saudi/eos/${eosResult.id}/final-settlement`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ month: now.getMonth() + 1, year: now.getFullYear() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'تعذّر إنشاء الكشف النهائي');
+      setSettlementNotice(`تم إنشاء الكشف النهائي (${data.net_payable?.toLocaleString?.() ?? ''} ر.س) بانتظار الاعتماد من شاشة المسير`);
+    } catch (err) {
+      setSettlementNotice(err instanceof Error ? err.message : 'تعذّر إنشاء الكشف النهائي');
+    } finally { setCreatingSettlement(false); }
   };
 
   // Populate EOS from selected employee
@@ -1249,8 +1275,11 @@ export default function SaudiComplianceView() {
                   type="submit"
                   className="w-full py-3.5 bg-brand-600 hover:bg-brand-700 text-white rounded-2xl font-black text-sm shadow-md transition-all mt-4"
                 >
-                  احتساب مكافأة نهاية الخدمة وتوليد المسير
+                  احتساب مكافأة نهاية الخدمة
                 </button>
+                <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
+                  الحاسبة تُحتسب وتحفظ النتيجة فقط، ولا تُنهي الخدمة. لاستبعاد الموظف من الرواتب، استخدم «إنهاء خدمة» في شاشة الموظفين أو أكمل إخلاء الطرف من شاشة إخلاء الطرف.
+                </p>
               </form>
             </div>
 
@@ -1267,14 +1296,25 @@ export default function SaudiComplianceView() {
                       </span>
                       <h3 className="text-xl font-black text-slate-800 mt-2">{eosResult.employee_name}</h3>
                     </div>
-                    <button
-                      onClick={() => window.print()}
-                      className="no-print p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold text-xs transition-all flex items-center gap-1.5"
-                    >
-                      <Printer className="w-4 h-4" />
-                      <span>طباعة السند</span>
-                    </button>
+                    <div className="no-print flex gap-2">
+                      <button
+                        onClick={handleCreateFinalSettlement}
+                        disabled={creatingSettlement || !eosResult.id}
+                        className="p-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-2xl font-bold text-xs transition-all flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        <FileCheck className="w-4 h-4" />
+                        <span>{creatingSettlement ? 'جارٍ الإنشاء...' : 'كشف تسوية نهائية'}</span>
+                      </button>
+                      <button
+                        onClick={() => window.print()}
+                        className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold text-xs transition-all flex items-center gap-1.5"
+                      >
+                        <Printer className="w-4 h-4" />
+                        <span>طباعة السند</span>
+                      </button>
+                    </div>
                   </div>
+                  {settlementNotice && <div className="no-print text-xs font-bold text-brand-700 bg-brand-50 rounded-xl p-3">{settlementNotice}</div>}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-slate-50 p-4 rounded-2xl">

@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { Letterhead, DocumentFooter } from '../lib/print/letterhead';
 import { useLetterhead } from '../lib/print/use-letterhead';
 import EssRequestsPanel from './EssRequestsPanel';
+import { AnnualSelfPanel } from './AnnualCycleView';
 
 export default function ESSView() {
   const { hasRole } = useAuth();
@@ -22,7 +23,7 @@ export default function ESSView() {
   const [payroll, setPayroll] = useState<PayrollRecord[]>([]);
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
-  const [selectedServiceTab, setSelectedServiceTab] = useState<'payslip' | 'certificates' | 'leaves' | 'requests' | 'documents' | 'attendance' | 'my_requests'>('payslip');
+  const [selectedServiceTab, setSelectedServiceTab] = useState<'payslip' | 'certificates' | 'leaves' | 'requests' | 'documents' | 'attendance' | 'my_requests' | 'annual'>('payslip');
   const [currency, setCurrency] = useState('SAR');
   const [myDocs, setMyDocs] = useState<any[]>([]);
   const [myAttendance, setMyAttendance] = useState<any[]>([]);
@@ -258,12 +259,23 @@ export default function ESSView() {
         >
           طلباتي (سلفة/إجازة/شكوى/مقترح)
         </button>
+        <button
+          onClick={() => setSelectedServiceTab('annual')}
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all ${
+            selectedServiceTab === 'annual' ? 'bg-white shadow text-slate-900' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          زيادتي السنوية
+        </button>
       </div>
 
       {/* Tab: طلبات الخدمة الذاتية */}
       {selectedServiceTab === 'my_requests' && (
         <EssRequestsPanel employeeId={selfServiceOnly ? null : selectedId} />
       )}
+
+      {/* Tab: دورة الزيادة السنوية للموظف */}
+      {selectedServiceTab === 'annual' && <AnnualSelfPanel />}
 
       {/* Tab 1: Payslip View */}
       {selectedServiceTab === 'payslip' && (
@@ -330,11 +342,11 @@ export default function ESSView() {
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/70 space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-slate-400 font-bold">اسم البنك المعتمد:</span>
-                <span className="text-slate-800 font-black">{selectedEmployee?.bank_name || 'مصرف الراجحي'}</span>
+                <span className="text-slate-800 font-black">{selectedEmployee?.bank_name || 'غير مسجل'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400 font-bold">رقم الآيبان الدولي (IBAN):</span>
-                <span className="text-slate-800 font-mono font-black">{selectedEmployee?.iban || 'SA448000020160801009999'}</span>
+                <span className="text-slate-800 font-mono font-black">{selectedEmployee?.iban || 'غير مسجل'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400 font-bold">حالة التوثيق في مدد:</span>

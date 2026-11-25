@@ -1,5 +1,6 @@
 // Route module. Registered from server/index.ts; the order there is the route order.
 import db, { logAction, createNotification } from "../config/postgres";
+import { endEmployeeService } from "../lib/end-service";
 import express from "express";
 
 export function registerCompliance(app: express.Express) {
@@ -278,8 +279,16 @@ export function registerCompliance(app: express.Express) {
     }
     const updated = await db.prepare("SELECT * FROM employee_clearances WHERE id = ?").get(id) as any;
     if (updated.it_status === 'cleared' && updated.finance_status === 'cleared' && updated.operations_status === 'cleared' && updated.hr_status === 'cleared') {
+      // اكتمال إخلاء الطرف هو إنهاء الخدمة رسمياً: يُوقف الموظف ويُستبعد
+      // من مسيرات الرواتب القادمة في نفس اللحظة، دون خطوة يدوية إضافية.
+      await endEmployeeService({
+        employeeId: Number(updated.employee_id),
+        lastWorkingDay: updated.last_working_day,
+        reason: updated.reason,
+        source: "exit_clearance",
+      });
       await db.prepare("UPDATE employee_clearances SET overall_status = 'completed' WHERE id = ?").run(id);
-      await createNotification('اكتمال إخلاء الطرف', `تم اعتماد إخلاء الطرف رقم ${updated.clearance_slip_number} بنجاح من كافة الأقسام المعنية`, 'success');
+      await createNotification('اكتمال إخلاء الطرف', `تم اعتماد إخلاء الطرف رقم ${updated.clearance_slip_number} من كافة الأقسام، وتم إنهاء خدمة الموظف واستبعاده من مسيرات الرواتب القادمة`, 'success');
     }
     await logAction('update', 'clearance', Number(id), `Updated ${department} clearance status`);
     res.json({ success: true });

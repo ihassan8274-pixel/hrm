@@ -16,7 +16,7 @@ import { AnimatePresence, motion } from 'framer-motion';
  */
 
 export const inputCls =
-  'w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-bold text-navy-800 outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all disabled:opacity-60 placeholder:text-slate-400 placeholder:font-medium';
+  'w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-navy-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all disabled:opacity-60 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:font-medium';
 
 interface BtnProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;

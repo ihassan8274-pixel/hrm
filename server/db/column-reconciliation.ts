@@ -14,6 +14,8 @@
 
 /** Columns the application expects, per table, with their SQL definitions. */
 export const COLUMN_RECONCILIATION: Record<string, Record<string, string>> = {
+  // آخر نشاط حقيقي للمستخدم؛ يمنع بقاء الجلسة مفتوحة على جهاز غير مستخدم.
+  sessions: { auth_last_activity: 'DATETIME' },
   // ربط طلب الاعتماد بالسجل الأصلي (سلفة/إجازة/تظلم/مقترح).
   approval_requests: {
     entity_type: 'TEXT',
@@ -434,8 +436,43 @@ const MISSING_TABLES: Record<string, string> = {
       old_salary REAL,
       new_salary REAL,
       promotion_date TEXT,
+      training_enrollment_id INTEGER,
+      appraisal_id INTEGER,
+      approval_status TEXT DEFAULT 'approved',
+      approved_by TEXT,
+      approved_at DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (employee_id) REFERENCES employees (id) ON DELETE CASCADE
+    )
+  `,
+  // Training is the record that connects an appraisal recommendation to a
+  // promotion. Completion without a certificate number is not accepted.
+  training_courses: `
+    CREATE TABLE IF NOT EXISTS training_courses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      category TEXT,
+      duration_hours REAL DEFAULT 0,
+      target_position TEXT,
+      status TEXT DEFAULT 'active',
+      created_by TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `,
+  training_enrollments: `
+    CREATE TABLE IF NOT EXISTS training_enrollments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id INTEGER NOT NULL REFERENCES employees (id) ON DELETE CASCADE,
+      course_id INTEGER,
+      appraisal_id INTEGER,
+      source TEXT DEFAULT 'manual',
+      status TEXT DEFAULT 'recommended',
+      score REAL,
+      completed_at DATETIME,
+      certificate_number TEXT,
+      created_by TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `,
 
@@ -786,6 +823,22 @@ export const ADDITIONAL_COLUMNS: Record<string, Record<string, string>> = {
   payroll: {
     // Applied by the "apply to payroll" action on disciplinary violations.
     payroll_applied: 'INTEGER DEFAULT 0',
+    // Explicit decision gate: NULL is a legacy row generated before this gate.
+    approval_status: 'TEXT',
+    approved_by: 'TEXT',
+    approved_at: 'DATETIME',
+    payment_status: "TEXT DEFAULT 'pending'",
+    paid_at: 'DATETIME',
+    eos_amount: 'REAL DEFAULT 0',
+    is_final_settlement: 'INTEGER DEFAULT 0',
+    final_settlement_id: 'INTEGER',
+  },
+  promotions: {
+    training_enrollment_id: 'INTEGER',
+    appraisal_id: 'INTEGER',
+    approval_status: "TEXT DEFAULT 'approved'",
+    approved_by: 'TEXT',
+    approved_at: 'DATETIME',
   },
   succession_plans: {
     critical_role_title: 'TEXT',
@@ -855,6 +908,14 @@ export const ADDITIONAL_COLUMNS: Record<string, Record<string, string>> = {
     request_date: 'TEXT',
   },
   eos_calculations: {
+    settlement_status: "TEXT DEFAULT 'draft'",
+    final_payroll_id: 'INTEGER',
+    final_payroll_month: 'INTEGER',
+    final_payroll_year: 'INTEGER',
+    approved_by: 'TEXT',
+    approved_at: 'DATETIME',
+    paid_at: 'DATETIME',
+    wps_exported_at: 'DATETIME',
     allowances: 'TEXT',
     basic_salary: 'REAL DEFAULT 0',
     employee_name: 'TEXT',
@@ -944,7 +1005,11 @@ export const CREATED_TABLE_COLUMNS: Record<string, Record<string, string>> = {
   assets: { assigned_to: 'INTEGER', assigned_at: 'DATETIME' },
   appraisals: { period: 'TEXT', appraisal_date: 'TEXT' },
   tax_exemption_declarations: { proof_file: 'TEXT', certificate_number: 'TEXT', expiry_after: 'TEXT', year: 'INTEGER' },
-  expense_claims: { claim_date: 'TEXT' },
+  expense_claims: {
+    claim_date: 'TEXT',
+    reviewed_by: 'TEXT', reviewed_at: 'DATETIME', review_note: 'TEXT',
+    payment_status: "TEXT DEFAULT 'unpaid'", paid_at: 'DATETIME',
+  },
   overtime_records: {
     multiplier: 'REAL DEFAULT 1.5', reason: 'TEXT',
     // Saudi Labour Law splits overtime by day type, each at 1.5x (Art. 107).

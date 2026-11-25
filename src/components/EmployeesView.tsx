@@ -2,26 +2,52 @@ import { useState, useEffect, FormEvent } from 'react';
 import { 
   Plus, Trash2, Edit2, Search, Filter, User, Users, Briefcase, 
   Wallet, Tag, Building2, CreditCard, ShieldCheck, Shield, FileCheck, 
-  Calendar, Check, AlertTriangle, Clock, Printer, FileText, ScanFace
+  Calendar, Check, AlertTriangle, Clock, Printer, FileText, ScanFace, UserX
 } from 'lucide-react';
 import type { Employee, Branch, AllowanceType, EmployeeAllowance, Department } from '../types';
 import SalaryCertificateModal from './SalaryCertificateModal';
 import { apiGet, apiMutate, safeArray } from '../lib/api';
+
+interface InsuranceOption {
+  id: number;
+  is_active: boolean;
+  employee_count: number;
+  policy_count: number;
+  name?: string;
+  code?: string;
+  label_ar?: string;
+}
+
+const FALLBACK_COMPANIES = ['التعاونية للتأمين', 'بوبا العربية', 'ميدغلف', 'تكافل الراجحي', 'سلامة للتأمين', 'الدرع العربي'];
+const FALLBACK_CATEGORIES: { code: string; label: string }[] = [
+  { code: 'VIP', label: 'VIP (كبار الشخصيات)' },
+  { code: 'Class A', label: 'فئة A (Class A)' },
+  { code: 'Class B', label: 'فئة B (Class B)' },
+  { code: 'Class C', label: 'فئة C (Class C)' },
+  { code: 'Class D', label: 'فئة D (Class D - عمالة)' }
+];
 
 export default function EmployeesView() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [allowanceTypes, setAllowanceTypes] = useState<AllowanceType[]>([]);
+  const [insuranceCompanies, setInsuranceCompanies] = useState<string[]>(FALLBACK_COMPANIES);
+  const [coverageCategories, setCoverageCategories] = useState(FALLBACK_CATEGORIES);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [certEmployee, setCertEmployee] = useState<Employee | null>(null);
+  const [endTarget, setEndTarget] = useState<Employee | null>(null);
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endReason, setEndReason] = useState('resignation');
+  const [ending, setEnding] = useState(false);
   const [activeFormTab, setActiveFormTab] = useState<'basic' | 'iqama' | 'payroll' | 'insurance'>('basic');
   const [loading, setLoading] = useState(true);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBranch, setFilterBranch] = useState(0);
   const [filterNationality, setFilterNationality] = useState<'all' | 'saudi' | 'expat'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'terminated'>('active');
   
   useEffect(() => {
     fetchData().finally(() => setLoading(false));
@@ -62,11 +88,16 @@ export default function EmployeesView() {
     contract_type: 'fixed' as 'fixed' | 'unlimited',
     contract_start_date: '',
     contract_end_date: '',
+    hire_date: '',
+    hire_month: 0,
+    sponsorship_type: 'company_sponsored' as 'saudi' | 'company_sponsored' | 'leased',
     payment_method: 'bank' as 'cash' | 'bank' | 'split',
     passport_number: '',
     passport_expiry: '',
     health_cert_number: '',
     health_cert_expiry: '',
+    health_cert_required: 0,
+    gosi_exempt: 0,
     allowances_list: [] as EmployeeAllowance[]
   };
 
@@ -76,11 +107,13 @@ export default function EmployeesView() {
 
   const fetchData = async () => {
     try {
-      const [empRes, branchRes, deptRes, typeRes] = await Promise.allSettled([
+      const [empRes, branchRes, deptRes, typeRes, companyRes, categoryRes] = await Promise.allSettled([
         apiGet('/api/employees'),
         apiGet('/api/branches'),
         apiGet('/api/departments'),
-        apiGet('/api/allowance-types')
+        apiGet('/api/allowance-types'),
+        apiGet('/api/medical/insurance-companies'),
+        apiGet('/api/medical/coverage-categories')
       ]);
 
       if (empRes.status === 'fulfilled' && empRes.value) {
@@ -94,6 +127,20 @@ export default function EmployeesView() {
       }
       if (typeRes.status === 'fulfilled' && typeRes.value) {
         setAllowanceTypes(safeArray(typeRes.value));
+      }
+      if (companyRes.status === 'fulfilled' && companyRes.value) {
+        const options = safeArray<InsuranceOption>(companyRes.value)
+          .filter(o => Boolean(o.is_active))
+          .map(o => String(o.name || '').trim())
+          .filter(Boolean);
+        if (options.length) setInsuranceCompanies(options);
+      }
+      if (categoryRes.status === 'fulfilled' && categoryRes.value) {
+        const options = safeArray<InsuranceOption>(categoryRes.value)
+          .filter(o => Boolean(o.is_active))
+          .map(o => ({ code: String(o.code || '').trim(), label: String(o.label_ar || o.code || '').trim() }))
+          .filter(o => o.code);
+        if (options.length) setCoverageCategories(options);
       }
     } catch (err) {
       console.error("fetchData error:", err);
@@ -142,6 +189,31 @@ export default function EmployeesView() {
     }
   };
 
+  const openEndService = (emp: Employee) => {
+    setEndTarget(emp);
+    setEndDate(new Date().toISOString().split('T')[0]);
+    setEndReason('resignation');
+  };
+
+  const handleEndService = async () => {
+    if (!endTarget) return;
+    if (!confirm(`إنهاء خدمة ${endTarget.name}؟ سيُوقف حسابه ويُستبعد من جميع مسيرات الرواتب القادمة.`)) return;
+    setEnding(true);
+    try {
+      await apiMutate(`/api/employees/${endTarget.id}/end-service`, {
+        last_working_day: endDate,
+        reason: endReason,
+      }, 'POST');
+      setEndTarget(null);
+      fetchData();
+    } catch (err) {
+      console.error('handleEndService error:', err);
+      alert('حدث خطأ أثناء إنهاء الخدمة');
+    } finally {
+      setEnding(false);
+    }
+  };
+
   const handleEdit = (emp: Employee) => {
     setEditingId(emp.id);
     setFormData({
@@ -179,11 +251,16 @@ export default function EmployeesView() {
       contract_type: emp.contract_type || 'fixed',
       contract_start_date: emp.contract_start_date || '',
       contract_end_date: emp.contract_end_date || '',
+      hire_date: emp.hire_date || '',
+      hire_month: emp.hire_month || 0,
+      sponsorship_type: emp.sponsorship_type || 'company_sponsored',
       payment_method: emp.payment_method || 'bank',
       passport_number: emp.passport_number || '',
       passport_expiry: emp.passport_expiry || '',
       health_cert_number: emp.health_cert_number || '',
       health_cert_expiry: emp.health_cert_expiry || '',
+      health_cert_required: emp.health_cert_required ? 1 : 0,
+      gosi_exempt: emp.gosi_exempt ? 1 : 0,
       allowances_list: emp.allowances_details || []
     });
     setIsAdding(true);
@@ -222,7 +299,11 @@ export default function EmployeesView() {
       matchesNat = emp.is_saudi === 0 || (emp.nationality !== 'سعودي' && emp.nationality !== 'سعودية');
     }
 
-    return matchesSearch && matchesBranch && matchesNat;
+    const terminated = Boolean(emp.status && emp.status !== 'active');
+    const matchesStatus = filterStatus === 'all' ||
+      (filterStatus === 'terminated' ? terminated : !terminated);
+
+    return matchesSearch && matchesBranch && matchesNat && matchesStatus;
   });
 
 return (
@@ -279,6 +360,16 @@ return (
             <option value="all">جميع الجنسيات</option>
             <option value="saudi">سعودي فقط (نطاقات)</option>
             <option value="expat">مقيم / وافد فقط</option>
+          </select>
+
+          <select
+            className="px-4 py-3 bg-slate-50 border border-slate-200-60 rounded-2xl outline-none font-bold text-slate-700 text-xs"
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value as any)}
+          >
+            <option value="active">الموظفون النشطون (في الرواتب)</option>
+            <option value="terminated">منتهية خدمتهم</option>
+            <option value="all">الكل</option>
           </select>
 
           <select 
@@ -492,6 +583,49 @@ return (
                     onChange={e => setFormData({ ...formData, contract_end_date: e.target.value })}
                   />
                 </div>
+
+                <div className="space-y-1.5 md:col-span-3">
+                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-[11px] font-bold text-emerald-900">
+                    بيانات الذكرى السنوية: يُستخدم تاريخ التعيين الكامل لتنبيه الزيادة قبل الذكرى بشهر. إذا لم يكن اليوم معروفاً، أدخل شهر التعيين فقط.
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-600">تاريخ التعيين (ذكرى الزيادة)</label>
+                  <input
+                    type="date"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono"
+                    value={formData.hire_date}
+                    onChange={e => setFormData({ ...formData, hire_date: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-600">شهر التعيين إن عُرف الشهر دون اليوم</label>
+                  <select
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-bold"
+                    value={formData.hire_month}
+                    onChange={e => setFormData({ ...formData, hire_month: Number(e.target.value) })}
+                  >
+                    <option value={0}>— بدون —</option>
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <option key={i + 1} value={i + 1}>{i + 1}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-600">فئة الكفالة</label>
+                  <select
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-bold"
+                    value={formData.sponsorship_type}
+                    onChange={e => setFormData({ ...formData, sponsorship_type: e.target.value as any })}
+                  >
+                    <option value="saudi">سعودي</option>
+                    <option value="company_sponsored">كفالة شركة</option>
+                    <option value="leased">مستأجر</option>
+                  </select>
+                </div>
               </div>
             )}
 
@@ -568,6 +702,12 @@ return (
                     <input type="date" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono"
                       value={formData.passport_expiry || ''} onChange={e => setFormData({ ...formData, passport_expiry: e.target.value })} />
                   </div>
+                  <label className="md:col-span-2 lg:col-span-4 flex items-center gap-2 text-xs font-bold text-slate-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5 cursor-pointer">
+                    <input type="checkbox" className="w-4 h-4 accent-amber-600" checked={Number(formData.health_cert_required) === 1}
+                      onChange={e => setFormData({ ...formData, health_cert_required: e.target.checked ? 1 : 0 })} />
+                    خاضع لإلزام الشهادة الصحية (تداول الطعام)
+                    <span className="font-normal text-slate-500">— غير الخاضعين يُستبعدون من التنبيهات والتقارير.</span>
+                  </label>
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-600">رقم الشهادة الصحية</label>
                     <input type="text" placeholder="HC-0001" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200-80 rounded-xl outline-none font-mono"
@@ -628,12 +768,22 @@ return (
                   </div>
                 </div>
 
+                {/* GOSI deduction exemption */}
+                <label className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2.5 cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 accent-rose-600" checked={Number(formData.gosi_exempt) === 1}
+                    onChange={e => setFormData({ ...formData, gosi_exempt: e.target.checked ? 1 : 0 })} />
+                  معفى من خصم التأمينات (GOSI)
+                  <span className="font-normal text-slate-500">— لا يُستقطع من الراتب، والمنشأة تتحمل حصتي العامل والمنشأة في المسير.</span>
+                </label>
+
                 {/* GOSI Computed wage summary */}
                 <div className="p-4 bg-brand-50-60 rounded-2xl border border-brand-100 flex justify-between items-center text-xs">
                   <div>
                     <span className="font-bold text-brand-950">الأجر الخاضع لاشتراك التأمينات الاجتماعية (الأساسي + السكن بحد أقصى 45 ألف):</span>
                     <p className="text-brand-700 mt-0.5">
-                      {formData.is_saudi ? 'يستقطع منه 9.75% من الموظف و 11.75% على صاحب العمل' : 'يتحمل صاحب العمل 2% أخطار مهنية ولا استقطاع على الوافد'}
+                      {Number(formData.gosi_exempt) === 1
+                        ? 'معفى من الخصم: المنشأة تتحمل 9.75% حصة العامل و11.75% حصة صاحب العمل'
+                        : formData.is_saudi ? 'يستقطع منه 9.75% من الموظف و 11.75% على صاحب العمل' : 'يتحمل صاحب العمل 2% أخطار مهنية ولا استقطاع على الوافد'}
                     </p>
                   </div>
                   <span className="text-lg font-black font-mono text-brand-900">
@@ -699,12 +849,9 @@ return (
                     value={formData.insurance_company}
                     onChange={e => setFormData({ ...formData, insurance_company: e.target.value })}
                   >
-                    <option value="التعاونية للتأمين">التعاونية للتأمين (Tawuniya)</option>
-                    <option value="بوبا العربية">بوبا العربية (Bupa Arabia)</option>
-                    <option value="ميدغلف">ميدغلف (Medgulf)</option>
-                    <option value="تكافل الراجحي">تكافل الراجحي (Al Rajhi Takaful)</option>
-                    <option value="سلامة للتأمين">سلامة للتأمين (Salama)</option>
-                    <option value="الدرع العربي">الدرع العربي</option>
+                    {[...new Set([formData.insurance_company, ...insuranceCompanies])]
+                      .filter(Boolean)
+                      .map(company => <option key={company} value={company}>{company}</option>)}
                   </select>
                 </div>
 
@@ -715,11 +862,15 @@ return (
                     value={formData.medical_insurance_category}
                     onChange={e => setFormData({ ...formData, medical_insurance_category: e.target.value })}
                   >
-                    <option value="VIP">VIP (كبار الشخصيات)</option>
-                    <option value="Class A">فئة A (Class A)</option>
-                    <option value="Class B">فئة B (Class B)</option>
-                    <option value="Class C">فئة C (Class C)</option>
-                    <option value="Class D">فئة D (Class D - عمالة)</option>
+                    {(() => {
+                      const current = formData.medical_insurance_category;
+                      const options = coverageCategories.some(c => c.code === current)
+                        ? coverageCategories
+                        : [{ code: current, label: current }, ...coverageCategories];
+                      return options.filter(o => o.code).map(o => (
+                        <option key={o.code} value={o.code}>{o.label}</option>
+                      ));
+                    })()}
                   </select>
                 </div>
 
@@ -883,6 +1034,11 @@ return (
                             <span className="font-mono text-xs text-slate-400 font-bold">
                               {emp.national_id_iqama || 'N/A'}
                             </span>
+                            {emp.status && emp.status !== 'active' && (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-200">
+                                منتهية خدمته {emp.end_service_date ? `· ${emp.end_service_date}` : ''}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -969,6 +1125,15 @@ return (
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
+                        {!(emp.status && emp.status !== 'active') && (
+                          <button
+                            onClick={() => openEndService(emp)}
+                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                            title="إنهاء الخدمة (يُستبعد من الرواتب)"
+                          >
+                            <UserX className="w-4 h-4" />
+                          </button>
+                        )}
                         <button 
                           onClick={() => handleDelete(emp.id)}
                           className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
@@ -995,6 +1160,70 @@ return (
           isOpen={Boolean(certEmployee)}
           onClose={() => setCertEmployee(null)}
         />
+      )}
+
+      {endTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-6 md:p-8 space-y-5">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-xl font-black text-slate-800">إنهاء خدمة الموظف</h3>
+                <p className="text-xs text-slate-500 mt-1">{endTarget.name} · {endTarget.position}</p>
+              </div>
+              <button onClick={() => setEndTarget(null)} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 font-bold">✕</button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-600">آخر يوم عمل</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 outline-none"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-600">سبب الإنهاء</label>
+                <select
+                  value={endReason}
+                  onChange={e => setEndReason(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 outline-none"
+                >
+                  <option value="resignation">استقالة</option>
+                  <option value="employer_termination">إنهاء من صاحب العمل</option>
+                  <option value="contract_expiry">انتهاء مدة العقد</option>
+                  <option value="mutual_agreement">اتفاق الطرفين</option>
+                  <option value="force_majeure">قوة قاهرة</option>
+                  <option value="art77_termination">إنهاء لسبب مشروع (المادة 77)</option>
+                  <option value="art80_termination">فسخ لخالفة جسيمة (المادة 80)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 text-xs text-rose-800 leading-relaxed">
+              <b className="block mb-1">ما الذي سيحدث فوراً؟</b>
+              يُوقف حساب الموظف، ويُستبعد من كل مسيرات الرواتب القادمة. السجلات والمسيرات السابقة تبقى محفوظة للتاريخ.
+              أكمل إخلاء الطرف ومكافأة نهاية الخدمة من شاشتيهما قبل صرف أي مستحق.
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={handleEndService}
+                disabled={ending}
+                className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-2xl font-black text-sm"
+              >
+                {ending ? 'جارٍ الإنهاء...' : 'تأكيد إنهاء الخدمة'}
+              </button>
+              <button
+                onClick={() => setEndTarget(null)}
+                className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-black text-sm"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

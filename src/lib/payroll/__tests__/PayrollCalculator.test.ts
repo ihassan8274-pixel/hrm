@@ -90,6 +90,27 @@ describe('PayrollCalculator', () => {
     expect(r.employeeId).toBe(1);
   });
 
+  it('moves the employee GOSI share to the employer when exempt', () => {
+    const plain = calc({ basicSalary: 4000, insuranceCovered: true });
+    const exempt = calc({ basicSalary: 4000, insuranceCovered: true, gosiExempt: true });
+    const employeeShare = 4000 * 0.0975; // 390
+    const employerShare = 4000 * 0.1175; // 470
+
+    expect(plain.insuranceEmployee).toBeCloseTo(employeeShare, 2);
+    expect(plain.insuranceEmployer).toBeCloseTo(employerShare, 2);
+    // Nothing withheld from the salary; the employer carries both shares.
+    expect(exempt.insuranceEmployee).toBe(0);
+    expect(exempt.insuranceEmployer).toBeCloseTo(employeeShare + employerShare, 2);
+    expect(exempt.netSalary).toBeCloseTo(plain.netSalary + employeeShare, 2);
+    expect(exempt.employerTotalCost).toBeCloseTo(plain.employerTotalCost + employeeShare, 2);
+  });
+
+  it('leaves the expatriate hazard rate untouched when exempt', () => {
+    const r = calc({ basicSalary: 4000, insuranceCovered: false, gosiExempt: true });
+    expect(r.insuranceEmployee).toBe(0);
+    expect(r.insuranceEmployer).toBeCloseTo(4000 * 0.02, 2);
+  });
+
   it('applies insurance ceiling when basic+housing exceeds 45000', () => {
     const r = calc({ basicSalary: 40000, housingAllowance: 10000 });
     // base = 50000 > ceiling 45000 → capped

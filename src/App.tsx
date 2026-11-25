@@ -10,6 +10,8 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  Search,
   History,
   ShieldCheck,
   HandCoins,
@@ -52,7 +54,10 @@ import {
   Database,
   Globe,
   Bell,
-  UserCog
+  UserCog,
+  Sun,
+  Moon,
+  LogOut
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Branch, Employee, PayrollRecord, Stats, AppSettings } from './types';
@@ -66,6 +71,7 @@ const BackupRestoreModal = lazy(() => import('./components/BackupRestoreModal').
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginView } from './components/LoginView';
 import { MustChangePasswordView } from './components/MustChangePasswordView';
+import SessionIdleGuard from './components/SessionIdleGuard';
 import ErrorBoundary from './components/ErrorBoundary';
 
 // Components
@@ -95,6 +101,7 @@ const AssetsView = lazy(() => import('./components/AssetsView'));
 const DocumentsView = lazy(() => import('./components/DocumentsView'));
 const PerformanceView = lazy(() => import('./components/PerformanceView'));
 const ESSView = lazy(() => import('./components/ESSView'));
+const AnnualCycleView = lazy(() => import('./components/AnnualCycleView'));
 const RecruitmentView = lazy(() => import('./components/RecruitmentView'));
 const ExpensesView = lazy(() => import('./components/ExpensesView'));
 const TrainingView = lazy(() => import('./components/TrainingView'));
@@ -113,6 +120,7 @@ const WorkInjuriesView = lazy(() => import('./components/WorkInjuriesView'));
 const NitaqatSimulatorView = lazy(() => import('./components/NitaqatSimulatorView'));
 const AiHrLetterStudioView = lazy(() => import('./components/AiHrLetterStudioView'));
 const MedicalInsuranceView = lazy(() => import('./components/MedicalInsuranceView'));
+const InsuranceCatalogView = lazy(() => import('./components/InsuranceCatalogView'));
 const WpsAuditSifView = lazy(() => import('./components/WpsAuditSifView'));
 const TalentMatrix9BoxView = lazy(() => import('./components/TalentMatrix9BoxView'));
 const FleetManagementView = lazy(() => import('./components/FleetManagementView'));
@@ -171,6 +179,7 @@ type View =
   | 'overtime' 
   | 'ai_consultant' 
   | 'branches'
+  | 'insurance_catalog'
   | 'employees'
   | 'health_certificates'
   | 'import_center'
@@ -203,6 +212,7 @@ type View =
   | 'salary_reports'
   | 'consolidated_reports'
   | 'systems_hub'
+  | 'annual_cycle'
   | 'users';
 
 /** Shown while a lazily-loaded screen chunk is in flight. */
@@ -223,10 +233,34 @@ function AuthenticatedApp() {
   const { user, logout, hasRole, isLoading } = useAuth();
   const [activeView, setActiveView] = useState<View>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.matchMedia('(min-width: 768px)').matches);
+  const [navSearch, setNavSearch] = useState('');
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const sidebarToggle = useRef<HTMLButtonElement>(null);
+  const navSearchRef = useRef<HTMLInputElement>(null);
+
+  // Ctrl/Cmd+K focuses the menu search from anywhere in the app. The search stays
+  // behind the same allow() gate as the buttons, so it can never reveal a screen
+  // the current role cannot open.
+  useEffect(() => {
+    const onMenuShortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setIsSidebarOpen(true);
+        requestAnimationFrame(() => navSearchRef.current?.focus());
+      }
+      if (event.key === 'Escape' && document.activeElement === navSearchRef.current) {
+        setNavSearch('');
+        navSearchRef.current?.blur();
+      }
+    };
+    window.addEventListener('keydown', onMenuShortcut);
+    return () => window.removeEventListener('keydown', onMenuShortcut);
+  }, []);
+
   useEffect(() => {
     if (!isSidebarOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
+      if (document.activeElement === navSearchRef.current) return;
       if (event.key === 'Escape' && !window.matchMedia('(min-width: 768px)').matches) {
         setIsSidebarOpen(false);
         sidebarToggle.current?.focus();
@@ -245,8 +279,24 @@ function AuthenticatedApp() {
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
 
+  // A = الوضع النهاري، B = الوضع الليلي. الهوية C ثابتة في كلا الوضعين.
+  const [isNight, setIsNight] = useState(() => {
+    const saved = localStorage.getItem('app_theme');
+    if (saved) return saved === 'night';
+    return typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    // شاشة الدخول/التسجيل ليلية دائماً، ولا نكتب app_theme قبل الدخول حتى يبقى اختيار المستخدم محفوظاً.
+    const night = user ? isNight : true;
+    root.classList.toggle('dark', night);
+    root.setAttribute('data-theme', night ? 'night' : 'day');
+    if (user) localStorage.setItem('app_theme', isNight ? 'night' : 'day');
+  }, [isNight, user]);
+
   const [settings, setSettings] = useState<AppSettings>({
-    org_name: 'شركة المسار الرقمي للحلول المتكاملة',
+    org_name: 'شركة مطعم معصوب حليب',
     country: 'المملكة العربية السعودية',
     currency: 'SAR',
     tax_rate: 0,
@@ -295,9 +345,10 @@ function AuthenticatedApp() {
     if (id === 'users') return role === 'admin';
     if (role === 'admin' || role === 'hr_manager') return true;
     if (role === 'employee_ess') return id === 'ess';
-    if (role === 'finance') return ['dashboard', 'payroll', 'wps_audit', 'loans', 'bonuses', 'expenses', 'allowances', 'reports', 'salary_reports', 'consolidated_reports', 'provisions', 'cost_employment', 'budgeting'].includes(id);
-    if (role === 'branch_manager') return ['dashboard', 'attendance', 'attendance_kiosk', 'attendance_live', 'employees', 'leaves', 'approval_workflows', 'manager_inbox', 'ess', 'alerts_center', 'forms_center'].includes(id);
-    return true;
+    if (role === 'finance') return ['dashboard', 'payroll', 'wps_audit', 'loans', 'bonuses', 'expenses', 'allowances', 'reports', 'salary_reports', 'consolidated_reports', 'provisions', 'cost_employment', 'budgeting', 'annual_cycle'].includes(id);
+    if (role === 'branch_manager') return ['dashboard', 'attendance', 'attendance_kiosk', 'attendance_live', 'employees', 'leaves', 'approval_workflows', 'manager_inbox', 'ess', 'alerts_center', 'forms_center', 'annual_cycle'].includes(id);
+    // Fail-closed: an unrecognised role must never inherit every screen.
+    return false;
   };
   // "الإعدادات السريعة" writes PUT /api/settings -> settings.manage (admin, hr_manager).
   const canManageSettings = allow('settings');
@@ -307,7 +358,7 @@ function AuthenticatedApp() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50">
+      <div className="flex h-screen items-center justify-center bg-transparent">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-600 border-t-transparent" />
       </div>
     );
@@ -334,71 +385,109 @@ function AuthenticatedApp() {
     setIsEditingSettings(false);
   };
 
+  // Specialised sections keep all 64 screens reachable without a 24-item first
+  // section. Ids, labels, icons and the allow() gate are unchanged.
   const navSections = [
     {
-      titleKey: 'nav.sec.main',
-      defaultTitle: 'الرئيسية والأنظمة السعودية ومجلس الإدارة',
+      titleKey: 'nav.sec.overview',
+      defaultTitle: 'نظرة عامة وقيادة',
       items: [
         { id: 'dashboard', key: 'nav.dashboard', defaultLabel: 'لوحة التحكم العامة', icon: LayoutDashboard },
         { id: 'executive_board', key: 'nav.executive_board', defaultLabel: 'لوحة القيادة التنفيذية ومجلس الإدارة (ROI)', icon: Award },
+        { id: 'reports', key: 'nav.reports', defaultLabel: 'التقارير والتحليلات', icon: TrendingUp },
+        { id: 'consolidated_reports', key: 'nav.consolidated_reports', defaultLabel: 'التقارير المجمعة بين الفروع', icon: Network },
+        { id: 'budgeting', key: 'nav.budgeting', defaultLabel: 'ميزانية الموارد وتكاليف التعيين', icon: DollarSign },
+        { id: 'cost_employment', key: 'nav.cost_employment', defaultLabel: 'التكلفة الشاملة (TCOE)', icon: DollarSign },
+        { id: 'provisions', key: 'nav.provisions', defaultLabel: 'المخصصات (IAS 19)', icon: Calculator },
         { id: 'approval_workflows', key: 'nav.approval_workflows', defaultLabel: 'مسارات وسلاسل الاعتماد (Workflows)', icon: GitPullRequest },
         { id: 'manager_inbox', key: 'nav.manager_inbox', defaultLabel: 'صندوق اعتماد المدير (جوال)', icon: UserCheck },
-        { id: 'grievances', key: 'nav.grievances', defaultLabel: 'التظلمات ولجان التحقيق والإنذارات (المادة 209)', icon: Scale },
-        { id: 'budgeting', key: 'nav.budgeting', defaultLabel: 'ميزانية الموارد وتكاليف التعيين', icon: DollarSign },
-        { id: 'ewa_wellness', key: 'nav.ewa_wellness', defaultLabel: 'سحب الراتب عند الطلب (EWA)', icon: Wallet },
-        { id: 'hse_safety', key: 'nav.hse_safety', defaultLabel: 'الصحة والسلامة وتفتيش المنشآت (HSE)', icon: HardHat },
-        { id: 'saudi', key: 'nav.saudi', defaultLabel: 'الامتثال والأنظمة السعودية', icon: Scale },
-        { id: 'wps_audit', key: 'nav.wps_audit', defaultLabel: 'تدقيق حماية الأجور (SIF & مدد)', icon: FileCheck2 },
-        { id: 'medical', key: 'nav.medical', defaultLabel: 'التأمين الطبي ومجلس الضمان (CCHI)', icon: HeartPulse },
-        { id: 'qiwa_contracts', key: 'nav.qiwa_contracts', defaultLabel: 'عقود قوى الموحدة', icon: FileText },
-        { id: 'nitaqat_sim', key: 'nav.nitaqat_sim', defaultLabel: 'محاكي نطاقات والتوطين', icon: Target },
-        { id: 'flexible_telework', key: 'nav.flexible_telework', defaultLabel: 'العمل المرن والعمل عن بعد', icon: Laptop },
-        { id: 'ai_letters', key: 'nav.ai_letters', defaultLabel: 'استوديو الخطابات (AI)', icon: Sparkles },
-        { id: 'disciplinary', key: 'nav.disciplinary', defaultLabel: 'لائحة الجزاءات والتحقيق', icon: ShieldAlert },
-        { id: 'clearance', key: 'nav.clearance', defaultLabel: 'إخلاء الطرف وإبراء الذمة', icon: UserCheck },
-        { id: 'work_injuries', key: 'nav.work_injuries', defaultLabel: 'إصابات العمل (GOSI)', icon: HeartPulse },
-        { id: 'visas', key: 'nav.visas', defaultLabel: 'التأشيرات وخدمات مقيم', icon: Plane },
-        { id: 'provisions', key: 'nav.provisions', defaultLabel: 'المخصصات (IAS 19)', icon: Calculator },
-        { id: 'cost_employment', key: 'nav.cost_employment', defaultLabel: 'التكلفة الشاملة (TCOE)', icon: DollarSign },
-        { id: 'overtime', key: 'nav.overtime', defaultLabel: 'العمل الإضافي ورمضان', icon: Clock },
-        { id: 'ai_consultant', key: 'nav.ai_consultant', defaultLabel: 'المستشار القانوني الذكي', icon: Sparkles },
-        { id: 'reports', key: 'nav.reports', defaultLabel: 'التقارير والتحليلات', icon: TrendingUp },
       ]
     },
     {
-      titleKey: 'nav.sec.hr',
-      defaultTitle: 'الموارد البشرية (HR)',
+      titleKey: 'nav.sec.people',
+      defaultTitle: 'إدارة الموظفين',
       items: [
         { id: 'employees', key: 'nav.employees', defaultLabel: 'الموظفين والإقامات', icon: Users },
-        { id: 'health_certificates', key: 'nav.health_certificates', defaultLabel: 'الشهادات الصحية والمتابعة (بلدي)', icon: Stethoscope },
-        { id: 'rewards_kudos', key: 'nav.rewards_kudos', defaultLabel: 'التقدير والمكافآت (Kudos & Rewards)', icon: Award },
-        { id: 'smart_assets', key: 'nav.smart_assets', defaultLabel: 'الأصول والعهد الذكية (QR Handover)', icon: Laptop },
-        { id: 'exit_interviews', key: 'nav.exit_interviews', defaultLabel: 'محلل مقابلات الخروج (AI Exits)', icon: UserMinus },
-        { id: 'talent_9box', key: 'nav.talent_9box', defaultLabel: 'مصفوفة المواهب (9-Box) والتعاقب', icon: Layers },
-        { id: 'retention_ai', key: 'nav.retention_ai', defaultLabel: 'محلل مخاطر التسرب (AI Predictor)', icon: TrendingDown },
-        { id: 'fleet', key: 'nav.fleet', defaultLabel: 'أسطول المركبات والمخالفات', icon: Car },
+        { id: 'employee_documents', key: 'nav.employee_documents', defaultLabel: 'ملف الموظف والوثائق', icon: FileText },
         { id: 'departments', key: 'nav.departments', defaultLabel: 'الإدارات والأقسام', icon: Building2 },
+        { id: 'branches', key: 'nav.branches', defaultLabel: 'الفروع والمواقع', icon: Building2 },
         { id: 'recruitment', key: 'nav.recruitment', defaultLabel: 'التوظيف (ATS)', icon: Briefcase },
+        { id: 'transfers', key: 'nav.transfers', defaultLabel: 'نقل الموظف بين الفروع', icon: GitPullRequest },
         { id: 'leaves', key: 'nav.leaves', defaultLabel: 'الإجازات والغياب', icon: Clock },
+        { id: 'import_center', key: 'nav.import_center', defaultLabel: 'مركز الاستيراد الموحد (Excel)', icon: FileSpreadsheet },
         { id: 'documents', key: 'nav.documents', defaultLabel: 'الأرشيف والوثائق', icon: ShieldCheck },
         { id: 'forms_center', key: 'nav.forms_center', defaultLabel: 'مركز النماذج والطباعة', icon: Printer },
-        { id: 'assets', key: 'nav.assets', defaultLabel: 'الأصول والعهدة', icon: Wallet },
-        { id: 'performance', key: 'nav.performance', defaultLabel: 'تقييم الأداء', icon: Star },
-        { id: 'training', key: 'nav.training', defaultLabel: 'التدريب والتطوير', icon: GraduationCap },
-        { id: 'promotions', key: 'nav.promotions', defaultLabel: 'المسار الوظيفي', icon: TrendingUp },
+      ]
+    },
+    {
+      titleKey: 'nav.sec.payroll_finance',
+      defaultTitle: 'الرواتب والمالية',
+      items: [
+        { id: 'payroll', key: 'nav.payroll', defaultLabel: 'مسير الرواتب (WPS)', icon: BadgeDollarSign },
+        { id: 'salary_reports', key: 'nav.salary_reports', defaultLabel: 'تقارير الرواتب', icon: TrendingUp },
+        { id: 'expenses', key: 'nav.expenses', defaultLabel: 'المطالبات المالية', icon: Receipt },
+        { id: 'loans', key: 'nav.loans', defaultLabel: 'القروض والسلف', icon: Landmark },
+        { id: 'bonuses', key: 'nav.bonuses', defaultLabel: 'المكافآت والجزاءات', icon: HandCoins },
+        { id: 'allowances', key: 'nav.allowances', defaultLabel: 'تكويد البدلات', icon: Settings },
+        { id: 'annual_cycle', key: 'nav.annual_cycle', defaultLabel: 'دورة الزيادة السنوية', icon: TrendingUp },
+        { id: 'ewa_wellness', key: 'nav.ewa_wellness', defaultLabel: 'سحب الراتب عند الطلب (EWA)', icon: Wallet },
+      ]
+    },
+    {
+      titleKey: 'nav.sec.attendance',
+      defaultTitle: 'الحضور وأوقات العمل',
+      items: [
+        { id: 'attendance', key: 'nav.attendance', defaultLabel: 'بيانات الحضور', icon: Clock },
+        { id: 'attendance_kiosk', key: 'nav.attendance_kiosk', defaultLabel: 'جهاز الحضور (Kiosk)', icon: Clock },
+        { id: 'attendance_live', key: 'nav.attendance_live', defaultLabel: 'حضور الفروع الآن', icon: Users },
+        { id: 'overtime', key: 'nav.overtime', defaultLabel: 'العمل الإضافي ورمضان', icon: Clock },
+        { id: 'flexible_telework', key: 'nav.flexible_telework', defaultLabel: 'العمل المرن والعمل عن بعد', icon: Laptop },
         { id: 'tasks', key: 'nav.tasks', defaultLabel: 'المشاريع والمهام', icon: Target },
       ]
     },
     {
-      titleKey: 'nav.sec.finance',
-      defaultTitle: 'المالية وحماية الأجور',
+      titleKey: 'nav.sec.performance',
+      defaultTitle: 'الأداء والتطوير',
       items: [
-        { id: 'payroll', key: 'nav.payroll', defaultLabel: 'مسير الرواتب (WPS)', icon: BadgeDollarSign },
-        { id: 'expenses', key: 'nav.expenses', defaultLabel: 'المطالبات المالية', icon: Receipt },
-        { id: 'loans', key: 'nav.loans', defaultLabel: 'القروض والسلف', icon: Landmark },
-        { id: 'bonuses', key: 'nav.bonuses', defaultLabel: 'المكافآت والجزاءات', icon: HandCoins },
-        { id: 'attendance', key: 'nav.attendance', defaultLabel: 'بيانات الحضور', icon: Clock },
-        { id: 'allowances', key: 'nav.allowances', defaultLabel: 'تكويد البدلات', icon: Settings },
+        { id: 'performance', key: 'nav.performance', defaultLabel: 'تقييم الأداء', icon: Star },
+        { id: 'talent_9box', key: 'nav.talent_9box', defaultLabel: 'مصفوفة المواهب (9-Box) والتعاقب', icon: Layers },
+        { id: 'promotions', key: 'nav.promotions', defaultLabel: 'المسار الوظيفي', icon: TrendingUp },
+        { id: 'training', key: 'nav.training', defaultLabel: 'التدريب والتطوير', icon: GraduationCap },
+        { id: 'rewards_kudos', key: 'nav.rewards_kudos', defaultLabel: 'التقدير والمكافآت (Kudos & Rewards)', icon: Award },
+        { id: 'retention_ai', key: 'nav.retention_ai', defaultLabel: 'محلل مخاطر التسرب (AI Predictor)', icon: TrendingDown },
+        { id: 'exit_interviews', key: 'nav.exit_interviews', defaultLabel: 'محلل مقابلات الخروج (AI Exits)', icon: UserMinus },
+      ]
+    },
+    {
+      titleKey: 'nav.sec.compliance',
+      defaultTitle: 'الامتثال والأنظمة السعودية',
+      items: [
+        { id: 'saudi', key: 'nav.saudi', defaultLabel: 'الامتثال والأنظمة السعودية', icon: Scale },
+        { id: 'wps_audit', key: 'nav.wps_audit', defaultLabel: 'تدقيق حماية الأجور (SIF & مدد)', icon: FileCheck2 },
+        { id: 'qiwa_contracts', key: 'nav.qiwa_contracts', defaultLabel: 'عقود قوى الموحدة', icon: FileText },
+        { id: 'medical', key: 'nav.medical', defaultLabel: 'التأمين الطبي ومجلس الضمان (CCHI)', icon: HeartPulse },
+        { id: 'insurance_catalog', key: 'nav.insurance_catalog', defaultLabel: 'دليل شركات التأمين وفئات التغطية', icon: Layers },
+        { id: 'visas', key: 'nav.visas', defaultLabel: 'التأشيرات وخدمات مقيم', icon: Plane },
+        { id: 'nitaqat_sim', key: 'nav.nitaqat_sim', defaultLabel: 'محاكي نطاقات والتوطين', icon: Target },
+        { id: 'health_certificates', key: 'nav.health_certificates', defaultLabel: 'الشهادات الصحية والمتابعة (بلدي)', icon: Stethoscope },
+        { id: 'disciplinary', key: 'nav.disciplinary', defaultLabel: 'لائحة الجزاءات والتحقيق', icon: ShieldAlert },
+        { id: 'grievances', key: 'nav.grievances', defaultLabel: 'التظلمات ولجان التحقيق والإنذارات (المادة 209)', icon: Scale },
+        { id: 'work_injuries', key: 'nav.work_injuries', defaultLabel: 'إصابات العمل (GOSI)', icon: HeartPulse },
+        { id: 'clearance', key: 'nav.clearance', defaultLabel: 'إخلاء الطرف وإبراء الذمة', icon: UserCheck },
+        { id: 'hse_safety', key: 'nav.hse_safety', defaultLabel: 'الصحة والسلامة وتفتيش المنشآت (HSE)', icon: HardHat },
+      ]
+    },
+    {
+      titleKey: 'nav.sec.operations',
+      defaultTitle: 'العمليات والأدوات الذكية',
+      items: [
+        { id: 'assets', key: 'nav.assets', defaultLabel: 'الأصول والعهدة', icon: Wallet },
+        { id: 'smart_assets', key: 'nav.smart_assets', defaultLabel: 'الأصول والعهد الذكية (QR Handover)', icon: Laptop },
+        { id: 'fleet', key: 'nav.fleet', defaultLabel: 'أسطول المركبات والمخالفات', icon: Car },
+        { id: 'systems_hub', key: 'nav.systems_hub', defaultLabel: 'بوابة أنظمة معصوب حليب', icon: Layers },
+        { id: 'alerts_center', key: 'nav.alerts_center', defaultLabel: 'مركز التنبيهات', icon: Bell },
+        { id: 'ai_letters', key: 'nav.ai_letters', defaultLabel: 'استوديو الخطابات (AI)', icon: Sparkles },
+        { id: 'ai_consultant', key: 'nav.ai_consultant', defaultLabel: 'المستشار القانوني الذكي', icon: Sparkles },
       ]
     },
     {
@@ -412,28 +501,42 @@ function AuthenticatedApp() {
       titleKey: 'nav.sec.admin',
       defaultTitle: 'الإدارة والنظام',
       items: [
-        { id: 'branches', key: 'nav.branches', defaultLabel: 'الفروع والمواقع', icon: Building2 },
-        { id: 'consolidated_reports', key: 'nav.consolidated_reports', defaultLabel: 'التقارير المجمعة بين الفروع', icon: Network },
-        { id: 'systems_hub', key: 'nav.systems_hub', defaultLabel: 'بوابة أنظمة معصوب حليب', icon: Layers },
         { id: 'users', key: 'nav.users', defaultLabel: 'إدارة المستخدمين', icon: UserCog },
-        { id: 'settings', key: 'nav.settings', defaultLabel: 'بيانات المنشأة واللوائح', icon: Settings },
         { id: 'audit', key: 'nav.audit', defaultLabel: 'سجل العمليات', icon: History },
-        { id: 'import_center', key: 'nav.import_center', defaultLabel: 'مركز الاستيراد الموحد (Excel)', icon: FileSpreadsheet },
-      ]
-    },
-    {
-      titleKey: 'nav.sec.new',
-      defaultTitle: 'الميزات الجديدة',
-      items: [
-        { id: 'attendance_kiosk', key: 'nav.attendance_kiosk', defaultLabel: 'جهاز الحضور (Kiosk)', icon: Clock },
-        { id: 'attendance_live', key: 'nav.attendance_live', defaultLabel: 'حضور الفروع الآن', icon: Users },
-        { id: 'employee_documents', key: 'nav.employee_documents', defaultLabel: 'ملف الموظف والوثائق', icon: FileText },
-        { id: 'alerts_center', key: 'nav.alerts_center', defaultLabel: 'مركز التنبيهات', icon: Bell },
-        { id: 'transfers', key: 'nav.transfers', defaultLabel: 'نقل الموظف بين الفروع', icon: GitPullRequest },
-        { id: 'salary_reports', key: 'nav.salary_reports', defaultLabel: 'تقارير الرواتب', icon: TrendingUp },
+        { id: 'settings', key: 'nav.settings', defaultLabel: 'بيانات المنشأة واللوائح', icon: Settings },
       ]
     }
   ];
+
+  const allNavItems = navSections.flatMap(section => section.items);
+  const quickAccess = [
+    { id: 'dashboard', key: 'nav.quick.dashboard', defaultLabel: 'لوحة التحكم' },
+    { id: 'employees', key: 'nav.quick.employees', defaultLabel: 'الموظفون' },
+    { id: 'payroll', key: 'nav.quick.payroll', defaultLabel: 'مسير الرواتب' },
+    { id: 'attendance', key: 'nav.quick.attendance', defaultLabel: 'الحضور' },
+    { id: 'forms_center', key: 'nav.quick.forms_center', defaultLabel: 'النماذج' },
+  ];
+
+  const navigateTo = (id: View) => {
+    setActiveView(id);
+    setNavSearch('');
+    if (!window.matchMedia('(min-width: 768px)').matches) setIsSidebarOpen(false);
+  };
+
+  const navQuery = navSearch.trim().toLocaleLowerCase();
+  const filteredSections = navSections
+    .map(section => ({
+      ...section,
+      items: section.items.filter(item => allow(item.id)).filter(item => {
+        if (!navQuery) return true;
+        return (
+          t(item.key, item.defaultLabel).toLocaleLowerCase().includes(navQuery) ||
+          item.defaultLabel.toLocaleLowerCase().includes(navQuery) ||
+          item.id.toLocaleLowerCase().includes(navQuery)
+        );
+      }),
+    }))
+    .filter(section => section.items.length > 0);
 
   const currentLabel = () => {
     for (const section of navSections) {
@@ -444,42 +547,41 @@ function AuthenticatedApp() {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 font-sans" dir={direction}>
+    <div className="flex h-screen bg-transparent font-sans" dir={direction}>
       {isSidebarOpen && <button type="button" aria-label="إغلاق القائمة" onClick={() => setIsSidebarOpen(false)} className="print-hide fixed inset-0 z-[15] bg-slate-900/20 md:hidden" />}
       {/* Sidebar */}
       <motion.aside 
         initial={false}
         animate={{ width: isSidebarOpen ? 288 : 80 }}
-        className="text-navy-800 h-full transition-all duration-300 absolute start-0 top-0 md:relative z-20 flex flex-col shrink-0
-                   bg-white border-e border-shell-line"
+        className="text-navy-800 dark:text-slate-200 h-full transition-all duration-300 absolute start-0 top-0 md:relative z-20 flex flex-col shrink-0
+                   bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-e border-shell-line/80 dark:border-slate-800/80"
       >
-        <div className="p-5 flex items-center justify-between border-b border-shell-line shrink-0">
-          {isSidebarOpen && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex items-center gap-3"
-            >
-              <div className="bg-brand-600 p-2.5 rounded-xl shadow-md shadow-brand-600/25">
-                <Scale className="w-5 h-5 text-white" />
-              </div>
-              <div className="overflow-hidden">
-                <span 
-                  className="text-sm font-black tracking-tight truncate block max-w-[180px] text-navy-900"
-                  title={settings.org_name}
-                >
-                  {settings.org_name}
+        <div className={`flex items-center border-b border-shell-line dark:border-slate-800 shrink-0 ${isSidebarOpen ? 'p-4 justify-between' : 'p-2.5 flex-col gap-2'}`}>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex items-center gap-2.5 min-w-0"
+          >
+            <img
+              src="/brand/empower-3d-icon.png"
+              alt=""
+              className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-brand-900/25 shrink-0"
+            />
+            {isSidebarOpen && (
+              <div className="overflow-hidden leading-tight">
+                <span className="font-sans text-[14px] font-black truncate block max-w-[180px] text-navy-900 dark:text-white" title={settings.org_name}>
+                  تمكين <span dir="ltr" className="text-brand-600">| EMPOWER</span>
                 </span>
-                <span className="text-[10px] text-brand-600 font-bold block">
+                <span className="text-[9px] text-brand-600 dark:text-brand-300 font-bold block truncate max-w-[180px]">
                   {language === 'ar' ? 'الموارد البشرية والرواتب والامتثال' : 'Saudi HR & Compliance'}
                 </span>
               </div>
-            </motion.div>
-          )}
+            )}
+          </motion.div>
           <button
             ref={sidebarToggle}
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 hover:bg-shell-100 rounded-xl transition-colors text-slate-400 hover:text-brand-600"
+            className="p-2 hover:bg-shell-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-slate-400 hover:text-brand-600 dark:hover:text-brand-300"
             aria-label={isSidebarOpen ? 'طي القائمة' : 'توسيع القائمة'}
             aria-expanded={isSidebarOpen}
             aria-controls="primary-navigation"
@@ -492,74 +594,160 @@ function AuthenticatedApp() {
           </button>
         </div>
 
-        <nav id="primary-navigation" className="flex-1 overflow-y-auto px-3 py-4 space-y-5 custom-scrollbar">
-          {navSections.map((section, idx) => {
-            const items = section.items.filter(i => allow(i.id));
-            if (!items.length) return null;
-            return (
-            <div key={idx} className="space-y-1">
-              {isSidebarOpen && (
-                <p className="px-3 pt-3 pb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  {t(section.titleKey, section.defaultTitle)}
-                </p>
-              )}
-              {items.map((item) => {
-                const isActive = activeView === item.id;
-                const label = t(item.key, item.defaultLabel);
-
-                return (
+        <nav id="primary-navigation" className="flex-1 overflow-y-auto px-3 py-3 space-y-4 custom-scrollbar">
+          {isSidebarOpen && (
+            <div className="shrink-0 space-y-3">
+              <div className="relative group">
+                <Search className="w-4 h-4 absolute inset-y-0 start-3 my-auto text-slate-400 group-focus-within:text-brand-600 pointer-events-none transition-colors" />
+                <input
+                  ref={navSearchRef}
+                  type="search"
+                  value={navSearch}
+                  onChange={event => setNavSearch(event.target.value)}
+                  placeholder={t('nav.search_placeholder', 'ابحث في القائمة...')}
+                  aria-label={t('nav.search_placeholder', 'ابحث في القائمة...')}
+                  className="w-full bg-shell-50/80 dark:bg-slate-800/80 border border-shell-line dark:border-slate-700 rounded-xl py-2 ps-9 pe-8 text-[12px] font-bold text-navy-800 dark:text-slate-100 placeholder:font-normal placeholder:text-slate-400 focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-brand-400 focus:ring-4 focus:ring-brand-500/10 transition-all"
+                />
+                {navSearch ? (
                   <button
-                    key={item.id}
-                    data-view={item.id}
-                    onClick={() => {
-                      setActiveView(item.id as View);
-                      if (!window.matchMedia('(min-width: 768px)').matches) setIsSidebarOpen(false);
-                    }}
-                    title={!isSidebarOpen ? label : undefined}
-                    aria-label={label}
-                    aria-current={isActive ? 'page' : undefined}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 relative ${
-                      isActive
-                        ? 'bg-brand-50 text-brand-700 font-bold'
-                        : 'text-slate-600 hover:bg-shell-100 hover:text-navy-900'
-                    } ${isSidebarOpen ? '' : 'justify-center'}`}
+                    type="button"
+                    onClick={() => { setNavSearch(''); navSearchRef.current?.focus(); }}
+                    aria-label={t('nav.clear_search', 'مسح البحث')}
+                    className="absolute inset-y-0 end-2 my-auto p-1 text-slate-400 hover:text-brand-600 transition-colors"
                   >
-                    {/* شريط المؤشر على حافة القائمة (يمين في RTL) */}
-                    {isActive && (
-                      <span className="absolute inset-y-1.5 right-0 w-[3px] rounded-l-full bg-brand-600" />
-                    )}
-                    <item.icon className={`w-[18px] h-[18px] shrink-0 ${
-                      isActive ? 'text-brand-600' : 'text-slate-400'
-                    }`} />
-                    {isSidebarOpen && <span className="font-bold text-[12.5px] truncate text-start">{label}</span>}
+                    <X className="w-3.5 h-3.5" />
                   </button>
-                );
-              })}
+                ) : (
+                  <kbd className="absolute inset-y-0 end-2 my-auto h-5 px-1.5 flex items-center rounded border border-shell-line dark:border-slate-700 bg-white dark:bg-slate-800 text-[9px] font-mono text-slate-400">Ctrl K</kbd>
+                )}
+              </div>
+
+              {!navQuery && (
+                <div>
+                  <p className="px-1 pb-2 text-[10px] font-black tracking-widest text-slate-400">
+                    {t('nav.quick_access', 'الوصول السريع')}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {quickAccess.filter(q => allow(q.id)).map(q => (
+                      <motion.button
+                        key={q.id}
+                        type="button"
+                        whileHover={{ scale: 1.04 }}
+                        whileTap={{ scale: 0.96 }}
+                        onClick={() => navigateTo(q.id as View)}
+                        className="px-2.5 py-1 rounded-lg bg-gradient-to-br from-brand-50 to-white border border-brand-100 text-brand-700 text-[10.5px] font-bold hover:border-brand-300 hover:shadow-sm transition-colors"
+                      >
+                        {t(q.key, q.defaultLabel)}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          );
+          )}
+
+          {filteredSections.map(section => {
+            const isCollapsed = !navQuery && collapsedSections[section.titleKey];
+            return (
+              <div key={section.titleKey} className="space-y-1">
+                {isSidebarOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => setCollapsedSections(prev => ({ ...prev, [section.titleKey]: !prev[section.titleKey] }))}
+                    aria-expanded={!isCollapsed}
+                    className="group w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-shell-50 to-transparent hover:from-brand-50/70 transition-all"
+                  >
+                    <span className="flex-1 text-start text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-brand-600 transition-colors">
+                      {t(section.titleKey, section.defaultTitle)}
+                    </span>
+                    <span className="text-[9px] font-bold text-slate-400 bg-white dark:bg-slate-800 border border-shell-line dark:border-slate-700 rounded-full px-1.5 py-0.5">
+                      {section.items.length}
+                    </span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                      isCollapsed ? (direction === 'rtl' ? 'rotate-90' : '-rotate-90') : ''
+                    }`} />
+                  </button>
+                ) : (
+                  <div className="mx-3 my-2 border-t border-shell-line dark:border-slate-800" />
+                )}
+
+                {!isCollapsed && section.items.map(item => {
+                  const isActive = activeView === item.id;
+                  const label = t(item.key, item.defaultLabel);
+                  return (
+                    <motion.button
+                      key={item.id}
+                      type="button"
+                      data-view={item.id}
+                      whileHover={{ scale: 1.012 }}
+                      whileTap={{ scale: 0.985 }}
+                      onClick={() => navigateTo(item.id as View)}
+                      title={!isSidebarOpen ? label : undefined}
+                      aria-label={label}
+                      aria-current={isActive ? 'page' : undefined}
+                      className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl relative overflow-hidden transition-all duration-200 ${
+                        isActive
+                          ? 'bg-gradient-to-r from-brand-50 via-brand-50/60 to-transparent dark:from-brand-950/60 dark:via-brand-900/40 text-brand-700 dark:text-brand-300 font-bold shadow-sm'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-shell-100 dark:hover:bg-slate-800 hover:text-navy-900 dark:hover:text-white'
+                      } ${isSidebarOpen ? '' : 'justify-center'}`}
+                    >
+                      {isActive && (
+                        <motion.span
+                          layoutId="nav-active-indicator"
+                          className="absolute inset-y-1.5 right-0 w-[3px] rounded-l-full bg-brand-600 shadow-[0_0_10px_rgba(23,105,209,0.6)]"
+                        />
+                      )}
+                      <span className={`grid place-items-center rounded-lg transition-all duration-200 ${isActive ? 'bg-brand-100/80 p-1.5' : 'p-0'}`}>
+                        <item.icon className={`w-[18px] h-[18px] shrink-0 transition-colors ${
+                          isActive ? 'text-brand-600 dark:text-brand-300' : 'text-slate-400 group-hover:text-brand-500 dark:group-hover:text-brand-300'
+                        }`} />
+                      </span>
+                      {isSidebarOpen && <span className="font-bold text-[12.5px] truncate text-start">{label}</span>}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            );
           })}
+
+          {navQuery && filteredSections.length === 0 && (
+            <div className="px-3 py-10 text-center">
+              <Search className="w-7 h-7 mx-auto mb-2 text-slate-300" />
+              <p className="text-[12px] text-slate-400">{t('nav.no_results', 'لا توجد شاشات مطابقة')}</p>
+            </div>
+          )}
         </nav>
 
         {isSidebarOpen && (
-          <div className="p-3 border-t border-shell-line shrink-0 space-y-2">
+          <div className="p-3 border-t border-shell-line dark:border-slate-800 shrink-0 space-y-2">
             {canManageSettings && (
             <button 
               onClick={() => {
                 setTempSettings(settings);
                 setIsEditingSettings(true);
               }}
-              className="w-full flex items-center justify-between px-3 py-2.5 bg-shell-100 hover:bg-shell-200 rounded-xl text-xs text-navy-700 hover:text-navy-900 transition-colors"
+              className="w-full flex items-center justify-between px-3 py-2.5 bg-shell-100 dark:bg-slate-800 hover:bg-shell-200 dark:hover:bg-slate-700 rounded-xl text-xs text-navy-700 dark:text-slate-200 hover:text-navy-900 dark:hover:text-white transition-colors"
             >
               <div className="flex items-center gap-2">
                 <Settings className="w-4 h-4 text-brand-600" />
                 <span className="font-bold">{t('btn.quick_settings')}</span>
               </div>
-              <span className="text-[10px] bg-white px-1.5 py-0.5 rounded font-mono text-navy-700 border border-shell-line">{settings.currency || 'SAR'}</span>
+              <span className="text-[10px] bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded font-mono text-navy-700 dark:text-slate-200 border border-shell-line dark:border-slate-700">{settings.currency || 'SAR'}</span>
             </button>
             )}
-            <div className="p-2.5 bg-shell-50 rounded-xl border border-shell-line text-center">
+            <button
+              type="button"
+              id="sidebar-logout-btn"
+              onClick={logout}
+              title={t('btn.logout')}
+              className="w-full flex items-center gap-2 px-3 py-2.5 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 rounded-xl text-xs font-bold text-rose-700 dark:text-rose-300 transition-colors"
+            >
+              <LogOut className="w-4 h-4 shrink-0" />
+              <span>{t('btn.logout')}</span>
+            </button>
+            <div className="p-2.5 bg-shell-50 dark:bg-slate-800/60 rounded-xl border border-shell-line dark:border-slate-800 text-center">
               <p className="text-[10px] text-slate-400">{t('app.title')}</p>
-              <p className="text-[11px] font-mono font-bold text-navy-700">{t('app.version')}</p>
+              <p className="text-[11px] font-mono font-bold text-navy-700 dark:text-brand-300">{t('app.version')}</p>
             </div>
           </div>
         )}
@@ -568,9 +756,9 @@ function AuthenticatedApp() {
       {/* Main Content */}
       <main className="flex-1 min-w-0 ms-20 md:ms-0 overflow-auto flex flex-col">
         {/* Top Header Bar */}
-        <header className="h-16 bg-white border-b border-shell-line px-3 sm:px-6 md:px-8 flex items-center justify-between gap-2 sticky top-0 z-10 shrink-0 shadow-sm">
+        <header className="h-16 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-shell-line/80 dark:border-slate-800/80 px-3 sm:px-6 md:px-8 flex items-center justify-between gap-2 sticky top-0 z-10 shrink-0 shadow-sm">
           <div className="flex min-w-0 items-center gap-3">
-            <h2 className="truncate text-base md:text-lg font-black text-navy-900">
+            <h2 className="truncate text-base md:text-lg font-black text-navy-900 dark:text-white">
               {currentLabel()}
             </h2>
           </div>
@@ -594,30 +782,57 @@ function AuthenticatedApp() {
             <button
               id="top-header-backup-btn"
               onClick={() => setShowBackupModal(true)}
-              className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-sm"
+              className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all shadow-sm"
               title={t('backup.title')}
             >
               <Database className="w-4 h-4 text-brand-600" />
               <span>{language === 'ar' ? 'النسخ والاحتياط' : 'Backup DB'}</span>
             </button>
 
-            {/* 3. Language Switcher Toggle */}
+            {/* 3. Theme toggle — A نهاري / B ليلي (الهوية C لا تتغير) */}
+            <button
+              type="button"
+              id="top-header-theme-toggle"
+              onClick={() => setIsNight(v => !v)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all shadow-sm"
+              title={isNight ? (language === 'ar' ? 'الوضع النهاري (A)' : 'Day mode (A)') : (language === 'ar' ? 'الوضع الليلي (B)' : 'Night mode (B)')}
+              aria-label={isNight ? 'الوضع النهاري' : 'الوضع الليلي'}
+              aria-pressed={isNight}
+            >
+              {isNight ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-brand-600" />}
+              <span className="hidden sm:inline">{language === 'ar' ? (isNight ? 'نهاري' : 'ليلي') : (isNight ? 'Day' : 'Night')}</span>
+            </button>
+
+            {/* 4. Sign out — revokes the server session, not just the local cache */}
+            <button
+              type="button"
+              id="top-header-logout-btn"
+              onClick={logout}
+              title={t('btn.logout')}
+              aria-label={t('btn.logout')}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 text-xs font-bold transition-all shadow-sm"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('btn.logout')}</span>
+            </button>
+
+            {/* 5. Language Switcher Toggle */}
             <LanguageSwitcher />
 
-            <div className="w-px h-6 bg-slate-200" />
+            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
 
             {/* 4. Smart Expiry Alerts & Notification Bell */}
-            <NotificationBell onNavigate={(viewId) => setActiveView(viewId as View)} />
+            <NotificationBell onNavigate={(viewId) => { if (allow(viewId)) setActiveView(viewId as View); }} />
 
-            <div className="w-px h-6 bg-slate-200 hidden sm:block" />
+            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 hidden sm:block" />
 
             {/* 5. Company Info */}
             <div className="hidden sm:block text-left rtl:text-right">
-              <p className="text-xs font-black text-slate-800 truncate max-w-[140px]">{settings.org_name}</p>
-              <p className="text-[10px] text-emerald-600 font-bold">{t('country.ksa')}</p>
+              <p className="text-xs font-black text-slate-800 dark:text-white truncate max-w-[140px]">{settings.org_name}</p>
+              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{t('country.ksa')}</p>
             </div>
             
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center border border-emerald-100 text-emerald-700 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center border border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300 shrink-0">
               <Users className="w-4 h-4" />
             </div>
           </div>
@@ -648,6 +863,7 @@ function AuthenticatedApp() {
               {activeView === 'saudi' && <SaudiComplianceView />}
               {activeView === 'wps_audit' && <WpsAuditSifView />}
               {activeView === 'medical' && <MedicalInsuranceView />}
+              {activeView === 'insurance_catalog' && <InsuranceCatalogView />}
               {activeView === 'talent_9box' && <TalentMatrix9BoxView />}
               {activeView === 'fleet' && <FleetManagementView />}
               {activeView === 'flexible_telework' && <FlexibleWorkTeleworkView />}
@@ -681,6 +897,7 @@ function AuthenticatedApp() {
               {activeView === 'forms_center' && <FormsCenterView />}
               {activeView === 'performance' && <PerformanceView />}
               {activeView === 'ess' && <ESSView />}
+              {activeView === 'annual_cycle' && <AnnualCycleView />}
               {activeView === 'recruitment' && <RecruitmentView />}
               {activeView === 'expenses' && <ExpensesView />}
               {activeView === 'training' && <TrainingView />}
@@ -695,7 +912,7 @@ function AuthenticatedApp() {
               {activeView === 'transfers' && <TransfersView />}
               {activeView === 'salary_reports' && <SalaryReportsView />}
               {activeView === 'consolidated_reports' && <ConsolidatedBranchesView />}
-              {activeView === 'systems_hub' && <SystemsHubView onOpenReports={() => setActiveView('consolidated_reports')} />}
+              {activeView === 'systems_hub' && <SystemsHubView onOpenReports={() => { if (allow('consolidated_reports')) setActiveView('consolidated_reports'); }} />}
               {activeView === 'users' && <UsersView />}
               </Suspense>
           </motion.div>
@@ -724,7 +941,7 @@ function AuthenticatedApp() {
             isOpen={showCopilot}
             onClose={() => setShowCopilot(false)}
             onNavigate={(viewId) => {
-              setActiveView(viewId as View);
+              if (allow(viewId)) setActiveView(viewId as View);
               setShowCopilot(false);
             }}
           />
@@ -750,32 +967,32 @@ function AuthenticatedApp() {
       {/* Quick Settings Modal */}
       {isEditingSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-lg rounded-3xl p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl p-8 shadow-2xl border border-transparent dark:border-slate-800 animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center mb-6">
-               <h3 className="text-xl font-black text-slate-800">{t('btn.quick_settings')}</h3>
-               <button onClick={() => setIsEditingSettings(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors">
+               <h3 className="text-xl font-black text-slate-800 dark:text-white">{t('btn.quick_settings')}</h3>
+               <button onClick={() => setIsEditingSettings(false)} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
                   <X className="w-5 h-5" />
                </button>
             </div>
             
             <div className="space-y-5">
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">اسم المؤسسة / المنشأة</label>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">اسم المؤسسة / المنشأة</label>
                 <input 
                   type="text" 
                   value={tempSettings.org_name}
                   onChange={e => setTempSettings({ ...tempSettings, org_name: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-right font-bold"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-100 text-right font-bold"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">الدولة والأنظمة</label>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">الدولة والأنظمة</label>
                   <select 
                     value={tempSettings.country}
                     onChange={e => setTempSettings({ ...tempSettings, country: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-right font-bold text-xs"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-100 text-right font-bold text-xs"
                   >
                     <option value="المملكة العربية السعودية">المملكة العربية السعودية (GOSI & قوى)</option>
                     <option value="الإمارات">الإمارات</option>
@@ -784,38 +1001,38 @@ function AuthenticatedApp() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">العملة الأساسية</label>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">العملة الأساسية</label>
                   <input 
                     type="text" 
                     value={tempSettings.currency}
                     onChange={e => setTempSettings({ ...tempSettings, currency: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-right font-bold font-mono"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-100 text-right font-bold font-mono"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">نسبة تأمينات الموظف (%)</label>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">نسبة تأمينات الموظف (%)</label>
                   <input 
                     type="number" 
                     value={tempSettings.insurance_emp_rate}
                     onChange={e => setTempSettings({ ...tempSettings, insurance_emp_rate: parseFloat(e.target.value) })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-right font-mono font-bold"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-100 text-right font-mono font-bold"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">نسبة تأمينات المنشأة (%)</label>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">نسبة تأمينات المنشأة (%)</label>
                   <input 
                     type="number" 
                     value={tempSettings.insurance_comp_rate}
                     onChange={e => setTempSettings({ ...tempSettings, insurance_comp_rate: parseFloat(e.target.value) })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-right font-mono font-bold"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-100 text-right font-mono font-bold"
                   />
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4 border-t border-slate-100">
+              <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button 
                   onClick={handleUpdateSettings}
                   className="flex-1 bg-brand-600 text-white py-3.5 rounded-2xl font-black hover:bg-brand-700 transition-all shadow-md shadow-emerald-200"
@@ -827,6 +1044,9 @@ function AuthenticatedApp() {
           </div>
         </div>
       )}
+
+      {/* 15-minute idle guard: warns at 60s, then signs out and revokes the session. */}
+      <SessionIdleGuard />
     </div>
   );
 }

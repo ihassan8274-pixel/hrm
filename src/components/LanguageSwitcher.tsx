@@ -9,10 +9,10 @@ export const LanguageSwitcher: React.FC<{ className?: string }> = ({ className =
     <button
       id="global-language-switcher-btn"
       onClick={toggleLanguage}
-      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all text-xs font-bold text-slate-700 shadow-sm ${className}`}
+      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-xs font-bold text-slate-700 dark:text-slate-200 shadow-sm ${className}`}
       title={language === 'ar' ? 'Switch to English' : 'التبديل إلى اللغة العربية'}
     >
-      <Globe className="w-4 h-4 text-brand-600" />
+      <Globe className="w-4 h-4 text-brand-600 dark:text-brand-300" />
       <span>{language === 'ar' ? 'English (EN)' : '🇸🇦 العربية (AR)'}</span>
     </button>
   );

@@ -2,7 +2,8 @@ import db, { logAction, createNotification } from "../../config/postgres";
 import express from "express";
 import { requireOrganizationScope, organizationScope, denyEmployee } from "../../middleware/organizationScope";
 import { scopeFilter } from "../../lib/organization-scope";
-import { validateBody, bonusPenaltyCreateSchema } from "../../middleware/validation";
+import { validateBody, bonusPenaltyCreateSchema, expenseStatusUpdateSchema } from "../../middleware/validation";
+import { payrollLockedError, payrollWriteLockError, periodFromDateValue } from "./lock";
 
 /**
  * The lines that move the net salary around a payroll run:
@@ -35,6 +36,8 @@ export function registerBonusesPenalties(app: express.Express) {
 
   app.post("/api/bonuses-penalties", requireOrganizationScope, validateBody(bonusPenaltyCreateSchema), async (req, res) => {
     const { employee_id, type, amount, reason, month, year } = req.body;
+    const locked = await payrollWriteLockError(month, year, 'إضافة مكافأة/جزاء');
+    if (locked) return res.status(400).json({ error: locked });
     if (await denyEmployee(res, organizationScope(res), Number(employee_id))) return;
     const info = (await db.prepare(`
       INSERT INTO bonuses_penalties (employee_id, type, amount, reason, month, year)
@@ -45,10 +48,13 @@ export function registerBonusesPenalties(app: express.Express) {
   });
 
   app.delete("/api/bonuses-penalties/:id", requireOrganizationScope, async (req, res) => {
-    const row = (await db.prepare('SELECT employee_id FROM bonuses_penalties WHERE id = ?').get(req.params.id)) as { employee_id: number } | undefined;
+    const row = (await db.prepare('SELECT employee_id, month, year FROM bonuses_penalties WHERE id = ?').get(req.params.id)) as any;
     if (!row) return res.status(404).json({ error: 'المكافأة/الجزاء غير موجود' });
+    const locked = await payrollLockedError(Number(row.month), Number(row.year), 'حذف المكافأة/الجزاء');
+    if (locked) return res.status(400).json({ error: locked });
     if (await denyEmployee(res, organizationScope(res), row.employee_id)) return;
     (await db.prepare("DELETE FROM bonuses_penalties WHERE id = ?").run(req.params.id));
+    await logAction('delete', 'bonus_penalty', Number(req.params.id), `حذف مكافأة/جزاء لموظف ${row.employee_id} (${row.month}/${row.year})`);
     res.json({ success: true });
   });
 }
@@ -83,6 +89,8 @@ export function registerAdditionalSalaries(app: express.Express) {
       if (!employee_id || !month || !year || amount == null) {
         return res.status(400).json({ error: "employee_id و month و year و amount مطلوبة" });
       }
+      const locked = await payrollWriteLockError(month, year, 'إضافة دفعة إضافية');
+      if (locked) return res.status(400).json({ error: locked });
       if (await denyEmployee(res, organizationScope(res), Number(employee_id))) return;
       const info = (await db.prepare(`
         INSERT INTO additional_salaries (employee_id, amount, type, component, month, year, reason, created_by)
@@ -95,8 +103,10 @@ export function registerAdditionalSalaries(app: express.Express) {
 
   app.delete("/api/additional-salaries/:id", requireOrganizationScope, async (req, res) => {
     try {
-      const row = (await db.prepare('SELECT employee_id FROM additional_salaries WHERE id = ?').get(req.params.id)) as any;
+      const row = (await db.prepare('SELECT employee_id, month, year FROM additional_salaries WHERE id = ?').get(req.params.id)) as any;
       if (!row) return res.status(404).json({ error: "Not found" });
+      const locked = await payrollLockedError(Number(row.month), Number(row.year), 'حذف الدفعة الإضافية');
+      if (locked) return res.status(400).json({ error: locked });
       if (await denyEmployee(res, organizationScope(res), Number(row.employee_id), 'الدفعة')) return;
       (await db.prepare('DELETE FROM additional_salaries WHERE id = ?').run(req.params.id));
       await logAction('delete', 'additional_salary', Number(req.params.id), `حذف دفعة إضافية لموظف ${row.employee_id}`);
@@ -122,8 +132,55 @@ export function registerExpenses(app: express.Express) {
 
   app.post('/api/expenses', requireOrganizationScope, async (req, res) => {
     const { employee_id, amount, category, description, date } = req.body;
+    const period = periodFromDateValue(date);
+    if (period) {
+      const locked = await payrollWriteLockError(period.month, period.year, 'إضافة مطالبة مالية');
+      if (locked) return res.status(400).json({ error: locked });
+    }
     if (await denyEmployee(res, organizationScope(res), Number(employee_id))) return;
     (await db.prepare('INSERT INTO expense_claims (employee_id, amount, category, description, claim_date) VALUES (?, ?, ?, ?, ?)').run(employee_id, amount, category, description, date));
+    res.json({ success: true });
+  });
+
+  app.patch('/api/expenses/:id/status', requireOrganizationScope, validateBody(expenseStatusUpdateSchema), async (req, res) => {
+    const { status, note, payment_status } = req.body;
+    const row = (await db.prepare('SELECT employee_id, claim_date, status AS current_status FROM expense_claims WHERE id = ?').get(req.params.id)) as any;
+    if (!row) return res.status(404).json({ error: 'المطالبة غير موجودة' });
+    const period = periodFromDateValue(row.claim_date);
+    if (period) {
+      const locked = await payrollWriteLockError(period.month, period.year, 'مراجعة المطالبة');
+      if (locked) return res.status(400).json({ error: locked });
+    }
+    if (await denyEmployee(res, organizationScope(res), Number(row.employee_id), 'المطالبة')) return;
+    // Approved claims are reimbursed outside payroll: adding them to salary
+    // would make a tax-free refund look like taxable income in the payslip.
+    await db.prepare(`
+      UPDATE expense_claims
+      SET status = ?, reviewed_by = ?, reviewed_at = ?, review_note = ?,
+          payment_status = COALESCE(?, payment_status),
+          paid_at = CASE WHEN ? = 'paid' THEN ? ELSE paid_at END
+      WHERE id = ?
+    `).run(
+      status, (req as any).user?.username || null, new Date().toISOString(), note || null,
+      payment_status || null, payment_status || null, new Date().toISOString(), req.params.id,
+    );
+    await logAction(status === 'approved' ? 'approve' : status === 'rejected' ? 'reject' : 'update',
+      'expense_claim', Number(req.params.id),
+      `مراجعة مطالبة ${req.params.id}: ${row.current_status} → ${status}${note ? ` — ${note}` : ''}`);
+    res.json({ success: true, id: Number(req.params.id), status, payment_status: payment_status || undefined });
+  });
+
+  app.delete('/api/expenses/:id', requireOrganizationScope, async (req, res) => {
+    const row = (await db.prepare('SELECT employee_id, claim_date FROM expense_claims WHERE id = ?').get(req.params.id)) as any;
+    if (!row) return res.status(404).json({ error: 'المطالبة غير موجودة' });
+    const period = periodFromDateValue(row.claim_date);
+    if (period) {
+      const locked = await payrollLockedError(period.month, period.year, 'حذف المطالبة');
+      if (locked) return res.status(400).json({ error: locked });
+    }
+    if (await denyEmployee(res, organizationScope(res), Number(row.employee_id), 'المطالبة')) return;
+    await db.prepare('DELETE FROM expense_claims WHERE id = ?').run(req.params.id);
+    await logAction('delete', 'expense_claim', Number(req.params.id), `حذف مطالبة مالية لموظف ${row.employee_id}`);
     res.json({ success: true });
   });
 }
@@ -151,6 +208,11 @@ export function registerOvertime(app: express.Express) {
 
   app.post('/api/overtime', requireOrganizationScope, async (req, res) => {
     const { employee_id, date, normal_hours, weekend_hours, holiday_hours, reason } = req.body;
+    const period = periodFromDateValue(date);
+    if (period) {
+      const locked = await payrollWriteLockError(period.month, period.year, 'تسجيل عمل إضافي');
+      if (locked) return res.status(400).json({ error: locked });
+    }
     if (await denyEmployee(res, organizationScope(res), Number(employee_id))) return;
     const emp = (await db.prepare("SELECT * FROM employees WHERE id = ?").get(employee_id)) as any;
     if (!emp) return res.status(404).json({ error: 'Employee not found' });
@@ -178,6 +240,8 @@ export function registerOvertime(app: express.Express) {
     const { id } = req.params;
     const rec = (await db.prepare("SELECT * FROM overtime_records WHERE id = ?").get(id)) as any;
     if (!rec) return res.status(404).json({ error: 'Not found' });
+    const locked = await payrollWriteLockError(rec.month, rec.year, 'اعتماد العمل الإضافي');
+    if (locked) return res.status(400).json({ error: locked });
     if (await denyEmployee(res, organizationScope(res), Number(rec.employee_id), 'سجل العمل الإضافي')) return;
     (await db.prepare("UPDATE overtime_records SET status = 'approved' WHERE id = ?").run(id));
     (await db.prepare(`
@@ -190,10 +254,29 @@ export function registerOvertime(app: express.Express) {
 
   app.delete('/api/overtime/:id', requireOrganizationScope, async (req, res) => {
     const { id } = req.params;
-    const rec = (await db.prepare('SELECT employee_id FROM overtime_records WHERE id = ?').get(id)) as any;
+    const rec = (await db.prepare(`
+      SELECT employee_id, month, year, date, status, total_overtime_pay FROM overtime_records WHERE id = ?
+    `).get(id)) as any;
     if (!rec) return res.status(404).json({ error: 'Not found' });
+    const period = rec.month && rec.year
+      ? { month: Number(rec.month), year: Number(rec.year) }
+      : periodFromDateValue(rec.date);
+    if (period) {
+      const locked = await payrollLockedError(period.month, period.year, 'حذف سجل العمل الإضافي');
+      if (locked) return res.status(400).json({ error: locked });
+    }
     if (await denyEmployee(res, organizationScope(res), Number(rec.employee_id), 'سجل العمل الإضافي')) return;
-    (await db.prepare('DELETE FROM overtime_records WHERE id = ?').run(id));
+    // Approval writes a matching bonus line into the same period. Delete that
+    // line too, otherwise the payslip keeps paying for a record that is gone.
+    if (rec.status === 'approved') {
+      await db.prepare(`
+        DELETE FROM bonuses_penalties
+        WHERE employee_id = ? AND month = ? AND year = ? AND type = 'bonus'
+          AND amount = ? AND reason LIKE 'أجر عمل إضافي%'
+      `).run(rec.employee_id, rec.month, rec.year, rec.total_overtime_pay);
+    }
+    await db.prepare('DELETE FROM overtime_records WHERE id = ?').run(id);
+    await logAction('delete', 'overtime', Number(id), `حذف سجل عمل إضافي لموظف ${rec.employee_id}`);
     res.json({ success: true });
   });
 }

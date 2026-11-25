@@ -24,7 +24,17 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    # Daily health check at 06:00 UTC. Only the `health-check` job reacts to
+    # this event; the heavy CI jobs keep their original push/PR behaviour.
+    - cron: '0 6 * * *'
   workflow_dispatch:
+    inputs:
+      confirm_staging:
+        description: 'Confirm the staging verification and placeholder staging step'
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -32,6 +42,7 @@ concurrency:
 
 jobs:
   verify:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -80,6 +91,7 @@ jobs:
     # Plans every statement the server sends against a real PostgreSQL server.
     # The dialect defects (SQLite functions and casts PostgreSQL rejects) are
     # invisible to the SQLite gates — they only fail here.
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -124,6 +136,7 @@ jobs:
     # with a wrong net salary is a failure that no other gate in this file
     # would catch. The dataset is generated from a fixed seed, so the totals
     # are exact rather than approximate.
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -184,6 +197,7 @@ jobs:
     # screens: a screen that throws while it renders, a screen that asks for
     # a field the API stopped sending, a screen that shows nothing at all —
     # none of them reach a test that never opens a browser.
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -247,3 +261,72 @@ jobs:
           name: ui-smoke-report
           path: scripts/.build/ui-smoke-report.json
           retention-days: 7
+
+  health-check:
+    # Scheduled, low-risk probe. The URL and optional bearer token come only
+    # from repository variables/secrets; nothing is hard-coded and curl output
+    # is suppressed so no secret or query-string token can reach the log.
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL }}
+      HEALTHCHECK_TOKEN: ${{ secrets.HEALTHCHECK_TOKEN }}
+    steps:
+      - name: Safe health check via curl
+        run: |
+          set -eu
+          if [ -z "${HEALTHCHECK_URL:-}" ]; then
+            echo "HEALTHCHECK_URL is not configured; skipping health check."
+            exit 0
+          fi
+          # Never pass the token as a literal command-line value and never
+          # print the URL or curl stderr (both may contain credentials).
+          if [ -n "${HEALTHCHECK_TOKEN:-}" ]; then
+            if ! code=$(curl --silent --fail --max-time 10 --output /dev/null --write-out '%{http_code}' -H "Authorization: Bearer ${HEALTHCHECK_TOKEN}" "$HEALTHCHECK_URL" 2>/dev/null); then
+              echo "Health check failed; details suppressed to protect secrets."
+              exit 1
+            fi
+          else
+            if ! code=$(curl --silent --fail --max-time 10 --output /dev/null --write-out '%{http_code}' "$HEALTHCHECK_URL" 2>/dev/null); then
+              echo "Health check failed; details suppressed to protect secrets."
+              exit 1
+            fi
+          fi
+          echo "Health check HTTP status: ${code}"
+
+  staging:
+    # Manually dispatched only. `npm run verify` always runs; the placeholder
+    # staging deployment is additionally gated on the boolean input.
+    # Production is never targeted by this workflow.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify
+        run: npm run verify
+
+      - name: Placeholder staging deployment (explicit confirmation required)
+        if: inputs.confirm_staging
+        env:
+          STAGING_URL: ${{ vars.STAGING_URL }}
+          STAGING_TOKEN: ${{ secrets.STAGING_DEPLOY_TOKEN }}
+        run: |
+          set -eu
+          echo "Staging deployment placeholder: confirmation received."
+          if [ -z "${STAGING_URL:-}" ]; then
+            echo "STAGING_URL is not configured; no deployment performed."
+            exit 0
+          fi
+          echo "Staging target is configured from repository variables; this step is a placeholder only."
+          echo "Production is never targeted by this workflow."

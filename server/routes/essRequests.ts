@@ -81,7 +81,7 @@ export function registerEssRequests(app: express.Express) {
       if (!employee) return res.status(404).json({ error: "الموظف غير موجود" });
 
       const titleInput = String(req.body?.title || req.body?.subject || "").trim();
-      const details = String(req.body?.details || "").trim();
+      let details = String(req.body?.details || "").trim();
       let amount = 0;
       let entityId = 0;
       let ticket = "";
@@ -91,10 +91,16 @@ export function registerEssRequests(app: express.Express) {
       if (type === "loan") {
         const total = Number(req.body?.total_amount || 0);
         const installment = Number(req.body?.monthly_installment || 0);
+        const startMonth = req.body?.deduction_start_month;
+        const startYear = req.body?.deduction_start_year;
+        const deductionMonths = req.body?.deduction_months;
         if (!(total > 0)) return res.status(400).json({ error: "قيمة السلفة مطلوبة" });
-        if (!(installment > 0)) return res.status(400).json({ error: "القسط الشهري مطلوب" });
+        if (!(installment > 0)) return res.status(400).json({ error: "الخصم الشهري مطلوب" });
         if (installment > total) {
-          return res.status(400).json({ error: "القسط الشهري أكبر من قيمة السلفة" });
+          return res.status(400).json({ error: "الخصم الشهري أكبر من قيمة السلفة" });
+        }
+        if ((startMonth == null) !== (startYear == null)) {
+          return res.status(400).json({ error: "شهر البداية والسنة معاً مطلوبان" });
         }
         const salary = Number(employee.basic_salary || 0);
         if (salary > 0 && total > salary * 12) {
@@ -105,13 +111,24 @@ export function registerEssRequests(app: express.Express) {
         amount = total;
         const inserted = await db
           .prepare(
-            `INSERT INTO loans (employee_id, total_amount, remaining_amount, monthly_installment, status)
-             VALUES (?, ?, ?, ?, 'pending')`,
+            `INSERT INTO loans (
+               employee_id, total_amount, remaining_amount, monthly_installment,
+               deduction_start_month, deduction_start_year, deduction_months, status
+             )
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
           )
-          .run(employeeId, total, total, installment);
+          .run(
+            employeeId, total, total, installment,
+            startMonth == null ? null : Number(startMonth),
+            startYear == null ? null : Number(startYear),
+            deductionMonths == null || deductionMonths === "" ? null : Number(deductionMonths),
+          );
         entityId = Number(inserted.lastInsertRowid);
         ticket = `LOAN-${today().replace(/-/g, "")}-${entityId}`;
         title = title || `طلب سلفة بمبلغ ${total.toLocaleString("ar-SA")} ر.س`;
+        details = details || `خصم راتبي ${installment.toLocaleString("ar-SA")} ر.س` +
+          (startMonth != null ? ` من ${startMonth}/${startYear}` : "") +
+          (deductionMonths ? ` لمدة ${deductionMonths} شهر` : "");
       } else if (type === "leave") {
         const startDate = String(req.body?.start_date || "");
         const endDate = String(req.body?.end_date || "");
@@ -238,7 +255,9 @@ export function registerEssRequests(app: express.Express) {
 
       const loans = await db
         .prepare(
-          `SELECT id, total_amount, remaining_amount, monthly_installment, status, created_at
+          `SELECT id, total_amount, remaining_amount, monthly_installment,
+                  deduction_start_month, deduction_start_year, deduction_months,
+                  deduction_applied_months, status, created_at
            FROM loans WHERE employee_id = ? ORDER BY created_at DESC`,
         )
         .all(employeeId) as any[];

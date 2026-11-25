@@ -50,6 +50,8 @@ const REGISTRARS: Array<[string, string]> = [
   ["registerImporter", "../importer"],
   ["registerForms", "../forms"],
   ["registerEssRequests", "../essRequests"],
+  ["registerAnnualCycle", "../annualCycle"],
+  ["registerPushTokens", "../pushTokens"],
 ];
 
 interface RouteEntry {
@@ -116,5 +118,8 @@ describe("server route table", () => {
 
     expect(fs.existsSync(SNAPSHOT), "route-table.snapshot.txt is missing — run with UPDATE_ROUTE_TABLE=1").toBe(true);
     expect(table).toBe(fs.readFileSync(SNAPSHOT, "utf8"));
-  });
+    // Importing every registrar is I/O-heavy and can exceed Vitest's 5s
+    // default when all test files run in parallel. Keep the assertion strict,
+    // only give it enough headroom on a loaded machine.
+  }, 30_000);
 });

@@ -20,27 +20,41 @@
    - slate    : surfaces and body text.
 
    Typography:
-   Cairo for Arabic, Inter for Latin numerals and tabular figures — payroll
+   IBM Plex Sans Arabic for Arabic, IBM Plex Sans for Latin numerals and tabular figures — payroll
    columns need digits that align vertically inside RTL text.
 */
 
 @import "tailwindcss";
 
+/* تفعيل وضع ليلي بالـ class بدل prefers-color-scheme فقط، عشان زر التبديل
+   في الشريط العلوي يشتغل ويُحفظ في localStorage. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ===== هوية تمكين | EMPOWER — خطوط IBM Plex المحلية ===== */
+@font-face{font-family:'IBM Plex Sans';src:url('/brand/plex-sans-400.ttf') format('truetype');font-weight:400;font-display:swap}
+@font-face{font-family:'IBM Plex Sans';src:url('/brand/plex-sans-500.ttf') format('truetype');font-weight:500;font-display:swap}
+@font-face{font-family:'IBM Plex Sans';src:url('/brand/plex-sans-600.ttf') format('truetype');font-weight:600;font-display:swap}
+@font-face{font-family:'IBM Plex Sans';src:url('/brand/plex-sans-700.ttf') format('truetype');font-weight:700;font-display:swap}
+@font-face{font-family:'IBM Plex Sans Arabic';src:url('/brand/plex-arabic-400.ttf') format('truetype');font-weight:400;font-display:swap}
+@font-face{font-family:'IBM Plex Sans Arabic';src:url('/brand/plex-arabic-500.ttf') format('truetype');font-weight:500;font-display:swap}
+@font-face{font-family:'IBM Plex Sans Arabic';src:url('/brand/plex-arabic-600.ttf') format('truetype');font-weight:600;font-display:swap}
+@font-face{font-family:'IBM Plex Sans Arabic';src:url('/brand/plex-arabic-700.ttf') format('truetype');font-weight:700;font-display:swap}
+
 @theme {
   /* ===== الدرجة الأساسية — زرقاء هادئة فاتحة =====
      Deliberately stops at 700. Anything darker was only ever used for the
      old dark sidebar, which is what we are replacing. */
-  --color-brand-50:  #f0f6ff;
-  --color-brand-100: #dbe8fe;
-  --color-brand-200: #bfd7fe;
-  --color-brand-300: #93bbfd;
-  --color-brand-400: #6098fa;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
-  --color-brand-800: #1e40af;
-  --color-brand-900: #1e3a8a;
-  --color-brand-950: #172554;
+  --color-brand-50:  #f2f7fe;
+  --color-brand-100: #e3eefc;
+  --color-brand-200: #c2d9f5;
+  --color-brand-300: #8fbeee;
+  --color-brand-400: #5a9be8;
+  --color-brand-500: #2b7de1;
+  --color-brand-600: #1769d1;
+  --color-brand-700: #0f4fa8;
+  --color-brand-800: #0b3d82;
+  --color-brand-900: #102a56;
+  --color-brand-950: #081a36;
 
   /* ===== الحبر العميق — للنصوص على خلفية فاتحة ===== */
   --color-navy-600: #334155;
@@ -55,22 +69,22 @@
   --color-shell-line: #dde5ef;
 
   /* ===== التمييز — كهرماني هادئ ===== */
-  --color-primary-50:  #fdf8f3;
-  --color-primary-100: #f8ecd4;
-  --color-primary-200: #f0d9a8;
-  --color-primary-300: #e5c076;
-  --color-primary-400: #d9a94a;
-  --color-primary-500: #c99733;
-  --color-primary-600: #a97a1f;
-  --color-primary-700: #8a6116;
-  --color-primary-800: #6b4a10;
-  --color-primary-900: #4d350b;
-  --color-primary-950: #2a1d04;
+  --color-primary-50:  #effdfc;
+  --color-primary-100: #d4f9f7;
+  --color-primary-200: #a8f1ee;
+  --color-primary-300: #6ee1dd;
+  --color-primary-400: #2fcac5;
+  --color-primary-500: #14b8b5;
+  --color-primary-600: #0e948f;
+  --color-primary-700: #0d7673;
+  --color-primary-800: #0e5d5b;
+  --color-primary-900: #104c4a;
+  --color-primary-950: #062c2b;
 
   /* ===== الخطوط ===== */
-  --font-sans: "Cairo", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans Arabic", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   /* الأرقام اللاتينية + عرض ثابت: أعمدة المبالغ يجب أن تتحاذى. */
-  --font-num:  "Inter", "Cairo", ui-sans-serif, system-ui, sans-serif;
+  --font-num:  "IBM Plex Sans", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
 
   /* ===== الظلال — خفيفة، تتبع الدرجة الأساسية ===== */
   --shadow-card:   0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
@@ -79,19 +93,184 @@
 }
 
 @layer base {
-  body {
-    @apply bg-slate-100 text-slate-900;
-    direction: rtl;
-    font-family: "Cairo", sans-serif;
+  /* C · ورقة الهوية هي الخلفية السائدة. الطبقة الثابتة .identity-paper
+    مسؤولة عن الرسم؛ html/body مجرد خلفية احتياطية لو فشل تحميل الأصل. */
+  html {
+    background: #eef3fa;
+  }
+  html.dark {
+    background: #06132a;
   }
 
-  /* الأرقام داخل نص عربي: خط Inter بأرقام ثابتة واتجاه LTR مدمج،
+  body {
+    @apply text-slate-900;
+    background-color: transparent;
+    direction: rtl;
+    font-family: "IBM Plex Sans Arabic", "IBM Plex Sans", sans-serif;
+  }
+
+  /* B · الوضع الليلي — الهوية C (الاسم + الأيقونة 3D) لا تتغير. */
+  html.dark body {
+    @apply text-slate-100;
+    background-color: transparent;
+  }
+
+  /* الأرقام داخل نص عربي: خط IBM Plex بأرقام ثابتة واتجاه LTR مدمج،
      وإلا اختلّت أعمدة المبالغ. */
   .tnum {
-    font-family: "Inter", "Cairo", sans-serif;
+    font-family: "IBM Plex Sans", "IBM Plex Sans Arabic", sans-serif;
     font-variant-numeric: tabular-nums;
     direction: ltr;
     unicode-bidi: embed;
+  }
+}
+
+/* ============================================================
+   C · ورقة الهوية — الخلفية السائدة للنظام
+   ============================================================
+   ورقة بيضاء تحمل الاسم الكبير والأيقونة 3D كعلامة مائية ثابتة خلف
+   كل الشاشات. شفافيتها منخفضة عشان الجداول والأرقام تفضل مقروءة،
+   والوضع الليلي يستخدم نفس التركيب بألوان كحلية/تيال. */
+.identity-paper {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(900px 560px at 12% 4%, rgb(23 105 209 / 0.10), transparent 62%),
+    radial-gradient(760px 520px at 88% 96%, rgb(20 184 181 / 0.10), transparent 60%),
+    linear-gradient(165deg, #ffffff 0%, #f7fafd 52%, #edf3fb 100%);
+}
+
+/* ملمس ورقة خفيف جداً — يمنح إحساس "الورقة" بدون تشويش النصوص. */
+.identity-paper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(0deg, rgb(16 42 86 / 0.018) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgb(16 42 86 / 0.014) 0 1px, transparent 1px 5px);
+}
+
+.identity-paper__sheet {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 1.4vh, 18px);
+  opacity: 0.13;
+  transition: opacity 0.35s ease;
+}
+
+.identity-paper__mark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+
+.identity-paper__overline {
+  font: 700 clamp(8px, 0.8vw, 12px) "IBM Plex Sans", sans-serif;
+  letter-spacing: 0.7em;
+  color: #1769d1;
+  direction: ltr;
+}
+
+.identity-paper__ar {
+  font: 700 clamp(88px, 15vw, 230px) / 0.95 "IBM Plex Sans Arabic", sans-serif;
+  color: #102a56;
+  margin-block: 0.08em 0.12em;
+}
+
+.identity-paper__en {
+  font: 700 clamp(26px, 4.4vw, 68px) "IBM Plex Sans", sans-serif;
+  letter-spacing: clamp(6px, 1.3vw, 20px);
+  color: #0b3d82;
+  direction: ltr;
+}
+
+.identity-paper__rule {
+  display: block;
+  width: clamp(180px, 27vw, 430px);
+  height: clamp(3px, 0.4vw, 6px);
+  border-radius: 999px;
+  margin-block: 0.5em;
+  background: linear-gradient(90deg, #1769d1 0%, #14b8b5 52%, #f26b5b 100%);
+}
+
+.identity-paper__sub {
+  font: 600 clamp(7px, 0.72vw, 11px) "IBM Plex Sans", sans-serif;
+  letter-spacing: 0.32em;
+  color: #61718a;
+  direction: ltr;
+}
+
+.identity-paper__icon {
+  width: clamp(110px, 13vw, 210px);
+  height: auto;
+  border-radius: clamp(18px, 2vw, 30px);
+  object-fit: contain;
+  filter: drop-shadow(0 18px 30px rgb(16 42 86 / 0.18));
+}
+
+.identity-paper__tiles {
+  display: flex;
+  gap: clamp(8px, 1vw, 14px);
+}
+
+.identity-paper__tiles span {
+  width: clamp(56px, 7vw, 104px);
+  height: clamp(56px, 7vw, 104px);
+  border-radius: clamp(14px, 1.6vw, 22px);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 6px;
+  font: 700 clamp(6px, 0.62vw, 9px) "IBM Plex Sans", sans-serif;
+  color: #fff;
+  background: #102a56;
+}
+
+.identity-paper__tiles span:last-child {
+  background: linear-gradient(135deg, #1769d1, #14b8b5);
+}
+
+/* B · الوضع الليلي — نفس ورقة الهوية، بإضاءة كحلية. */
+html.dark .identity-paper {
+  background:
+    radial-gradient(900px 560px at 12% 4%, rgb(23 105 209 / 0.22), transparent 62%),
+    radial-gradient(760px 520px at 88% 96%, rgb(20 184 181 / 0.18), transparent 60%),
+    linear-gradient(165deg, #081a36 0%, #06132a 55%, #040e20 100%);
+}
+
+html.dark .identity-paper::before {
+  background-image:
+    repeating-linear-gradient(0deg, rgb(255 255 255 / 0.018) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 0.014) 0 1px, transparent 1px 5px);
+}
+
+html.dark .identity-paper__sheet {
+  opacity: 0.20;
+}
+
+html.dark .identity-paper__overline,
+html.dark .identity-paper__ar,
+html.dark .identity-paper__en,
+html.dark .identity-paper__sub,
+html.dark .identity-paper__tiles span {
+  color: #e2ecfa;
+}
+
+html.dark .identity-paper__icon {
+  filter: drop-shadow(0 18px 34px rgb(0 0 0 / 0.55));
+}
+
+@media print {
+  .identity-paper {
+    display: none !important;
   }
 }
 
@@ -115,6 +294,10 @@
   scrollbar-width: thin;
   scrollbar-color: #93bbfd transparent;
 }
+html.dark ::-webkit-scrollbar-track { background: #0f172a; }
+html.dark ::-webkit-scrollbar-thumb { background: #1d4ed8; }
+html.dark ::-webkit-scrollbar-thumb:hover { background: #1769d1; }
+html.dark * { scrollbar-color: #1d4ed8 transparent; }
 
 @media print {
   /* الطباعة: الدرجة الأساسية والحبر 모두 يطبعان بتدرّجات محايدة،
@@ -381,4 +564,226 @@
   thead {
     display: table-header-group;
   }
+}
+
+/* ============================================================
+   B · الوضع الليلي — وضوح نصوص المحتوى خارج القوائم
+   ------------------------------------------------------------
+   أغلب شاشات النظام ما زالت تكتب bg-white و text-slate و text-navy
+   بدون صيغة dark:. في الوضع الليلي كان النص الأبيض الموروث يقع
+   فوق بطاقة بيضاء، أو يظهر رمادياً باهتاً على خلفية فاتحة.
+   نوحّد هنا أسطح المحتوى ونرفع تباين الرمادي. أوراق الطباعة
+   تُعاد بعدها إلى الأبيض والحبر الداكن لأنها تُطبع في كل الأوضاع.
+   القوائم والهيدر لها ألوانها الخاصة.
+   ============================================================ */
+@layer utilities {
+  html.dark :where(main, [role="dialog"], .fixed.inset-0) .bg-white {
+    background-color: #0f172a;
+  }
+  html.dark :where(main, [role="dialog"], .fixed.inset-0) .bg-slate-50 {
+    background-color: #111e33;
+  }
+  html.dark :where(main, [role="dialog"], .fixed.inset-0) .bg-slate-100 {
+    background-color: #17243a;
+  }
+  html.dark :where(main, [role="dialog"], .fixed.inset-0) .bg-slate-200 {
+    background-color: #1e293b;
+  }
+
+  html.dark :where(main, [role="dialog"], .fixed.inset-0) :is(.text-slate-400, .text-slate-500) {
+    color: #cbd5e1;
+  }
+  html.dark :where(main, [role="dialog"], .fixed.inset-0) :is(.text-slate-600, .text-slate-700, .text-slate-800, .text-slate-900, .text-navy-700, .text-navy-800, .text-navy-900) {
+    color: #f1f5f9;
+  }
+  html.dark :where(main, [role="dialog"], .fixed.inset-0) :is(.border-slate-100, .border-slate-200, .border-slate-300) {
+    border-color: #26364f;
+  }
+
+  html.dark :where(main, [role="dialog"], .fixed.inset-0) input::placeholder,
+  html.dark :where(main, [role="dialog"], .fixed.inset-0) textarea::placeholder {
+    color: #94a3b8;
+    opacity: 1;
+  }
+
+  /* الورقة المطبوعة تبقى بيضاء حتى Inside الوضع الليلي. */
+  html.dark .print-page,
+  html.dark .print-page *,
+  html.dark .print-document,
+  html.dark .print-document * {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+  }
+}
+
+/* ============================================================
+   C · الدخول ثلاثي الأبعاد — هوية تمكين
+   ------------------------------------------------------------
+   نفس بالِتة الشعار، مع عمق حقيقي (perspective + طبقات زجاجية)
+   يظهر بوضوح على شاشة الجوال دون كسر الوضع الليلي.
+   ============================================================ */
+.auth3d {
+  background:
+    radial-gradient(circle at 16% 10%, rgba(23, 105, 209, 0.22), transparent 34%),
+    radial-gradient(circle at 86% 92%, rgba(20, 184, 181, 0.18), transparent 34%),
+    linear-gradient(155deg, #f8fbff 0%, #edf4fc 48%, #dce8f5 100%) !important;
+  perspective: 1200px;
+  isolation: isolate;
+}
+html.dark .auth3d {
+  background:
+    radial-gradient(circle at 16% 10%, rgba(23, 105, 209, 0.3), transparent 36%),
+    radial-gradient(circle at 86% 92%, rgba(20, 184, 181, 0.22), transparent 36%),
+    linear-gradient(155deg, #102a56 0%, #0b1d3a 52%, #071426 100%) !important;
+}
+.auth3d::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.2;
+  background-image:
+    linear-gradient(rgba(16, 42, 86, 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 42, 86, 0.14) 1px, transparent 1px);
+  background-size: 38px 38px;
+  mask-image: linear-gradient(to top, #000, transparent 72%);
+}
+html.dark .auth3d::before {
+  background-image:
+    linear-gradient(rgba(220, 232, 245, 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(220, 232, 245, 0.16) 1px, transparent 1px);
+}
+.auth3d__orb {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 0;
+  box-shadow: inset -14px -18px 34px rgba(2, 10, 28, 0.42), 0 20px 50px rgba(0, 0, 0, 0.24);
+}
+.auth3d__orb--blue {
+  width: 210px; height: 210px; top: -70px; left: -60px;
+  background: linear-gradient(145deg, #5a9be8, #1769d1 48%, #0b3d82);
+}
+.auth3d__orb--teal {
+  width: 150px; height: 150px; top: 18%; right: -52px;
+  background: linear-gradient(145deg, #6ee1dd, #14b8b5 50%, #0d7673);
+}
+.auth3d__orb--coral {
+  width: 104px; height: 104px; bottom: 8%; left: -38px;
+  background: linear-gradient(145deg, #f7a096, #f26b5b 55%, #a23e34);
+}
+.auth3d__shell {
+  position: relative;
+  z-index: 1;
+  transform-style: preserve-3d;
+  background: rgba(255, 255, 255, 0.58) !important;
+  box-shadow: 0 30px 70px rgba(16, 42, 86, 0.16) !important;
+}
+html.dark .auth3d__shell {
+  background: rgba(30, 41, 59, 0.58) !important;
+  box-shadow: 0 30px 70px rgba(2, 8, 22, 0.55) !important;
+}
+.auth3d__identity {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(23, 105, 209, 0.16), transparent 44%),
+    linear-gradient(155deg, rgba(255, 255, 255, 0.86), rgba(23, 105, 209, 0.06)) !important;
+}
+html.dark .auth3d__identity {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(23, 105, 209, 0.24), transparent 44%),
+    linear-gradient(155deg, rgba(15, 23, 42, 0.72), rgba(5, 13, 28, 0.88)) !important;
+}
+.auth3d__form {
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.58), rgba(220, 232, 245, 0.28)) !important;
+  transform: translateZ(26px);
+}
+html.dark .auth3d__form {
+  background: linear-gradient(155deg, rgba(30, 41, 59, 0.52), rgba(15, 23, 42, 0.34)) !important;
+}
+.auth3d__mark {
+  transform: rotateY(-12deg) rotateX(8deg);
+  box-shadow: 0 14px 30px rgba(16, 42, 86, 0.3) !important;
+  animation: auth3d-float 6s ease-in-out infinite;
+}
+@keyframes auth3d-float {
+  50% { transform: rotateY(12deg) rotateX(-6deg) translateY(-5px); }
+}
+.auth3d__tabs {
+  border: 1px solid rgba(23, 105, 209, 0.16) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+}
+html.dark .auth3d__tabs {
+  border-color: rgba(220, 232, 245, 0.18) !important;
+  background: rgba(30, 41, 59, 0.62) !important;
+}
+.auth3d__tab.on {
+  background: linear-gradient(135deg, #ffffff, #e8f0fb) !important;
+  color: #102a56 !important;
+  box-shadow: 0 8px 18px rgba(16, 42, 86, 0.16) !important;
+}
+html.dark .auth3d__tab.on {
+  background: linear-gradient(135deg, #ffffff, #dce8f5) !important;
+  color: #102a56 !important;
+}
+.auth3d__title {
+  color: #102a56 !important;
+}
+html.dark .auth3d__title {
+  color: #f5f8fc !important;
+}
+/* تبديل الوضع النهاري/الليلي داخل شاشات الدخول والتسجيل — في كل الأوضاع. */
+.auth3d__theme {
+  position: absolute;
+  z-index: 4;
+  top: 14px;
+  inset-inline-end: 14px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid rgba(23, 105, 209, 0.22);
+  background: rgba(255, 255, 255, 0.82);
+  color: #102a56;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 20px rgba(16, 42, 86, 0.14);
+}
+html.dark .auth3d__theme {
+  border-color: rgba(220, 232, 245, 0.2);
+  background: rgba(30, 41, 59, 0.72);
+  color: #f5f8fc;
+  box-shadow: 0 8px 20px rgba(2, 8, 22, 0.42);
+}
+.auth3d__theme:hover { filter: brightness(1.06); }
+.auth3d__theme:focus-visible { outline: 2px solid #14b8b5; outline-offset: 2px; }
+.auth3d__input {
+  background: rgba(255, 255, 255, 0.98) !important;
+  color: #102a56 !important;
+  border-color: rgba(23, 105, 209, 0.22) !important;
+  box-shadow: inset 0 2px 6px rgba(16, 42, 86, 0.08) !important;
+}
+.auth3d__input::placeholder {
+  color: #5a6b85 !important;
+  opacity: 1 !important;
+}
+.auth3d__input:focus {
+  border-color: #14b8b5 !important;
+  box-shadow: 0 0 0 3px rgba(20, 184, 181, 0.24) !important;
+}
+.auth3d__cta {
+  background: linear-gradient(120deg, #1769d1, #14b8b5) !important;
+  box-shadow: 0 14px 28px rgba(23, 105, 209, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+  transform: translateZ(22px);
+}
+.auth3d__cta--coral {
+  background: linear-gradient(120deg, #f26b5b, #b4473e) !important;
+  box-shadow: 0 14px 28px rgba(242, 107, 91, 0.34) !important;
+}
+@media (max-width: 767px) {
+  .auth3d__orb--blue { width: 170px; height: 170px; top: -54px; left: -50px; }
+  .auth3d__orb--teal { width: 120px; height: 120px; top: 24%; right: -44px; }
+  .auth3d__orb--coral { width: 88px; height: 88px; bottom: 12%; left: -34px; }
+  .auth3d__shell { transform: rotateX(3deg); }
+  .auth3d__form { transform: translateZ(14px); }
 }

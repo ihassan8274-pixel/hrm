@@ -52,7 +52,7 @@ export function registerPayrollCorrections(app: express.Express) {
   app.post("/api/payroll/correct", requireOrganizationScope, validateBody(payrollCorrectSchema), async (req, res) => {
     try {
       const { month, year, employee_id, field, new_value, reason } = req.body;
-      if (!isPayrollLocked(Number(month), Number(year))) {
+      if (!(await isPayrollLocked(Number(month), Number(year)))) {
         return res.status(400).json({ error: `مسير ${month}/${year} غير مُقفل — إما افتحه وعدّل بالطريقة العادية أو اقفله أولاً للتصحيح` });
       }
       const allowed = [...CORRECTABLE_PAYROLL_FIELDS];

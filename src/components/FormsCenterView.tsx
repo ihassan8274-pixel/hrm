@@ -67,6 +67,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   contracts: "عقود",
   reports: "إقرارات وتقارير",
   finance: "سندات مالية",
+  forms: "نماذج إدارية",
 };
 
 /** تسميات عربية لحقول إضافية شائعة، مع fallback إلى اسم الحقل نفسه. */
@@ -89,10 +90,82 @@ const CUSTOM_FIELD_LABELS: Record<string, string> = {
   amount_in_words: "المبلغ كتابةً",
   installment: "القسط الشهري (ر.س)",
   approval_reference: "مرجع الاعتماد",
+
+  // استمارة طلب التوظيف
+  applicant_name: "اسم المتقدم",
+  national_id: "رقم الهوية/الإقامة",
+  nationality: "الجنسية",
+  birth_date: "تاريخ الميلاد",
+  mobile: "الهاتف الجوال",
+  email: "البريد الإلكتروني",
+  address: "العنوان",
+  position_applied: "المسمى المتقدم له",
+  available_date: "تاريخ التوفر",
+  qualification: "المؤهل",
+  university: "الجامعة/المعهد",
+  graduation_year: "سنة التخرج",
+  experience_years: "سنوات الخبرة",
+  previous_employer: "جهة العمل السابقة",
+  expected_salary: "الراتب المتوقع (ر.س)",
+
+  // طلب التعيين الداخلي
+  request_number: "رقم الطلب",
+  request_date: "تاريخ الطلب",
+  requesting_manager: "مقدّم الطلب",
+  branch: "الفرع",
+  department: "الإدارة",
+  position: "المسمى الوظيفي",
+  headcount: "عدد الوظائف",
+  justification: "مبرر الطلب",
+  candidate_name: "اسم المرشح",
+  candidate_national_id: "رقم هوية المرشح",
+  contract_type: "نوع العقد",
+  salary: "الراتب الأساسي (ر.س)",
+  housing_allowance: "بدل السكن (ر.س)",
+  transport_allowance: "بدل النقل (ر.س)",
+  total_salary: "الإجمالي الشهري (ر.س)",
+
+  // الجزاء الإداري
+  decision_number: "رقم القرار",
+  investigation_date: "تاريخ التحقيق",
+  witnesses: "الشهود والمراجع",
+  employee_statement: "أقوال الموظف",
+  penalty_type: "نوع الجزاء",
+  penalty_days: "مدة الجزاء (أيام)",
+  deduction_amount: "الخصم النظامي (ر.س)",
+  legal_basis: "السند النظامي",
+  previous_actions: "الإجراءات السابقة",
+  corrective_plan: "خطة التصحيح",
+  review_date: "تاريخ المراجعة",
+  prepared_by: "أعدّ القرار",
+  approved_by: "اعتمد القرار",
+
+  // التقييم السنوي
+  evaluation_period: "فترة التقييم",
+  evaluation_date: "تاريخ التقييم",
+  evaluator_name: "اسم المقيّم",
+  evaluator_position: "صفة المقيّم",
+  attendance_score: "الالتزام والحضور (من 5)",
+  attendance_note: "ملاحظات الالتزام والحضور",
+  quality_score: "جودة الأداء (من 5)",
+  quality_note: "ملاحظات جودة الأداء",
+  productivity_score: "الإنتاجية (من 5)",
+  productivity_note: "ملاحظات الإنتاجية",
+  teamwork_score: "العمل الجماعي والقيادة (من 5)",
+  teamwork_note: "ملاحظات العمل الجماعي",
+  safety_score: "السلامة وإجراءات الغذاء (من 5)",
+  safety_note: "ملاحظات السلامة",
+  total_score: "الدرجة الكلية (من 25)",
+  rating: "التقدير",
+  strengths: "نقاط القوة",
+  improvement_areas: "مجالات التحسين",
+  training_needs: "الاحتياج التدريبي",
+  recommendation: "التوصية",
+  employee_comments: "ملاحظات الموظف",
 };
 
 const DATE_FIELD_HINTS = ["date", "deadline", "until"];
-const NUMBER_FIELD_HINTS = ["days", "amount", "salary", "hours", "count"];
+const NUMBER_FIELD_HINTS = ["days", "amount", "salary", "allowance", "score", "year", "count"];
 
 function fieldKind(key: string): "date" | "number" | "text" {
   const lower = key.toLowerCase();

@@ -14,6 +14,10 @@ export default function BranchMobileKiosk({ token }: Props) {
   const [method, setMethod] = useState<'face' | 'fingerprint'>('face');
   const [pin, setPin] = useState('');
   const [paired, setPaired] = useState(false);
+  // PIN fallback for phones without platform biometrics.
+  const [roster, setRoster] = useState<{ id: number; name: string }[]>([]);
+  const [selectedEmp, setSelectedEmp] = useState('');
+  const [empPin, setEmpPin] = useState('');
 
   const deviceFingerprint = (() => {
     const key = `branch-phone-${token}`;
@@ -45,6 +49,12 @@ export default function BranchMobileKiosk({ token }: Props) {
         }
       })
       .catch(() => setError('تعذر الاتصال بالخادم'));
+    if (!webauthnSupported()) {
+      fetch(`/api/kiosk/${encodeURIComponent(token)}/employees`)
+        .then(r => r.json())
+        .then(d => { if (Array.isArray(d)) setRoster(d); })
+        .catch(() => {});
+    }
   }, [token]);
 
   const pairPhone = async () => {
@@ -92,25 +102,42 @@ export default function BranchMobileKiosk({ token }: Props) {
 
   const punch = async (action: 'in' | 'out') => {
     if (!geoOk) return setError('تحقق من موقع هاتف الفرع أولاً');
-    if (!webauthnSupported()) return setError('هذا الهاتف لا يدعم بصمة الوجه/الإصبع (WebAuthn). استخدم HTTPS.');
     setLoading(true); setError(''); setMsg('');
     try {
-      const optRes = await fetch('/api/webauthn/login/options', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ device_token: token })
-      });
-      const opts = await optRes.json();
-      if (!optRes.ok) throw new Error(opts.error || 'فشل بدء التحقق');
-      const assertion = await assertPlatformBiometric({
-        challenge: opts.challenge,
-        rpId: opts.rpId,
-      });
-      const ver = await fetch('/api/webauthn/login', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ device_token: token, ...assertion })
-      });
-      const ident = await ver.json();
-      if (!ver.ok) throw new Error(ident.error || 'البصمة غير مسجلة');
+      let employeeId: number;
+      let employeeName = '';
+      let identity: Record<string, unknown> = {};
+      if (webauthnSupported()) {
+        const optRes = await fetch('/api/webauthn/login/options', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ device_token: token })
+        });
+        const opts = await optRes.json();
+        if (!optRes.ok) throw new Error(opts.error || 'فشل بدء التحقق');
+        const assertion = await assertPlatformBiometric({
+          challenge: opts.challenge,
+          rpId: opts.rpId,
+        });
+        const ver = await fetch('/api/webauthn/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ device_token: token, ...assertion })
+        });
+        const ident = await ver.json();
+        if (!ver.ok) throw new Error(ident.error || 'البصمة غير مسجلة');
+        employeeId = ident.employee.id;
+        employeeName = ident.employee.name;
+        // The server consumes this single-use proof and rejects a bare
+        // employee_id, so the biometric ceremony cannot be bypassed by
+        // calling the check-in API directly.
+        identity = { attendance_proof: ident.attendance_proof };
+      } else {
+        if (!selectedEmp || !/^\d{4,8}$/.test(empPin)) {
+          throw new Error('اختر الموظف وأدخل الرقم السري الخاص به (4 إلى 8 أرقام)');
+        }
+        employeeId = Number(selectedEmp);
+        employeeName = roster.find(e => e.id === employeeId)?.name || '';
+        identity = { pin: empPin };
+      }
       let lat = coords?.lat, lng = coords?.lng;
       try { const p = await getLocation(); lat = p.lat; lng = p.lng; } catch {}
       const endpoint = action === 'in' ? '/api/attendance/check-in' : '/api/attendance/check-out';
@@ -118,7 +145,8 @@ export default function BranchMobileKiosk({ token }: Props) {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           device_token: token,
-          employee_id: ident.employee.id,
+          employee_id: employeeId,
+          ...identity,
           method,
           latitude: lat,
           longitude: lng,
@@ -127,7 +155,7 @@ export default function BranchMobileKiosk({ token }: Props) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'فشل التسجيل');
-      setMsg(`${data.message} — ${ident.employee.name}`);
+      setMsg(`${data.message} — ${employeeName}`);
     } catch (e) {
       setError((e as Error).message);
     } finally { setLoading(false); }

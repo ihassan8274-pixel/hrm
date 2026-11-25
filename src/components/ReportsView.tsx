@@ -64,7 +64,7 @@ export default function ReportsView() {
               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                  <p className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-tighter">إجمالي الرواتب</p>
                  <div className="flex items-center justify-between">
-                    <h4 className="text-xl font-bold text-slate-800">{(stats?.totalMonthlyPayroll || 0).toLocaleString()} <span className="text-[10px]">EGP</span></h4>
+                    <h4 className="text-xl font-bold text-slate-800">{(stats?.totalMonthlyPayroll || 0).toLocaleString()} <span className="text-[10px]">ر.س</span></h4>
                     <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center">
                        <TrendingUp className="w-4 h-4 text-emerald-500" />
                     </div>
@@ -87,12 +87,12 @@ export default function ReportsView() {
               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                  <p className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-tighter">تكلفة الضرائب</p>
                  <div className="flex items-center justify-between">
-                    <h4 className="text-xl font-bold text-slate-800">{( (stats?.totalMonthlyPayroll || 0) * 0.1).toLocaleString()} <span className="text-[10px]">EGP</span></h4>
+                    <h4 className="text-xl font-bold text-slate-800">0 <span className="text-[10px]">ر.س</span></h4>
                     <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center">
                        <DollarSign className="w-4 h-4 text-orange-500" />
                     </div>
                  </div>
-                 <p className="text-[10px] text-orange-600 mt-2 font-bold">10% من إجمالي الكتلة</p>
+                 <p className="text-[10px] text-orange-600 mt-2 font-bold">لا ضريبة دخل على الرواتب في السعودية</p>
               </div>
               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                  <p className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-tighter">معدل الدوران</p>

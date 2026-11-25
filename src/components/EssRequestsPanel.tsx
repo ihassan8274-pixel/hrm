@@ -95,8 +95,14 @@ export const EssRequestsPanel: React.FC<EssRequestsPanelProps> = ({ employeeId }
   }, [printItem]);
 
   // حقول النماذج
+  const nextMonth = new Date();
+  nextMonth.setDate(1);
+  nextMonth.setMonth(nextMonth.getMonth() + 1);
   const [loanAmount, setLoanAmount] = useState('');
   const [loanInstallment, setLoanInstallment] = useState('');
+  const [loanStartMonth, setLoanStartMonth] = useState(String(nextMonth.getMonth() + 1));
+  const [loanStartYear, setLoanStartYear] = useState(String(nextMonth.getFullYear()));
+  const [loanMonths, setLoanMonths] = useState('12');
   const [leaveType, setLeaveType] = useState('annual');
   const [leaveStart, setLeaveStart] = useState(today());
   const [leaveEnd, setLeaveEnd] = useState(today());
@@ -146,7 +152,10 @@ export const EssRequestsPanel: React.FC<EssRequestsPanelProps> = ({ employeeId }
     if (activeType === 'loan') {
       base.total_amount = Number(loanAmount);
       base.monthly_installment = Number(loanInstallment);
-      base.details = `طلب سلفة بإقساط شهري — ${loanInstallment} ر.س`;
+      base.deduction_start_month = Number(loanStartMonth);
+      base.deduction_start_year = Number(loanStartYear);
+      base.deduction_months = Number(loanMonths);
+      base.details = `خصم راتبي ${loanInstallment} ر.س من ${loanStartMonth}/${loanStartYear} لمدة ${loanMonths} شهر`;
     } else if (activeType === 'leave') {
       base.leave_type = leaveType;
       base.start_date = leaveStart;
@@ -180,6 +189,9 @@ export const EssRequestsPanel: React.FC<EssRequestsPanelProps> = ({ employeeId }
       setFeedback({ tone: 'ok', text: data?.message || 'تم رفع الطلب بنجاح' });
       // تصفير النموذج بعد القبول
       setLoanAmount(''); setLoanInstallment('');
+      setLoanStartMonth(String(nextMonth.getMonth() + 1));
+      setLoanStartYear(String(nextMonth.getFullYear()));
+      setLoanMonths('12');
       setLeaveReason(''); setGrievanceSubject(''); setGrievanceDetails(''); setGrievanceAgainst('');
       setSuggestionTitle(''); setSuggestionDetails(''); setSuggestionImpact('');
       await loadRequests();
@@ -199,7 +211,9 @@ export const EssRequestsPanel: React.FC<EssRequestsPanelProps> = ({ employeeId }
 
   const describe = (item: RequestItem) => {
     if (item.request_type === 'loan') {
-      return `سلفة ${Number(item.total_amount || 0).toLocaleString('ar-SA')} ر.س — قسط ${Number(item.monthly_installment || 0).toLocaleString('ar-SA')} ر.س`;
+      return `سلفة ${Number(item.total_amount || 0).toLocaleString('ar-SA')} ر.س — خصم ${Number(item.monthly_installment || 0).toLocaleString('ar-SA')} ر.س` +
+        (item.deduction_start_month && item.deduction_start_year ? ` من ${item.deduction_start_month}/${item.deduction_start_year}` : '') +
+        (item.deduction_months ? ` لـ ${item.deduction_months} شهر` : '');
     }
     if (item.request_type === 'leave') {
       return `إجازة ${item.type === 'annual' ? 'سنوية' : item.type === 'sick' ? 'مرضية' : item.type === 'emergency' ? 'طارئة' : item.type} — ${item.days || 0} يوم (${item.start_date} → ${item.end_date})`;
@@ -266,13 +280,29 @@ export const EssRequestsPanel: React.FC<EssRequestsPanelProps> = ({ employeeId }
                   className={inputCls} placeholder="5000" />
               </div>
               <div>
-                <label className={labelCls}>القسط الشهري (ر.س)</label>
+                <label className={labelCls}>الخصم من الراتب شهرياً (ر.س)</label>
                 <input type="number" min="1" required value={loanInstallment}
                   onChange={(e) => setLoanInstallment(e.target.value)}
                   className={inputCls} placeholder="500" />
               </div>
+              <div>
+                <label className={labelCls}>شهر بداية الخصم</label>
+                <select value={loanStartMonth} onChange={(e) => setLoanStartMonth(e.target.value)} className={inputCls}>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>سنة البداية</label>
+                <input type="number" min="2000" max="2100" required value={loanStartYear}
+                  onChange={(e) => setLoanStartYear(e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>عدد أشهر الخصم</label>
+                <input type="number" min="1" max="240" required value={loanMonths}
+                  onChange={(e) => setLoanMonths(e.target.value)} className={inputCls} placeholder="12" />
+              </div>
               <p className="sm:col-span-2 text-[11px] text-slate-500">
-                السلفة تُخصم من راتبك عبر نظام حماية الأجور (مدد)، ولا تتجاوز 12 راتباً.
+                الخصم يبدأ من الشهر المحدد ويتوقف بعد عدد الأشهر المحدد — عبر نظام حماية الأجور (مدد)، ولا تتجاوز السلفة 12 راتباً.
               </p>
             </div>
           )}

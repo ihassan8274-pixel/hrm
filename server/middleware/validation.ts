@@ -41,6 +41,32 @@ export const changePasswordSchema = z.object({
   newPassword: z.string().min(8, "New password must be at least 8 characters"),
 });
 
+/**
+ * Public registration request. It deliberately does NOT carry a role: the
+ * requester can never choose their own privileges. An administrator picks the
+ * role when the request is approved.
+ */
+export const signupRequestSchema = z.object({
+  full_name: z.string().trim().min(2, "الاسم مطلوب").max(120),
+  email: z.string().trim().email("البريد الإلكتروني غير صالح").max(200),
+  phone: z.string().trim().regex(/^(?:\+966|00966|0)?5\d{8}$/, "رقم الجوال السعودي غير صالح"),
+  username: z.string().trim().min(3, "اسم المستخدم 3 أحرف على الأقل").max(40)
+    .regex(/^[A-Za-z0-9._@-]+$/, "اسم المستخدم يحتوي على حروف لاتينية وأرقام و . _ @ - فقط"),
+  password: z.string().min(8, "كلمة المرور 8 أحرف على الأقل").max(128),
+});
+
+/**
+ * Public password-recovery request. Only the two identifiers the account owner
+ * is expected to know travel over the wire. No privilege, status or new secret
+ * can be supplied here; the server resolves the account and an administrator
+ * decides what happens next.
+ */
+export const passwordResetRequestSchema = z.object({
+  username: z.string().trim().min(3, "اسم المستخدم 3 أحرف على الأقل").max(40)
+    .regex(/^[A-Za-z0-9._@-]+$/, "اسم المستخدم يحتوي على حروف لاتينية وأرقام و . _ @ - فقط"),
+  email: z.string().trim().email("البريد الإلكتروني غير صالح").max(200),
+});
+
 // ============================================
 // EMPLOYEE SCHEMAS
 // ============================================
@@ -111,6 +137,11 @@ export const employeeUpdateSchema = z.object({
   contract_type: z.enum(["fixed", "indefinite"]).optional(),
   contract_start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   contract_end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  // Annual-increase eligibility data. Kept optional so partial updates cannot
+  // wipe an existing anniversary; the handler validates the values.
+  hire_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  hire_month: z.coerce.number().int().min(1).max(12).optional(),
+  sponsorship_type: z.enum(["saudi", "company_sponsored", "leased"]).optional(),
 });
 
 // ============================================
@@ -370,12 +401,29 @@ export const bonusPenaltyCreateSchema = z.object({
 export const loanCreateSchema = z.object({
   employee_id: z.coerce.number().int().positive(),
   total_amount: z.coerce.number().positive("قيمة السلفة يجب أن تكون أكبر من صفر"),
-  monthly_installment: z.coerce.number().positive("القسط الشهري يجب أن يكون أكبر من صفر"),
+  monthly_installment: z.coerce.number().positive("الخصم الشهري يجب أن يكون أكبر من صفر"),
+  deduction_start_month: z.coerce.number().int().min(1).max(12).optional().nullable(),
+  deduction_start_year: z.coerce.number().int().min(2000).max(2100).optional().nullable(),
+  deduction_months: z.coerce.number().int().min(1).max(240).optional().nullable(),
 });
 
 export const loanStatusUpdateSchema = z.object({
   status: z.enum(["active", "rejected"]),
   comments: z.string().max(500).optional(),
+});
+
+export const payrollRecalculateSchema = z.object({
+  month: z.coerce.number().int().min(1).max(12),
+  year: z.coerce.number().int().min(2000).max(2100),
+  employee_id: z.coerce.number().int().positive(),
+  // The net shown in the preview; guards against applying a stale diff.
+  expected_net: z.coerce.number().optional(),
+});
+
+export const expenseStatusUpdateSchema = z.object({
+  status: z.enum(["approved", "rejected", "pending"]),
+  note: z.string().max(500).optional(),
+  payment_status: z.enum(["unpaid", "paid"]).optional(),
 });
 
 export const leaveStatusUpdateSchema = z.object({

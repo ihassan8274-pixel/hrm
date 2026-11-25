@@ -1,0 +1,13 @@
+---
+description: بعد أي تعديل في مشروع تمكين | EMPOWER، انشر التغيير فوراً على الإنتاج بعد نسخة احتياطية للـ DB
+alwaysApply: true
+---
+
+# النشر بعد كل تعديل
+
+- أي تعديل على الكود أو الأصول أو إعدادات الخادم في هذا المستودع يُتبَع **فوراً** بالنشر إلى `https://hr.restocost.shop` عبر `scripts\deploy.cmd` (أو `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy.ps1`). لا تنتظر طلباً إضافياً للنشر.
+- قبل النشر: تأكد من نسخة احتياطية حديثة لقاعدة الإنتاج عبر `scripts/backup-before-deploy.sh`، وسجّل مسارها وSHA256. لا تنشر بدون نسخة احتياطية.
+- بعد النشر: تحقق من `/api/health` = `ok`، و`/api/ready` = `ready/database ok`، و`/m`، و`/sw.js`، ثم أبلغ بالنتيجة.
+- إذا كان التعديل يمس واجهة الجوال أو Capacitor: أعد `npx cap sync`، وابنِ APK، وحدّث `scripts\verify-apk.ps1` و`releases/`، ثم أبلغ بالمسار وSHA256.
+- تبقى قواعد الأمان سارية: لا `git commit` / `git push` / PR إلا بطلب صريح منفصل، ولا لمس لبيانات الإنتاج أو الرواتب الصفرية، والاختبارات على `payroll_test` فقط.
+- هذه القاعدة تلغي القاعدة السابقة التي كانت تشترط طلباً صريحاً للنشر.

@@ -93,6 +93,11 @@ export interface PayrollInput {
    * pays the occupational hazards rate instead. Undefined means covered.
    */
   insuranceCovered?: boolean;
+  /**
+   * Exempt the employee from the GOSI deduction. Nothing is withheld from the
+   * salary; the employer carries the employee share in addition to its own.
+   */
+  gosiExempt?: boolean;
   /** Verified income-tax exemptions for this period (إثبات إعفاء ضريبي). */
   taxExemptions?: number;
 }

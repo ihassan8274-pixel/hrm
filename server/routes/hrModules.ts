@@ -1,6 +1,8 @@
 // Route module. Registered from server/index.ts; the order there is the route order.
 import db, { logAction, createNotification } from "../config/postgres";
 import express from "express";
+import { requireOrganizationScope, organizationScope, denyEmployee } from "../middleware/organizationScope";
+import { scopeFilter } from "../lib/organization-scope";
 
 export function registerHrModules(app: express.Express) {
 
@@ -155,6 +157,162 @@ export function registerHrModules(app: express.Express) {
       VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
     `).run(policy_number, insurance_company, start_date, expiry_date, total_members || 0, total_premium || 0, cchi_approval_number || `CCHI-${Math.floor(100000 + Math.random() * 900000)}`);
     res.json({ id: info.lastInsertRowid });
+  });
+
+  // ==========================================
+  // 8b. INSURANCE CATALOG (شركات التأمين وفئات شبكة العلاج)
+  // Admin-editable options behind the employee insurance fields. Employee
+  // values are plain text by design, so a catalog rename is propagated to the
+  // existing records and a used option cannot be deleted silently.
+  // ==========================================
+
+  const isUniqueViolation = (error: unknown) =>
+    Boolean(error && typeof error === 'object' && (error as any).code === '23505');
+
+  const cleanText = (value: unknown) => String(value ?? '').trim();
+
+  app.get('/api/medical/insurance-companies', async (req, res) => {
+    const rows = await db.prepare(`
+      SELECT ic.id, ic.name, ic.is_active,
+             (SELECT COUNT(*) FROM employees e WHERE e.insurance_company = ic.name) AS employee_count,
+             (SELECT COUNT(*) FROM medical_policies mp WHERE mp.insurance_company = ic.name) AS policy_count
+      FROM insurance_companies ic
+      ORDER BY ic.id
+    `).all();
+    res.json((rows as any[]).map((row: any) => ({
+      ...row,
+      employee_count: Number(row.employee_count),
+      policy_count: Number(row.policy_count)
+    })));
+  });
+
+  app.post('/api/medical/insurance-companies', async (req, res) => {
+    const name = cleanText(req.body?.name);
+    if (!name) return res.status(400).json({ error: 'اسم شركة التأمين مطلوب' });
+    try {
+      const info = await db.prepare(
+        'INSERT INTO insurance_companies (name, is_active) VALUES (?, ?)'
+      ).run(name, req.body?.is_active === false ? false : true);
+      await logAction('create', 'insurance_company', Number(info.lastInsertRowid), `Added insurance company: ${name}`);
+      res.json({ id: info.lastInsertRowid, name });
+    } catch (error) {
+      if (isUniqueViolation(error)) return res.status(409).json({ error: 'شركة التأمين موجودة بالفعل' });
+      throw error;
+    }
+  });
+
+  app.put('/api/medical/insurance-companies/:id', async (req, res) => {
+    const id = req.params.id;
+    const name = cleanText(req.body?.name);
+    if (!name) return res.status(400).json({ error: 'اسم شركة التأمين مطلوب' });
+    const existing = await db.prepare('SELECT * FROM insurance_companies WHERE id = ?').get(id) as any;
+    if (!existing) return res.status(404).json({ error: 'شركة التأمين غير موجودة' });
+    try {
+      await db.prepare('UPDATE insurance_companies SET name = ?, is_active = ? WHERE id = ?')
+        .run(name, req.body?.is_active === false ? false : true, id);
+      if (existing.name !== name) {
+        // Keep assignments consistent: employee records and policy records
+        // carry the company name as text, so rename them with the catalog.
+        await db.prepare('UPDATE employees SET insurance_company = ? WHERE insurance_company = ?').run(name, existing.name);
+        await db.prepare('UPDATE medical_policies SET insurance_company = ? WHERE insurance_company = ?').run(name, existing.name);
+      }
+      await logAction('update', 'insurance_company', Number(id), `Renamed insurance company to: ${name}`);
+      res.json({ success: true });
+    } catch (error) {
+      if (isUniqueViolation(error)) return res.status(409).json({ error: 'شركة التأمين موجودة بالفعل' });
+      throw error;
+    }
+  });
+
+  app.delete('/api/medical/insurance-companies/:id', async (req, res) => {
+    const id = req.params.id;
+    const row = await db.prepare(`
+      SELECT ic.name,
+             (SELECT COUNT(*) FROM employees e WHERE e.insurance_company = ic.name) AS employee_count,
+             (SELECT COUNT(*) FROM medical_policies mp WHERE mp.insurance_company = ic.name) AS policy_count
+      FROM insurance_companies ic WHERE ic.id = ?
+    `).get(id) as any;
+    if (!row) return res.status(404).json({ error: 'شركة التأمين غير موجودة' });
+    if (Number(row.employee_count) > 0 || Number(row.policy_count) > 0) {
+      return res.status(409).json({
+        error: `لا يمكن حذف شركة مستخدمة: ${row.employee_count} موظف، ${row.policy_count} وثيقة. يمكن إلغاء تفعيلها بدلاً من ذلك.`
+      });
+    }
+    await db.prepare('DELETE FROM insurance_companies WHERE id = ?').run(id);
+    await logAction('delete', 'insurance_company', Number(id), `Deleted insurance company: ${row.name}`);
+    res.json({ success: true });
+  });
+
+  app.get('/api/medical/coverage-categories', async (req, res) => {
+    const rows = await db.prepare(`
+      SELECT cc.id, cc.code, cc.label_ar, cc.is_active,
+             (SELECT COUNT(*) FROM employees e WHERE e.medical_insurance_category = cc.code) AS employee_count,
+             (SELECT COUNT(*) FROM medical_policies mp WHERE mp.category = cc.code) AS policy_count
+      FROM insurance_coverage_categories cc
+      ORDER BY cc.id
+    `).all();
+    res.json((rows as any[]).map((row: any) => ({
+      ...row,
+      employee_count: Number(row.employee_count),
+      policy_count: Number(row.policy_count)
+    })));
+  });
+
+  app.post('/api/medical/coverage-categories', async (req, res) => {
+    const code = cleanText(req.body?.code);
+    const labelAr = cleanText(req.body?.label_ar);
+    if (!code || !labelAr) return res.status(400).json({ error: 'الرمز والاسم العربي مطلوبان' });
+    try {
+      const info = await db.prepare(
+        'INSERT INTO insurance_coverage_categories (code, label_ar, is_active) VALUES (?, ?, ?)'
+      ).run(code, labelAr, req.body?.is_active === false ? false : true);
+      await logAction('create', 'insurance_coverage_category', Number(info.lastInsertRowid), `Added coverage category: ${code}`);
+      res.json({ id: info.lastInsertRowid, code });
+    } catch (error) {
+      if (isUniqueViolation(error)) return res.status(409).json({ error: 'رمز الفئة موجود بالفعل' });
+      throw error;
+    }
+  });
+
+  app.put('/api/medical/coverage-categories/:id', async (req, res) => {
+    const id = req.params.id;
+    const code = cleanText(req.body?.code);
+    const labelAr = cleanText(req.body?.label_ar);
+    if (!code || !labelAr) return res.status(400).json({ error: 'الرمز والاسم العربي مطلوبان' });
+    const existing = await db.prepare('SELECT * FROM insurance_coverage_categories WHERE id = ?').get(id) as any;
+    if (!existing) return res.status(404).json({ error: 'الفئة غير موجودة' });
+    try {
+      await db.prepare('UPDATE insurance_coverage_categories SET code = ?, label_ar = ?, is_active = ? WHERE id = ?')
+        .run(code, labelAr, req.body?.is_active === false ? false : true, id);
+      if (existing.code !== code) {
+        await db.prepare('UPDATE employees SET medical_insurance_category = ? WHERE medical_insurance_category = ?').run(code, existing.code);
+        await db.prepare('UPDATE medical_policies SET category = ? WHERE category = ?').run(code, existing.code);
+      }
+      await logAction('update', 'insurance_coverage_category', Number(id), `Updated coverage category to: ${code}`);
+      res.json({ success: true });
+    } catch (error) {
+      if (isUniqueViolation(error)) return res.status(409).json({ error: 'رمز الفئة موجود بالفعل' });
+      throw error;
+    }
+  });
+
+  app.delete('/api/medical/coverage-categories/:id', async (req, res) => {
+    const id = req.params.id;
+    const row = await db.prepare(`
+      SELECT cc.code,
+             (SELECT COUNT(*) FROM employees e WHERE e.medical_insurance_category = cc.code) AS employee_count,
+             (SELECT COUNT(*) FROM medical_policies mp WHERE mp.category = cc.code) AS policy_count
+      FROM insurance_coverage_categories cc WHERE cc.id = ?
+    `).get(id) as any;
+    if (!row) return res.status(404).json({ error: 'الفئة غير موجودة' });
+    if (Number(row.employee_count) > 0 || Number(row.policy_count) > 0) {
+      return res.status(409).json({
+        error: `لا يمكن حذف فئة مستخدمة: ${row.employee_count} موظف، ${row.policy_count} وثيقة. يمكن إلغاء تفعيلها بدلاً من ذلك.`
+      });
+    }
+    await db.prepare('DELETE FROM insurance_coverage_categories WHERE id = ?').run(id);
+    await logAction('delete', 'insurance_coverage_category', Number(id), `Deleted coverage category: ${row.code}`);
+    res.json({ success: true });
   });
 
     // ==========================================
@@ -710,6 +868,131 @@ export function registerHrModules(app: express.Express) {
     } catch (e) {
       res.status(500).json({ error: "فشل تحديث تسليم العهدة" });
     }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Training & development: the missing link between appraisal and promotion.
+  // A recommendation is a record, completion is a record, and a promotion may
+  // only cite both. Nothing here is a free-text note that can be lost.
+  // ---------------------------------------------------------------------------
+
+  app.get("/api/training/courses", requireOrganizationScope, async (_req, res) => {
+    try {
+      const rows = await db.prepare(`
+        SELECT c.*, (SELECT COUNT(*) FROM training_enrollments e WHERE e.course_id = c.id) AS enrollment_count
+        FROM training_courses c ORDER BY c.id DESC
+      `).all();
+      res.json(rows);
+    } catch (e) { res.status(500).json({ error: (e as Error).message }); }
+  });
+
+  app.post("/api/training/courses", requireOrganizationScope, async (req, res) => {
+    try {
+      const { title, description, category, duration_hours, target_position, status } = req.body || {};
+      if (!title || !String(title).trim()) return res.status(400).json({ error: "عنوان الدورة مطلوب" });
+      const info = await db.prepare(`
+        INSERT INTO training_courses (title, description, category, duration_hours, target_position, status, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(String(title).trim(), description || null, category || null, Number(duration_hours) || 0,
+        target_position || null, status || 'active', (req as any).user?.username || 'system');
+      await logAction('create', 'training_course', Number(info.lastInsertRowid), `دورة تدريبية: ${title}`);
+      res.json({ id: Number(info.lastInsertRowid), success: true });
+    } catch (e) { res.status(500).json({ error: (e as Error).message }); }
+  });
+
+  app.get("/api/training/enrollments", requireOrganizationScope, async (req, res) => {
+    try {
+      const scope = organizationScope(res);
+      const employeeId = req.query.employee_id;
+      const status = req.query.status;
+      const rows = await db.prepare(`
+        SELECT t.*, e.name AS employee_name, e.position, c.title AS course_title, c.target_position,
+               a.rating AS appraisal_rating, a.period AS appraisal_period
+        FROM training_enrollments t
+        JOIN employees e ON t.employee_id = e.id
+        LEFT JOIN training_courses c ON t.course_id = c.id
+        LEFT JOIN appraisals a ON t.appraisal_id = a.id
+        WHERE (? IS NULL OR t.employee_id = ?) AND (? IS NULL OR t.status = ?)
+          AND (? IS NULL OR e.entity_id = ?) AND (? IS NULL OR e.branch_id = ?) AND (? IS NULL OR e.id = ?)
+        ORDER BY t.id DESC
+      `).all(employeeId || null, employeeId || null, status || null, status || null, ...scopeFilter(scope));
+      res.json(rows);
+    } catch (e) { res.status(500).json({ error: (e as Error).message }); }
+  });
+
+  app.post("/api/training/enrollments", requireOrganizationScope, async (req, res) => {
+    try {
+      const { employee_id, course_id, appraisal_id, source } = req.body || {};
+      if (!employee_id) return res.status(400).json({ error: "الموظف مطلوب" });
+      const scope = organizationScope(res);
+      if (await denyEmployee(res, scope, Number(employee_id))) return;
+      if (course_id) {
+        const course = await db.prepare("SELECT id FROM training_courses WHERE id = ? AND status = 'active'").get(course_id);
+        if (!course) return res.status(404).json({ error: "الدورة غير موجودة أو غير نشطة" });
+      }
+      const info = await db.prepare(`
+        INSERT INTO training_enrollments (employee_id, course_id, appraisal_id, source, status, created_by)
+        VALUES (?, ?, ?, ?, 'recommended', ?)
+      `).run(employee_id, course_id || null, appraisal_id || null, source || 'manual', (req as any).user?.username || 'system');
+      await logAction('create', 'training_enrollment', Number(info.lastInsertRowid), `تسجيل تدريبي للموظف ${employee_id}`);
+      res.json({ id: Number(info.lastInsertRowid), success: true });
+    } catch (e) { res.status(500).json({ error: (e as Error).message }); }
+  });
+
+  app.post("/api/training/enrollments/:id/complete", requireOrganizationScope, async (req, res) => {
+    try {
+      const { score, certificate_number, completed_at } = req.body || {};
+      const enrollment = await db.prepare(`
+        SELECT t.*, e.entity_id, e.branch_id FROM training_enrollments t
+        JOIN employees e ON t.employee_id = e.id WHERE t.id = ?
+      `).get(req.params.id) as any;
+      if (!enrollment) return res.status(404).json({ error: "التسجيل غير موجود" });
+      const scope = organizationScope(res);
+      if (await denyEmployee(res, scope, Number(enrollment.employee_id))) return;
+      const certificate = String(certificate_number || '').trim();
+      if (!certificate) return res.status(400).json({ error: "رقم الشهادة مطلوب — لا يُكمل تدريب بلا شهادة موثقة" });
+      await db.prepare(`
+        UPDATE training_enrollments
+        SET status = 'completed', score = ?, completed_at = ?, certificate_number = ?
+        WHERE id = ?
+      `).run(score == null ? null : Number(score), completed_at || new Date().toISOString().split('T')[0], certificate, req.params.id);
+      await logAction('update', 'training_enrollment', Number(req.params.id), `إكمال تدريب بشهادة ${certificate}`);
+      res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: (e as Error).message }); }
+  });
+
+  // Low appraisals create real enrollments, not a reminder the operator can ignore.
+  app.post("/api/training/recommend-from-appraisal", requireOrganizationScope, async (req, res) => {
+    try {
+      const scope = organizationScope(res);
+      const { threshold, course_id } = req.body || {};
+      const limit = Number.isFinite(Number(threshold)) ? Number(threshold) : 3;
+      const courses = await db.prepare("SELECT id, target_position FROM training_courses WHERE status = 'active'").all() as any[];
+      const appraisals = await db.prepare(`
+        SELECT a.*, e.name AS employee_name, e.position, e.entity_id, e.branch_id
+        FROM appraisals a JOIN employees e ON a.employee_id = e.id
+        WHERE a.rating < ?
+          AND (? IS NULL OR e.entity_id = ?) AND (? IS NULL OR e.branch_id = ?) AND (? IS NULL OR e.id = ?)
+      `).all(limit, ...scopeFilter(scope)) as any[];
+      const created: any[] = [];
+      for (const a of appraisals) {
+        if (await denyEmployee(res, scope, Number(a.employee_id))) return;
+        const existing = await db.prepare(`
+          SELECT id FROM training_enrollments WHERE employee_id = ? AND appraisal_id = ? AND status IN ('recommended','enrolled','completed')
+        `).get(a.employee_id, a.id);
+        if (existing) continue;
+        const course = course_id
+          ? courses.find((c) => Number(c.id) === Number(course_id))
+          : courses.find((c) => a.position && c.target_position === a.position) || courses[0];
+        const info = await db.prepare(`
+          INSERT INTO training_enrollments (employee_id, course_id, appraisal_id, source, status, created_by)
+          VALUES (?, ?, ?, 'appraisal', 'recommended', ?)
+        `).run(a.employee_id, course?.id || null, a.id, (req as any).user?.username || 'system');
+        created.push({ id: Number(info.lastInsertRowid), employee_id: a.employee_id, employee_name: a.employee_name, rating: a.rating });
+      }
+      await logAction('create', 'training_enrollment', null, `توليد ${created.length} توصية تدريب من تقييمات الأداء`);
+      res.json({ created: created.length, enrollments: created });
+    } catch (e) { res.status(500).json({ error: (e as Error).message }); }
   });
 
 }

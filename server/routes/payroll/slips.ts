@@ -7,6 +7,7 @@ import { SalaryStructureEngine } from "../../lib/payroll/SalaryStructureEngine";
 import { validateBody, payrollCalculateSlipSchema, payrollSaveSlipSchema } from "../../middleware/validation";
 import { workingDaysInMonth } from "../../../src/lib/payroll/working-days";
 import { workTimeForEntity } from "../../lib/country-rules";
+import { resolveOvertimeHours } from "../../lib/payroll/overtime-source";
 
 /**
  * Salary slips (قسائم الرواتب).
@@ -58,6 +59,11 @@ export function registerSalarySlips(app: express.Express) {
       const periodWorkingDays = workingDaysInMonth(Number(month), Number(year), workTime);
       const absentDays = Number(attendance.absence_days) || 0;
 
+      // An approved overtime record already books its pay as a bonus. Counting
+      // attendance hours again would pay the same work twice, so this resolver
+      // is the single source used here and by period generation.
+      const overtime = await resolveOvertimeHours(db, Number(employee_id), Number(month), Number(year), attendance.overtime_hours);
+
       // إعداد السياق
       const context = {
         employee,
@@ -67,7 +73,7 @@ export function registerSalarySlips(app: express.Express) {
           working_days: Math.max(0, periodWorkingDays - absentDays),
           payment_days: Math.max(0, periodWorkingDays - absentDays),
           absent_days: absentDays,
-          overtime_hours: Number(attendance.overtime_hours) || 0,
+          overtime_hours: overtime.hours,
           late_minutes: 0,
         },
         leaves: { unpaid_days: Number(leaves.unpaid_days) || 0, paid_days: 0 },

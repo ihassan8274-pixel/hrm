@@ -1,12 +1,16 @@
 # Table coverage
 
-Tables: 108 · writable with a minimal row: 25 · written by the application: 81 · never written by the application: 7
+Tables: 116 · writable with a minimal row: 25 · written by the application: 89 · never written by the application: 7
 
 | table | written by the app | outcome | detail |
 |---|---|---|---|
 | additional_salaries | yes | needs a realistic row | insert or update on table "additional_salaries" violates foreign key constraint "additional_salaries_employee_id_fkey" |
 | alerts_expiries | no | needs a realistic row | insert or update on table "alerts_expiries" violates foreign key constraint "alerts_expiries_employee_id_fkey" |
 | allowance_types | yes | writable |  |
+| annual_increase_approvals | yes | needs a realistic row | new row for relation "annual_increase_approvals" violates check constraint "annual_increase_approvals_action_check" |
+| annual_increase_decisions | yes | needs a realistic row | insert or update on table "annual_increase_decisions" violates foreign key constraint "annual_increase_decisions_employee_id_fkey" |
+| annual_review_reminders | yes | needs a realistic row | insert or update on table "annual_review_reminders" violates foreign key constraint "annual_review_reminders_employee_id_fkey" |
+| annual_reviews | yes | needs a realistic row | insert or update on table "annual_reviews" violates foreign key constraint "annual_reviews_employee_id_fkey" |
 | appraisals | yes | needs a realistic row | insert or update on table "appraisals" violates foreign key constraint "appraisals_employee_id_fkey" |
 | approval_requests | yes | needs a realistic row | insert or update on table "approval_requests" violates foreign key constraint "approval_requests_workflow_id_fkey" |
 | approval_workflow_steps | no | needs a realistic row | insert or update on table "approval_workflow_steps" violates foreign key constraint "approval_workflow_steps_workflow_id_fkey" |
@@ -58,6 +62,8 @@ Tables: 108 · writable with a minimal row: 25 · written by the application: 81
 | hr_generated_letters | yes | needs a realistic row | insert or update on table "hr_generated_letters" violates foreign key constraint "hr_generated_letters_employee_id_fkey" |
 | hse_inspections | yes | needs a realistic row | insert or update on table "hse_inspections" violates foreign key constraint "hse_inspections_branch_id_fkey" |
 | hse_ppe_logs | yes | needs a realistic row | insert or update on table "hse_ppe_logs" violates foreign key constraint "hse_ppe_logs_employee_id_fkey" |
+| insurance_companies | yes | needs a realistic row | duplicate key value violates unique constraint "insurance_companies_pkey" |
+| insurance_coverage_categories | yes | needs a realistic row | duplicate key value violates unique constraint "insurance_coverage_categories_pkey" |
 | insurance_endorsements | yes | writable |  |
 | job_openings | yes | writable |  |
 | kiosk_security_logs | yes | needs a realistic row | insert or update on table "kiosk_security_logs" violates foreign key constraint "kiosk_security_logs_device_id_fkey" |
@@ -70,6 +76,7 @@ Tables: 108 · writable with a minimal row: 25 · written by the application: 81
 | official_warnings | yes | needs a realistic row | insert or update on table "official_warnings" violates foreign key constraint "official_warnings_employee_id_fkey" |
 | overtime | no | needs a realistic row | insert or update on table "overtime" violates foreign key constraint "overtime_employee_id_fkey" |
 | overtime_records | yes | needs a realistic row | insert or update on table "overtime_records" violates foreign key constraint "overtime_records_employee_id_fkey" |
+| password_reset_requests | yes | needs a realistic row | insert or update on table "password_reset_requests" violates foreign key constraint "password_reset_requests_user_id_fkey" |
 | payroll | yes | needs a realistic row | insert or update on table "payroll" violates foreign key constraint "payroll_employee_id_fkey" |
 | payroll_corrections | yes | needs a realistic row | insert or update on table "payroll_corrections" violates foreign key constraint "payroll_corrections_employee_id_fkey" |
 | peer_kudos | yes | writable |  |
@@ -96,6 +103,7 @@ Tables: 108 · writable with a minimal row: 25 · written by the application: 81
 | schema_migrations | yes | writable |  |
 | sessions | yes | needs a realistic row | insert or update on table "sessions" violates foreign key constraint "sessions_user_id_fkey" |
 | settings | yes | writable |  |
+| signup_requests | yes | needs a realistic row | insert or update on table "signup_requests" violates foreign key constraint "signup_requests_reviewed_by_fkey" |
 | smart_assets | yes | needs a realistic row | insert or update on table "smart_assets" violates foreign key constraint "smart_assets_current_assigned_to_fkey" |
 | succession_plans | yes | writable |  |
 | survey_responses | no | needs a realistic row | insert or update on table "survey_responses" violates foreign key constraint "survey_responses_survey_id_fkey" |

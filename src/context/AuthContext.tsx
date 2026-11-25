@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { clearLastActivity } from '../lib/sessionIdle';
+import { clearSession, getAuthToken, getAuthUser, setSession, updateAuthUser } from '../lib/nativeSession';
 
 interface User {
   id: number;
@@ -34,26 +36,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('auth_token');
-    const storedUser = localStorage.getItem('auth_user');
-
-    if (storedToken && storedUser) {
-      try {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      } catch {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth_user');
-      }
-      setIsLoading(false);
-      return;
-    }
-
-    // No local session: if this deployment sits behind Cloudflare Access, the
-    // browser already carries its assertion and can be signed in without a
-    // password. Any refusal falls through to the ordinary password form.
     let cancelled = false;
     (async () => {
+      const [storedToken, storedUser] = await Promise.all([getAuthToken(), getAuthUser()]);
+      if (cancelled) return;
+
+      if (storedToken && storedUser) {
+        setToken(storedToken);
+        setUser(storedUser);
+        setIsLoading(false);
+        return;
+      }
+      if (storedToken && !storedUser) await clearSession();
+
+      // No local session: if this deployment sits behind Cloudflare Access, the
+      // browser already carries its assertion and can be signed in without a
+      // password. Any refusal falls through to the ordinary password form.
       try {
         const configResponse = await fetch('/api/auth/sso-config');
         if (configResponse.ok && (await configResponse.json()).enabled) {
@@ -63,8 +61,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (!cancelled) {
               setToken(data.token);
               setUser(data.user);
-              localStorage.setItem('auth_token', data.token);
-              localStorage.setItem('auth_user', JSON.stringify(data.user));
+              await setSession(data.token, data.user);
             }
           }
         }
@@ -76,19 +73,45 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => { cancelled = true; };
   }, []);
 
+  // main.tsx inspects every /api response and emits these events when the token is
+  // no longer usable. Clearing the cached user here makes App render the login
+  // (or password-change) screen instead of a sidebar full of dead shortcuts.
+  useEffect(() => {
+    const onSessionExpired = () => {
+      setToken(null);
+      setUser(null);
+      void clearSession();
+      clearLastActivity();
+    };
+    const onPasswordChangeRequired = () => {
+      setUser((current) => {
+        if (!current) return current;
+        const next = { ...current, must_change_password: true };
+        void updateAuthUser({ must_change_password: true });
+        return next;
+      });
+    };
+    window.addEventListener('auth:session-expired', onSessionExpired);
+    window.addEventListener('auth:password-change-required', onPasswordChangeRequired);
+    return () => {
+      window.removeEventListener('auth:session-expired', onSessionExpired);
+      window.removeEventListener('auth:password-change-required', onPasswordChangeRequired);
+    };
+  }, []);
+
   const login = (newToken: string, newUser: User) => {
     setToken(newToken);
     setUser(newUser);
-    localStorage.setItem('auth_token', newToken);
-    localStorage.setItem('auth_user', JSON.stringify(newUser));
+    void setSession(newToken, newUser);
   };
 
   const logout = () => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
-    
+    void clearSession();
+    // A fresh sign-in must always start a new 15-minute idle window.
+    clearLastActivity();
+
     fetch('/api/auth/logout', {
       method: 'POST',
       headers: {

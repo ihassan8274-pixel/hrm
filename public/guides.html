@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>أدلة التدريب | تمكين EMPOWER</title>
+<style>
+  :root{--navy:#102A56;--blue:#1769D1;--teal:#14B8B5;--bg:#F5F8FC;--line:#DCE8F5}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"IBM Plex Sans Arabic",Tahoma,Arial,sans-serif;background:var(--bg);color:var(--navy)}
+  header{background:var(--navy);color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+  header b{font-size:20px} header span{font-size:12px;opacity:.75}
+  main{max-width:1180px;margin:0 auto;padding:24px}
+  .bar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+  button{border:1px solid var(--line);background:#fff;color:var(--navy);border-radius:10px;padding:10px 14px;font:inherit;font-weight:700;cursor:pointer}
+  button.active{background:var(--blue);border-color:var(--blue);color:#fff}
+  #msg{padding:12px 16px;border-radius:10px;background:#fff;border:1px solid var(--line);margin-bottom:14px;font-size:14px}
+  #frame{width:100%;height:calc(100vh - 190px);border:1px solid var(--line);border-radius:14px;background:#fff}
+</style>
+</head>
+<body>
+<header><b>أدلة التدريب — تمكين | EMPOWER</b><span>مسار محمي · يتطلب تسجيل الدخول</span></header>
+<main>
+  <div class="bar" id="bar"></div>
+  <div id="msg">اختر دليلاً للعرض.</div>
+  <iframe id="frame" title="الدليل" hidden></iframe>
+</main>
+<script>
+const guides = [
+  ["TRAINING_INDEX.html", "الفهرس"],
+  ["TRAINING_EMPLOYEE.html", "الموظف"],
+  ["TRAINING_HR.html", "الموارد البشرية"],
+  ["TRAINING_FINANCE.html", "المالية"],
+  ["TRAINING_SETTINGS.html", "الإعدادات"],
+];
+const bar = document.getElementById('bar'), msg = document.getElementById('msg'), frame = document.getElementById('frame');
+let current = null;
+for (const [file, label] of guides) {
+  const b = document.createElement('button');
+  b.textContent = label;
+  b.onclick = () => open(file, b);
+  bar.appendChild(b);
+}
+async function open(file, button) {
+  [...bar.children].forEach(x => x.classList.remove('active'));
+  button.classList.add('active');
+  msg.textContent = 'جارٍ تحميل الدليل…';
+  const token = localStorage.getItem('auth_token');
+  if (!token) { msg.textContent = 'سجّل الدخول من الواجهة أولاً، ثم ارجع إلى هنا.'; return; }
+  try {
+    const res = await fetch('/api/guides/' + file, { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) { msg.textContent = 'تعذّر فتح الدليل: ' + res.status + ' — تحقق من صلاحيتك.'; return; }
+    const html = await res.text();
+    if (current) URL.revokeObjectURL(current);
+    current = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    frame.src = current;
+    frame.hidden = false;
+    msg.textContent = 'الدليل: ' + file;
+  } catch (e) {
+    msg.textContent = 'خطأ في التحميل: ' + (e && e.message ? e.message : e);
+  }
+}
+</script>
+</body>
+</html>

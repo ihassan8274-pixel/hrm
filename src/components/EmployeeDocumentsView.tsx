@@ -49,7 +49,9 @@ export default function EmployeeDocumentsView() {
   };
 
   const del = async (id: number) => {
-    await fetch(`/api/documents/${id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/employee-documents/${id}`, { method: 'DELETE' });
+    if (res.ok) setMessage('تم حذف الوثيقة');
+    else setMessage('تعذّر حذف الوثيقة');
     load();
   };
 

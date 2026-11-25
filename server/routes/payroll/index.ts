@@ -21,6 +21,7 @@ import { registerTaxExemptions } from "./tax";
 import { registerDepartmentBudgets } from "./budgets";
 import { registerSalaryStructures, registerSalaryComponents } from "./structures";
 import { registerSalarySlips } from "./slips";
+import { registerPayrollApproval } from "./approval";
 
 /**
  * Composition root for the payroll routes.
@@ -52,4 +53,5 @@ export function registerPayroll(app: express.Express) {
   registerSalaryStructures(app);
   registerSalaryComponents(app);
   registerSalarySlips(app);
+  registerPayrollApproval(app);
 }

@@ -7,6 +7,9 @@
 
 import db from "../config/postgres";
 import { DEFAULT_BRAND, LEGACY_VALUES } from "../../src/lib/print/brand";
+import { HR_FORM_TEMPLATES } from "./hr-form-templates";
+
+export { HR_FORM_TEMPLATES } from "./hr-form-templates";
 
 export interface BuiltInTemplate {
   template_key: string;
@@ -224,6 +227,7 @@ export const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
       "اعتباراً من {{date.today}}.\n\n" +
       "وتفضلوا بقبول فائق الاحترام والتقدير.",
   },
+  ...HR_FORM_TEMPLATES,
 ];
 
 /**

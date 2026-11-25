@@ -24,7 +24,15 @@ import { assertEmployeeWritableScope, ScopeError } from "../lib/organization-sco
 import { log } from "../lib/logger";
 
 /** التصنيفات المعروضة في واجهة المركز — تضاف إلى قائمة الفلاتر. */
-const TEMPLATE_CATEGORIES = ["letters", "certificates", "warnings", "contracts", "reports"];
+const TEMPLATE_CATEGORIES = [
+  "letters",
+  "certificates",
+  "warnings",
+  "contracts",
+  "reports",
+  "finance",
+  "forms",
+];
 
 async function loadCompanySettings(): Promise<Record<string, string>> {
   const rows = (await db.prepare("SELECT key, value FROM settings").all()) as any[];
