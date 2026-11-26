@@ -3,6 +3,7 @@ import db, { logAction } from "../config/postgres";
 import express, { type Request, type Response, type NextFunction } from "express";
 import rateLimit from "express-rate-limit";
 import { getAI } from "../services/ai";
+import { config } from "../config/env";
 import { log } from "../lib/logger";
 import { requireOrganizationScope, organizationScope } from "../middleware/organizationScope";
 import { ScopeError } from "../lib/organization-scope";
@@ -120,13 +121,19 @@ async function askAi(question: string, context: Awaited<ReturnType<typeof aggreg
     'خريطة شاشات النظام وصلاحياتها: ' + JSON.stringify(systemKnowledge()),
     'السؤال: <<<' + question + '>>>',
   ].join('\n');
-  try {
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
-    return { text: String(response.text || '').trim(), mode: 'gemini' as const };
-  } catch (error) {
-    log.error('[reports-hub] Gemini request failed:', error);
-    return { text: '', mode: 'local' as const };
+  // Model availability changes over time; never hardcode a single model name.
+  // The first successful answer wins, and a total failure falls back to the
+  // aggregate-only local answer below.
+  for (const model of config.GEMINI_MODEL.split(',').map((m) => m.trim()).filter(Boolean)) {
+    try {
+      const response = await ai.models.generateContent({ model, contents: prompt });
+      const text = String(response.text || '').trim();
+      if (text) return { text, mode: 'gemini' as const };
+    } catch (error) {
+      log.error('[reports-hub] Gemini model ' + model + ' failed:', error);
+    }
   }
+  return { text: '', mode: 'local' as const };
 }
 
 // Cost abuse guard for the external model. The global limiter also applies.

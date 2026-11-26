@@ -50,6 +50,8 @@ export const config = {
   IDLE_TIMEOUT_MS: Math.max(60_000, Number(process.env.IDLE_TIMEOUT_MS) || 15 * 60 * 1000),
   DB_PATH: process.env.DB_PATH || "payroll.db",
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
+  // Comma-separated fallbacks; availability changes, so the assistant tries each in order.
+  GEMINI_MODEL: process.env.GEMINI_MODEL || "gemini-flash-lite-latest,gemini-flash-latest,gemini-3.8-flash",
   APP_URL: process.env.APP_URL || "http://localhost:8090",
 } as const;
 
