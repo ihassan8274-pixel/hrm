@@ -51,6 +51,9 @@ git commit -m "<type>: <message>"
 git push origin main
 ```
 
+## مراقبة أخطاء الواجهة
+لا يُرسل أي خطأ إلى أي جهة خارجية افتراضياً. إذا ضُبط `VITE_ERROR_REPORT_URL` (HTTPS فقط) أثناء البناء، تُرسل لقطة مختصرة عبر `navigator.sendBeacon`، بحد أقصى 20 بلاغاً لكل تحميل صفحة، مع إخفاء `Bearer` وكلمات المرور والمفاتيح من الرسالة. في كل الأحوال يُطبع الخطأ في console، وتعرض `ErrorBoundary` شاشة تعافٍ بدل الشاشة البيضاء. لا تُضف قيمة العنوان إلى المستودع؛ اضبطها في بيئة البناء فقط.
+
 ## ملاحظات بيئية
 - الإنتاج PostgreSQL فقط مع `PGSCHEMA=payroll`، والمنفذ `8090`، وPM2 `hr-payroll` تحت `/opt/hr-payroll`.
 - استعلامات `psql` تحتاج: `export PGOPTIONS="-c search_path=${PGSCHEMA:-public}"`.
