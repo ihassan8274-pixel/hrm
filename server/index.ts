@@ -42,6 +42,7 @@ import { registerReports } from "./routes/reports";
 import { registerWorkflows } from "./routes/workflows";
 import { registerCompliance } from "./routes/compliance";
 import { registerAi } from "./routes/ai";
+import { registerReportsHub } from "./routes/reportsHub";
 import { registerHrModules } from "./routes/hrModules";
 import { registerHealthCertificates, needsHealthCert } from "./routes/healthCertificates";
 import { registerImporter } from "./routes/importer";
@@ -306,6 +307,7 @@ async function startServer() {
   registerPresence(app);
   registerSaudi(app);
   registerReports(app);
+  registerReportsHub(app);
   registerWorkflows(app);
   registerCompliance(app);
   registerAi(app);

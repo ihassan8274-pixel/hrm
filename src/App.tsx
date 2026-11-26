@@ -57,6 +57,7 @@ const LoansView = lazy(() => import('./components/LoansView'));
 const AttendanceView = lazy(() => import('./components/AttendanceView'));
 const ReportsView = lazy(() => import('./components/ReportsView'));
 const ExtendedReportsView = lazy(() => import('./components/ExtendedReportsView'));
+const ReportsHubView = lazy(() => import('./components/ReportsHubView'));
 const PresenceGateView = lazy(() => import('./components/PresenceGateView'));
 const PresencePoliciesView = lazy(() => import('./components/PresencePoliciesView'));
 const PresenceSchedulesView = lazy(() => import('./components/PresenceSchedulesView'));
@@ -696,6 +697,7 @@ function AuthenticatedApp() {
               {activeView === 'attendance' && <AttendanceView />}
               {activeView === 'reports' && <ReportsView />}
               {activeView === 'extended_reports' && <ExtendedReportsView />}
+              {activeView === 'reports_hub' && <ReportsHubView />}
               {activeView === 'presence_gate' && <PresenceGateView />}
               {activeView === 'presence_policies' && <PresencePoliciesView />}
               {activeView === 'presence_schedules' && <PresenceSchedulesView />}

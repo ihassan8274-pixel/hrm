@@ -43,6 +43,7 @@ const REGISTRARS: Array<[string, string]> = [
   ["registerPresence", "../presence"],
   ["registerSaudi", "../saudi"],
   ["registerReports", "../reports"],
+  ["registerReportsHub", "../reportsHub"],
   ["registerWorkflows", "../workflows"],
   ["registerCompliance", "../compliance"],
   ["registerAi", "../ai"],

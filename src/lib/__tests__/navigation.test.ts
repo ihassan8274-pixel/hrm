@@ -24,7 +24,7 @@ const ids = (nav: ReturnType<typeof buildNavigation>) =>
 
 describe('dynamic navigation', () => {
   it('declares every screen exactly once in one flat list', () => {
-    expect(NAV_ITEMS).toHaveLength(72);
+    expect(NAV_ITEMS).toHaveLength(73);
     expect(new Set(NAV_ITEMS.map(item => item.id)).size).toBe(NAV_ITEMS.length);
     expect(NAV_SECTIONS).toHaveLength(9);
     for (const item of NAV_ITEMS) {
@@ -35,8 +35,8 @@ describe('dynamic navigation', () => {
   it('generates all sections for a full-access role', () => {
     const nav = buildNavigation({ canOpen: allowFor('admin'), t });
     expect(nav.sections).toHaveLength(9);
-    expect(ids(nav)).toHaveLength(72);
-    expect(nav.total).toBe(72);
+    expect(ids(nav)).toHaveLength(73);
+    expect(nav.total).toBe(73);
     expect(nav.quick.map(item => item.id)).toEqual([
       'dashboard', 'employees', 'payroll', 'attendance', 'forms_center',
     ]);
@@ -77,6 +77,7 @@ describe('dynamic navigation', () => {
     const all = { canOpen: allowFor('admin'), t };
     expect(ids(buildNavigation({ ...all, query: 'EXTENDED_REPORTS' }))).toEqual(['extended_reports']);
     expect(ids(buildNavigation({ ...all, query: 'operational reports' }))).toEqual(['extended_reports']);
+    expect(ids(buildNavigation({ ...all, query: 'AI REPORTS' }))).toEqual(['reports_hub']);
     expect(ids(buildNavigation({ ...all, query: '9-box' }))).toEqual(['talent_9box']);
     expect(buildNavigation({ ...all, query: 'wps' }).quick).toEqual([]);
     const translated: NavBuildOptions['t'] = (key, fallback) =>
@@ -125,6 +126,7 @@ describe('dynamic navigation', () => {
   it('resolves a view to its section without building the navigation', () => {
     expect(navSectionTitleKeyFor('payroll')).toBe('nav.sec.payroll_finance');
     expect(navSectionTitleKeyFor('presence_gate')).toBe('nav.sec.attendance');
+    expect(navSectionTitleKeyFor('reports_hub')).toBe('nav.sec.overview');
     expect(navSectionTitleKeyFor('missing')).toBeUndefined();
   });
 

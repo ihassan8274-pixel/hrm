@@ -39,6 +39,31 @@ describe("frontend calls only registered routes", () => {
     }
   });
 
+  it("calls only registered endpoints from the reports hub", () => {
+    const view = source("src/components/ReportsHubView.tsx");
+    for (const path of [
+      "/api/reports-hub/catalog",
+      "/api/reports-hub/custom",
+      "/api/reports-hub/custom/csv",
+      "/api/reports-hub/ai/ask",
+    ]) {
+      expect(view).toContain(path);
+    }
+    // The screen never builds SQL or a server file path by itself.
+    expect(view).not.toContain("SELECT ");
+    expect(view).not.toMatch(/FROM\s+(employees|payroll|attendance_logs)/i);
+  });
+
+  it("keeps the reports hub off finance, ESS and branch manager sidebars", () => {
+    const app = source("src/App.tsx");
+    const finance = app.match(/if \(role === 'finance'\)[^\n]+/)?.[0] || "";
+    const ess = app.match(/if \(role === 'employee_ess'\)[^\n]+/)?.[0] || "";
+    const branch = app.match(/if \(role === 'branch_manager'\)[^\n]+/)?.[0] || "";
+    expect(finance).not.toContain("reports_hub");
+    expect(ess).not.toContain("reports_hub");
+    expect(branch).not.toContain("reports_hub");
+  });
+
   it("keeps the extended reports screen off ESS and branch manager sidebars", () => {
     const app = source("src/App.tsx");
     expect(app).toContain("if (role === 'admin' || role === 'hr_manager') return true;");

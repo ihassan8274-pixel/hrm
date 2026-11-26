@@ -29,7 +29,7 @@ export type View =
   | 'provisions' | 'cost_employment' | 'overtime' | 'ai_consultant'
   | 'branches' | 'insurance_catalog' | 'employees' | 'health_certificates'
   | 'import_center' | 'payroll' | 'allowances' | 'audit' | 'loans'
-  | 'attendance' | 'reports' | 'extended_reports' | 'presence_gate'
+  | 'attendance' | 'reports' | 'extended_reports' | 'reports_hub' | 'presence_gate'
   | 'presence_policies' | 'presence_schedules' | 'presence_exits'
   | 'presence_reports' | 'presence_violations' | 'presence_drift'
   | 'departments' | 'bonuses' | 'leaves' | 'assets' | 'documents'
@@ -86,6 +86,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'reports', section: 'overview', key: 'nav.reports', defaultLabel: 'التقارير والتحليلات', icon: TrendingUp },
   { id: 'extended_reports', section: 'overview', key: 'nav.extended_reports', defaultLabel: 'التقارير التشغيلية المتقدمة', icon: FileText, aliases: ['operational reports'] },
   { id: 'consolidated_reports', section: 'overview', key: 'nav.consolidated_reports', defaultLabel: 'التقارير المجمعة بين الفروع', icon: Network },
+  { id: 'reports_hub', section: 'overview', key: 'nav.reports_hub', defaultLabel: 'مركز التقارير والمساعد الذكي', icon: Sparkles, aliases: ['ai reports', 'تقارير ذكية'] },
   { id: 'budgeting', section: 'overview', key: 'nav.budgeting', defaultLabel: 'ميزانية الموارد وتكاليف التعيين', icon: DollarSign },
   { id: 'cost_employment', section: 'overview', key: 'nav.cost_employment', defaultLabel: 'التكلفة الشاملة (TCOE)', icon: DollarSign, aliases: ['tc oe'] },
   { id: 'provisions', section: 'overview', key: 'nav.provisions', defaultLabel: 'المخصصات (IAS 19)', icon: Calculator, aliases: ['ias'] },

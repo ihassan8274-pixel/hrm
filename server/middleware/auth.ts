@@ -439,6 +439,13 @@ export const ROUTE_PERMISSIONS: Array<{ method: string; pattern: RegExp; perm: s
   { method: "POST", pattern: /^\/api\/alerts\/send-reminder$/, perm: PERM.ALERTS_MANAGE },
   // AI studio screens: admin, hr_manager (LaborLawAiConsultantView.tsx:50)
   { method: "POST", pattern: /^\/api\/ai\/labor-law-consultant$/, perm: PERM.AI_TOOLS_USE },
+  // Reports Hub: catalog, scoped custom builder and the aggregate-only AI
+  // assistant. admin/hr_manager only — finance keeps its existing six reports
+  // but does not gain a new bulk export or the external model.
+  { method: "GET", pattern: /^\/api\/reports-hub\/catalog$/, perm: PERM.AI_TOOLS_USE },
+  { method: "POST", pattern: /^\/api\/reports-hub\/custom$/, perm: PERM.AI_TOOLS_USE },
+  { method: "GET", pattern: /^\/api\/reports-hub\/custom\/csv$/, perm: PERM.AI_TOOLS_USE },
+  { method: "POST", pattern: /^\/api\/reports-hub\/ai\/ask$/, perm: PERM.AI_TOOLS_USE },
   // HR-only screens: admin, hr_manager. Each group below exists in a nav screen that neither
   // finance's nor branch_manager's allow-list contains (src/App.tsx:209-210).
   { method: "POST", pattern: /^\/api\/(appraisals|assets|clearances|disciplinary\/violations|ewa\/withdrawals|exit-interviews|flight-tickets|flexible\/shifts|grievances|hearings|promotions|smart-assets|telework\/permits|transfers|visas|warnings|work-injuries)$/, perm: PERM.HR_OPERATIONS_MANAGE },
