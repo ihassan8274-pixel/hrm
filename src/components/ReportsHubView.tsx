@@ -28,7 +28,8 @@ type Dataset = {
   filters: Field[];
   defaultFields: string[];
 };
-type Schema = { catalog: CatalogEntry[]; datasets: Dataset[] };
+type SystemModule = { navId: string; titleAr: string; sectionAr: string; descriptionAr?: string; roles: string[] };
+type Schema = { catalog: CatalogEntry[]; datasets: Dataset[]; system?: SystemModule[] };
 type CustomReport = {
   dataset: string;
   columns: Array<{ key: string; labelAr: string; type: string }>;
@@ -40,6 +41,7 @@ type CustomReport = {
 type AiReply = {
   answer: string;
   suggested_reports: CatalogEntry[];
+  related_screens: SystemModule[];
   aggregates: Record<string, unknown>;
   mode: 'gemini' | 'local';
   generated_at: string;
@@ -464,6 +466,20 @@ export default function ReportsHubView() {
                             >
                               {entry.titleAr}
                             </button>
+                          ))}
+                        </div>
+                      )}
+                      {(message.reply.related_screens ?? []).length > 0 && (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400">شاشات ذات صلة:</span>
+                          {message.reply.related_screens.map((screen) => (
+                            <span
+                              key={screen.navId}
+                              className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                              title={screen.sectionAr + ' — ' + screen.roles.join(' / ')}
+                            >
+                              {screen.titleAr}
+                            </span>
                           ))}
                         </div>
                       )}

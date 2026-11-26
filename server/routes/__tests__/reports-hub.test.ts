@@ -57,6 +57,15 @@ describe('reports hub catalog and builder', () => {
     expect(report.rows).toEqual([[7, 'اسم`']]);
   });
 
+  it('describes system screens without leaking database details', async () => {
+    const { SYSTEM_MODULES, matchingScreens, systemKnowledge } = await import('../../lib/system-knowledge');
+    expect(SYSTEM_MODULES.length).toBeGreaterThan(15);
+    expect(new Set(SYSTEM_MODULES.map((m) => m.navId)).size).toBe(SYSTEM_MODULES.length);
+    expect(JSON.stringify(systemKnowledge())).not.toMatch(/entity_id|branch_id|SELECT\b/i);
+    expect(matchingScreens('بوابة التواجد').map((m) => m.navId)).toContain('presence_gate');
+    expect(matchingScreens('الرواتب').map((m) => m.navId)).toContain('payroll');
+  });
+
   it('has a nonempty catalog for every registered report group', () => {
     const groups = new Set(REPORT_CATALOG.map((entry) => entry.group));
     expect([...groups].sort()).toEqual(['consolidated', 'operational', 'salary']);

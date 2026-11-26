@@ -49,6 +49,7 @@ describe("frontend calls only registered routes", () => {
     ]) {
       expect(view).toContain(path);
     }
+    expect(view).toContain('related_screens');
     // The screen never builds SQL or a server file path by itself.
     expect(view).not.toContain("SELECT ");
     expect(view).not.toMatch(/FROM\s+(employees|payroll|attendance_logs)/i);

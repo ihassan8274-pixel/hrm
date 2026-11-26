@@ -10,6 +10,7 @@ import {
   CUSTOM_DATASETS, REPORT_CATALOG, buildCustomReport, reportsSchema, validateBuilderSpec,
 } from "../lib/report-catalog";
 import { csvDocument } from "../lib/csv";
+import { matchingScreens, systemKnowledge } from "../lib/system-knowledge";
 
 /**
  * Reports Hub: a report catalog, an allowlisted custom builder and an AI
@@ -116,6 +117,7 @@ async function askAi(question: string, context: Awaited<ReturnType<typeof aggreg
     'إذا طلب المستخدم تقريرًا غير موجود في الدليل، اكتبه كـ«تقرير نصي (مسودة غير رسمية)» من البيانات المجمّعة فقط، ثم حدّد أي تقرير معتمد من الدليل يمكنه إنتاج ملف رسمي.',
     'البيانات المجمّعة: ' + JSON.stringify(context),
     'دليل التقارير ومخطط الحقول: ' + JSON.stringify(reportsSchema()),
+    'خريطة شاشات النظام وصلاحياتها: ' + JSON.stringify(systemKnowledge()),
     'السؤال: <<<' + question + '>>>',
   ].join('\n');
   try {
@@ -140,7 +142,7 @@ export function registerReportsHub(app: express.Express) {
 
   // Metadata only. No tenant data, no row counts — safe to serve from schema.
   app.get('/api/reports-hub/catalog', (_req: Request, res: Response) => {
-    res.json(reportsSchema());
+    res.json({ ...reportsSchema(), system: systemKnowledge() });
   });
 
   // Scoped custom report preview. Every identifier comes from the allowlist in
@@ -199,6 +201,7 @@ export function registerReportsHub(app: express.Express) {
       res.json({
         answer: finalText,
         suggested_reports: matched,
+        related_screens: matchingScreens(question),
         aggregates: context,
         available_datasets: CUSTOM_DATASETS.map((d) => ({ key: d.key, labelAr: d.labelAr })),
         mode: answer.mode,
