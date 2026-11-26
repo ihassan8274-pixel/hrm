@@ -291,7 +291,7 @@ export function registerAi(app: express.Express) {
       VALUES (?, ?, ?, ?, ?)
     `, letterId, employee_id, resolvedType, title, generatedContent);
     await logAction('create', 'hr_letter', Number(employee_id), `Generated HR Letter ${letterId} (${title})`);
-    await createNotification('توليد قرار وخطاب إداري', `تم إنشاء الخطاب الإداري ${title} للموظف ${emp.name}`, 'success');
+    await createNotification('توليد قرار وخطاب إداري', `تم إنشاء الخطاب الإداري ${title} للموظف ${emp.name}`, 'success', { employeeId: Number(employee_id) });
     res.json({
       letter_id: letterId,
       title,

@@ -217,7 +217,7 @@ export function registerAnnualCycle(app: express.Express) {
       await db.prepare("UPDATE annual_review_reminders SET status='completed' WHERE employee_id=? AND cycle_year=?")
         .run(employeeId, year);
       await logAction("upsert", "annual_review", Number(saved?.id || employeeId), `تقييم ${year}: ${total}/25 — ${rating}`);
-      await createNotification("اكتمل التقييم السنوي", `تم حفظ تقييم ${year} بدرجة ${total}/25 (${rating})`, "success");
+      await createNotification("اكتمل التقييم السنوي", `تم حفظ تقييم ${year} بدرجة ${total}/25 (${rating})`, "success", { employeeId: Number(employeeId) });
       res.json({ id: saved?.id, total, rating });
     } catch (e) { res.status(500).json({ error: (e as Error).message }); }
   });
@@ -362,7 +362,8 @@ export function registerAnnualCycle(app: express.Express) {
         await db.prepare("UPDATE employees SET basic_salary = ? WHERE id = ?")
           .run(Number(decision.new_salary), Number(decision.employee_id));
         await createNotification("اعتماد زيادة سنوية",
-          `تم اعتماد زيادة ${decision.cycle_year} وتحديث راتب الموظف رقم ${decision.employee_id} إلى ${decision.new_salary} ر.س`, "success");
+          `تم اعتماد زيادة ${decision.cycle_year} وتحديث راتب الموظف رقم ${decision.employee_id} إلى ${decision.new_salary} ر.س`, "success",
+          { employeeId: Number(decision.employee_id) });
       }
       await db.prepare("UPDATE annual_increase_decisions SET status=?, current_step=?, updated_at=CURRENT_TIMESTAMP WHERE id=?")
         .run(status, nextStep, id);

@@ -45,11 +45,20 @@ describe("mobile PWA shell", () => {
       "/api/payroll",
       "/api/annual/me",
       "/api/workflow-requests",
+      "/api/presence/me",
+      "/api/presence/gate",
+      "/api/presence/recheck",
+      "/api/presence/checkout",
+      "/api/presence/exit-request",
     ]) {
       expect(component).toContain(route);
     }
     expect(component).not.toContain("/api/mobile/");
     expect(component).not.toContain("employee_id: sessionEmployeeId");
+    // Permit renewal is one sample at expiry, never continuous tracking.
+    expect(component).not.toContain("geolocation.watchPosition");
+    expect(component).toContain("presenceRecheckDelay(");
+    expect(component).toContain("samplePresenceOnce()");
   });
 
   it("wraps the native build in a biometric lock instead of duplicating auth logic", () => {

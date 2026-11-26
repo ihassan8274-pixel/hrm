@@ -65,7 +65,7 @@ export function registerQuickRenew(app: express.Express) {
         reference_number || `POL-${Date.now().toString().slice(-6)}`, emp.medical_insurance_expiry, newMedExpiry, notes || 'تجديد وثيقة التأمين الطبي'
       ));
     }
-    await createNotification('تم التجديد بنجاح', `تم تجديد المعاملة بنجاح للموظف ${emp.name}`, 'success');
+    await createNotification('تم التجديد بنجاح', `تم تجديد المعاملة بنجاح للموظف ${emp.name}`, 'success', { employeeId: Number(employee_id) });
     await logAction('renew', 'compliance', employee_id, `Renewed ${type} for employee ${emp.name}`);
     res.json({ success: true });
   });

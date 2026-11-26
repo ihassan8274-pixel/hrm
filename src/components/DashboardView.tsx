@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Users, Building2, BadgeDollarSign, TrendingUp, History, ShieldCheck, Activity, PieChart as PieChartIcon, BarChart as BarChartIcon } from 'lucide-react';
+import { Users, Building2, BadgeDollarSign, TrendingUp, PieChart as PieChartIcon, BarChart as BarChartIcon } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import type { Stats, AuditLog } from '../types';
+import type { Stats } from '../types';
 import { getCurrencySymbol } from '../utils/currency';
-import { apiGet, safeArray } from '../lib/api';
+import { apiGet } from '../lib/api';
 
 interface ExtendedStats extends Stats {
   payrollByDept: { name: string, value: number }[];
@@ -24,7 +24,6 @@ function DashboardView() {
     totalMonthlyPayroll: 0,
     payrollByDept: []
   });
-  const [logs, setLogs] = useState<AuditLog[]>([]);
   const [currency, setCurrency] = useState('SAR');
   const [loading, setLoading] = useState(true);
 
@@ -34,10 +33,11 @@ function DashboardView() {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [settingsRes, statsRes, logsRes] = await Promise.allSettled([
+        // The dashboard never reads the audit feed: recent system operations
+        // stay in the audit screen, which is permission-gated on the server.
+        const [settingsRes, statsRes] = await Promise.allSettled([
           apiGet('/api/settings'),
-          apiGet('/api/stats'),
-          apiGet('/api/audit-logs')
+          apiGet('/api/stats')
         ]);
 
         if (!mounted) return;
@@ -48,13 +48,6 @@ function DashboardView() {
 
         if (statsRes.status === 'fulfilled' && statsRes.value) {
           setStats(statsRes.value);
-        }
-
-        if (logsRes.status === 'fulfilled') {
-          const logsData = logsRes.value;
-          if (Array.isArray(logsData)) {
-            setLogs(logsData.slice(0, 5));
-          }
         }
       } catch (err) {
         console.error("Dashboard load error:", err);
@@ -218,42 +211,6 @@ function DashboardView() {
         </div>
       </div>
 
-      <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-        <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-          <Activity className="w-5 h-5 text-brand-500" />
-          آخر العمليات في النظام
-        </h3>
-        <div className="space-y-4">
-          {safeArray<AuditLog>(logs).map((log) => (
-            <div key={log.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-slate-100/50 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs ${
-                  log.action === 'create' ? 'bg-emerald-100 text-emerald-600' :
-                  log.action === 'update' ? 'bg-brand-100 text-brand-600' :
-                  'bg-slate-100 text-slate-600'
-                }`}>
-                  {log.action.slice(0, 3).toUpperCase()}
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-800">{log.details}</p>
-                  <p className="text-[10px] text-slate-400 font-medium">
-                    {new Date(log.created_at).toLocaleString('ar-EG')} • {log.entity_type}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-[10px] font-bold text-slate-400">{log.created_by}</span>
-              </div>
-            </div>
-          ))}
-          {logs.length === 0 && (
-            <div className="py-10 text-center text-slate-400">
-              <ShieldCheck className="w-8 h-8 mx-auto mb-2 opacity-10" />
-              <p className="text-sm">لا توجد سجلات حالياً</p>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

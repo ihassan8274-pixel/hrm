@@ -1,66 +1,26 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
-import { 
-  Users, 
-  Building2, 
-  LayoutDashboard, 
-  BadgeDollarSign, 
-  Menu, 
+import {
+  Users,
   X,
-  Plus,
-  Trash2,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
   Search,
-  History,
-  ShieldCheck,
-  HandCoins,
   Settings,
-  Landmark,
-  Clock,
-  Star,
-  Wallet,
-  FileText,
-  User,
-  Briefcase,
-  Receipt,
-  GraduationCap,
-  TrendingUp,
-  Target,
-  ClipboardList,
-  Scale,
-  Plane,
-  Calculator,
-  DollarSign,
   Sparkles,
-  HeartPulse,
-  FileSpreadsheet,
-  Stethoscope,
-  ShieldAlert,
-  UserCheck,
-  Car,
-  FileCheck2,
-  Layers,
-  Laptop,
-  TrendingDown,
-  Award,
-  HardHat,
-  GitPullRequest,
-  Network,
-  UserMinus,
-  Bot,
-  MessageSquare,
   Printer,
   Database,
-  Globe,
   Bell,
-  UserCog,
   Sun,
   Moon,
   LogOut
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import type { Branch, Employee, PayrollRecord, Stats, AppSettings } from './types';
+import {
+  buildNavigation, defaultCollapsedSections, navSectionTitleKeyFor,
+  openNavSection, toggleNavSection, type View,
+} from './lib/navigation';
 import { useLanguage } from './context/LanguageContext';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 // Modals are opened on demand. Keeping these eager would drag the ~594KB
@@ -97,6 +57,12 @@ const LoansView = lazy(() => import('./components/LoansView'));
 const AttendanceView = lazy(() => import('./components/AttendanceView'));
 const ReportsView = lazy(() => import('./components/ReportsView'));
 const ExtendedReportsView = lazy(() => import('./components/ExtendedReportsView'));
+const PresenceGateView = lazy(() => import('./components/PresenceGateView'));
+const PresencePoliciesView = lazy(() => import('./components/PresencePoliciesView'));
+const PresenceSchedulesView = lazy(() => import('./components/PresenceSchedulesView'));
+const PresenceExitRequestsView = lazy(() => import('./components/PresenceExitRequestsView'));
+const PresenceReportsView = lazy(() => import('./components/PresenceReportsView'));
+const PresenceDriftView = lazy(() => import('./components/PresenceDriftView'));
 const LeavesView = lazy(() => import('./components/LeavesView'));
 const AssetsView = lazy(() => import('./components/AssetsView'));
 const DocumentsView = lazy(() => import('./components/DocumentsView'));
@@ -150,73 +116,6 @@ const UsersView = lazy(() => import('./components/UsersView'));
 // Opened on demand from the floating launcher, so it must stay lazy too.
 const AiHrCopilotModal = lazy(() => import('./components/AiHrCopilotModal'));
 
-type View = 
-  | 'dashboard' 
-  | 'saudi' 
-  | 'executive_board'
-  | 'approval_workflows'
-  | 'grievances'
-  | 'budgeting'
-  | 'rewards_kudos'
-  | 'smart_assets'
-  | 'ewa_wellness'
-  | 'hse_safety'
-  | 'exit_interviews'
-  | 'medical'
-  | 'wps_audit'
-  | 'talent_9box'
-  | 'fleet'
-  | 'flexible_telework'
-  | 'retention_ai'
-  | 'qiwa_contracts' 
-  | 'nitaqat_sim' 
-  | 'ai_letters' 
-  | 'disciplinary' 
-  | 'clearance' 
-  | 'work_injuries' 
-  | 'visas' 
-  | 'provisions' 
-  | 'cost_employment' 
-  | 'overtime' 
-  | 'ai_consultant' 
-  | 'branches'
-  | 'insurance_catalog'
-  | 'employees'
-  | 'health_certificates'
-  | 'import_center'
-  | 'payroll'
-  | 'allowances' 
-  | 'audit' 
-  | 'loans' 
-  | 'attendance' 
-  | 'reports' 
-  | 'extended_reports'
-  | 'departments' 
-  | 'bonuses' 
-  | 'leaves' 
-  | 'assets' 
-  | 'documents'
-  | 'forms_center' 
-  | 'performance' 
-  | 'ess' 
-  | 'recruitment' 
-  | 'expenses' 
-  | 'training' 
-  | 'promotions' 
-  | 'settings' 
-  | 'tasks'
-  | 'attendance_kiosk'
-  | 'attendance_live'
-  | 'manager_inbox'
-  | 'employee_documents'
-  | 'alerts_center'
-  | 'transfers'
-  | 'salary_reports'
-  | 'consolidated_reports'
-  | 'systems_hub'
-  | 'annual_cycle'
-  | 'users';
-
 /** Shown while a lazily-loaded screen chunk is in flight. */
 function ScreenLoader() {
   return (
@@ -236,7 +135,7 @@ function AuthenticatedApp() {
   const [activeView, setActiveView] = useState<View>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.matchMedia('(min-width: 768px)').matches);
   const [navSearch, setNavSearch] = useState('');
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(defaultCollapsedSections);
   const sidebarToggle = useRef<HTMLButtonElement>(null);
   const navSearchRef = useRef<HTMLInputElement>(null);
 
@@ -346,9 +245,9 @@ function AuthenticatedApp() {
     // screen must not appear for hr_manager even though it owns every other.
     if (id === 'users') return role === 'admin';
     if (role === 'admin' || role === 'hr_manager') return true;
-    if (role === 'employee_ess') return id === 'ess';
+    if (role === 'employee_ess') return ['ess', 'presence_gate', 'presence_schedules', 'presence_exits', 'presence_reports'].includes(id);
     if (role === 'finance') return ['dashboard', 'payroll', 'wps_audit', 'loans', 'bonuses', 'expenses', 'allowances', 'reports', 'salary_reports', 'consolidated_reports', 'provisions', 'cost_employment', 'budgeting', 'annual_cycle', 'extended_reports'].includes(id);
-    if (role === 'branch_manager') return ['dashboard', 'attendance', 'attendance_kiosk', 'attendance_live', 'employees', 'leaves', 'approval_workflows', 'manager_inbox', 'ess', 'alerts_center', 'forms_center', 'annual_cycle'].includes(id);
+    if (role === 'branch_manager') return ['dashboard', 'attendance', 'attendance_kiosk', 'attendance_live', 'employees', 'leaves', 'approval_workflows', 'manager_inbox', 'ess', 'alerts_center', 'forms_center', 'annual_cycle', 'presence_gate', 'presence_exits', 'presence_reports', 'presence_violations'].includes(id);
     // Fail-closed: an unrecognised role must never inherit every screen.
     return false;
   };
@@ -357,6 +256,24 @@ function AuthenticatedApp() {
   // "تصدير PDF" reads /api/saudi/compliance-summary -> saudi.compliance. finance holds that
   // permission even though the compliance screen id is not part of finance's sidebar list.
   const canExportCompliancePdf = allow('saudi') || role === 'finance';
+
+  // Hooks must run before the early returns below: auth resolves from
+  // isLoading -> user, and a hook added after a return changes the hook count
+  // between renders ("Rendered more hooks than during the previous render").
+  // Every section starts collapsed; navigating from a quick chip or an
+  // embedded screen reveals the section that owns the destination.
+  const lastViewRef = useRef<View | null>(null);
+  useEffect(() => {
+    if (lastViewRef.current === null) {
+      lastViewRef.current = activeView;
+      return;
+    }
+    if (lastViewRef.current === activeView) return;
+    lastViewRef.current = activeView;
+    if (navSearch) return;
+    const titleKey = navSectionTitleKeyFor(activeView);
+    if (titleKey) setCollapsedSections(prev => openNavSection(prev, titleKey));
+  }, [activeView, navSearch]);
 
   if (isLoading) {
     return (
@@ -387,138 +304,19 @@ function AuthenticatedApp() {
     setIsEditingSettings(false);
   };
 
-  // Specialised sections keep all 64 screens reachable without a 24-item first
-  // section. Ids, labels, icons and the allow() gate are unchanged.
-  const navSections = [
-    {
-      titleKey: 'nav.sec.overview',
-      defaultTitle: 'نظرة عامة وقيادة',
-      items: [
-        { id: 'dashboard', key: 'nav.dashboard', defaultLabel: 'لوحة التحكم العامة', icon: LayoutDashboard },
-        { id: 'executive_board', key: 'nav.executive_board', defaultLabel: 'لوحة القيادة التنفيذية ومجلس الإدارة (ROI)', icon: Award },
-        { id: 'reports', key: 'nav.reports', defaultLabel: 'التقارير والتحليلات', icon: TrendingUp },
-        { id: 'extended_reports', key: 'nav.extended_reports', defaultLabel: 'التقارير التشغيلية المتقدمة', icon: FileText },
-        { id: 'consolidated_reports', key: 'nav.consolidated_reports', defaultLabel: 'التقارير المجمعة بين الفروع', icon: Network },
-        { id: 'budgeting', key: 'nav.budgeting', defaultLabel: 'ميزانية الموارد وتكاليف التعيين', icon: DollarSign },
-        { id: 'cost_employment', key: 'nav.cost_employment', defaultLabel: 'التكلفة الشاملة (TCOE)', icon: DollarSign },
-        { id: 'provisions', key: 'nav.provisions', defaultLabel: 'المخصصات (IAS 19)', icon: Calculator },
-        { id: 'approval_workflows', key: 'nav.approval_workflows', defaultLabel: 'مسارات وسلاسل الاعتماد (Workflows)', icon: GitPullRequest },
-        { id: 'manager_inbox', key: 'nav.manager_inbox', defaultLabel: 'صندوق اعتماد المدير (جوال)', icon: UserCheck },
-      ]
-    },
-    {
-      titleKey: 'nav.sec.people',
-      defaultTitle: 'إدارة الموظفين',
-      items: [
-        { id: 'employees', key: 'nav.employees', defaultLabel: 'الموظفين والإقامات', icon: Users },
-        { id: 'employee_documents', key: 'nav.employee_documents', defaultLabel: 'ملف الموظف والوثائق', icon: FileText },
-        { id: 'departments', key: 'nav.departments', defaultLabel: 'الإدارات والأقسام', icon: Building2 },
-        { id: 'branches', key: 'nav.branches', defaultLabel: 'الفروع والمواقع', icon: Building2 },
-        { id: 'recruitment', key: 'nav.recruitment', defaultLabel: 'التوظيف (ATS)', icon: Briefcase },
-        { id: 'transfers', key: 'nav.transfers', defaultLabel: 'نقل الموظف بين الفروع', icon: GitPullRequest },
-        { id: 'leaves', key: 'nav.leaves', defaultLabel: 'الإجازات والغياب', icon: Clock },
-        { id: 'import_center', key: 'nav.import_center', defaultLabel: 'مركز الاستيراد الموحد (Excel)', icon: FileSpreadsheet },
-        { id: 'documents', key: 'nav.documents', defaultLabel: 'الأرشيف والوثائق', icon: ShieldCheck },
-        { id: 'forms_center', key: 'nav.forms_center', defaultLabel: 'مركز النماذج والطباعة', icon: Printer },
-      ]
-    },
-    {
-      titleKey: 'nav.sec.payroll_finance',
-      defaultTitle: 'الرواتب والمالية',
-      items: [
-        { id: 'payroll', key: 'nav.payroll', defaultLabel: 'مسير الرواتب (WPS)', icon: BadgeDollarSign },
-        { id: 'salary_reports', key: 'nav.salary_reports', defaultLabel: 'تقارير الرواتب', icon: TrendingUp },
-        { id: 'expenses', key: 'nav.expenses', defaultLabel: 'المطالبات المالية', icon: Receipt },
-        { id: 'loans', key: 'nav.loans', defaultLabel: 'القروض والسلف', icon: Landmark },
-        { id: 'bonuses', key: 'nav.bonuses', defaultLabel: 'المكافآت والجزاءات', icon: HandCoins },
-        { id: 'allowances', key: 'nav.allowances', defaultLabel: 'تكويد البدلات', icon: Settings },
-        { id: 'annual_cycle', key: 'nav.annual_cycle', defaultLabel: 'دورة الزيادة السنوية', icon: TrendingUp },
-        { id: 'ewa_wellness', key: 'nav.ewa_wellness', defaultLabel: 'سحب الراتب عند الطلب (EWA)', icon: Wallet },
-      ]
-    },
-    {
-      titleKey: 'nav.sec.attendance',
-      defaultTitle: 'الحضور وأوقات العمل',
-      items: [
-        { id: 'attendance', key: 'nav.attendance', defaultLabel: 'بيانات الحضور', icon: Clock },
-        { id: 'attendance_kiosk', key: 'nav.attendance_kiosk', defaultLabel: 'جهاز الحضور (Kiosk)', icon: Clock },
-        { id: 'attendance_live', key: 'nav.attendance_live', defaultLabel: 'حضور الفروع الآن', icon: Users },
-        { id: 'overtime', key: 'nav.overtime', defaultLabel: 'العمل الإضافي ورمضان', icon: Clock },
-        { id: 'flexible_telework', key: 'nav.flexible_telework', defaultLabel: 'العمل المرن والعمل عن بعد', icon: Laptop },
-        { id: 'tasks', key: 'nav.tasks', defaultLabel: 'المشاريع والمهام', icon: Target },
-      ]
-    },
-    {
-      titleKey: 'nav.sec.performance',
-      defaultTitle: 'الأداء والتطوير',
-      items: [
-        { id: 'performance', key: 'nav.performance', defaultLabel: 'تقييم الأداء', icon: Star },
-        { id: 'talent_9box', key: 'nav.talent_9box', defaultLabel: 'مصفوفة المواهب (9-Box) والتعاقب', icon: Layers },
-        { id: 'promotions', key: 'nav.promotions', defaultLabel: 'المسار الوظيفي', icon: TrendingUp },
-        { id: 'training', key: 'nav.training', defaultLabel: 'التدريب والتطوير', icon: GraduationCap },
-        { id: 'rewards_kudos', key: 'nav.rewards_kudos', defaultLabel: 'التقدير والمكافآت (Kudos & Rewards)', icon: Award },
-        { id: 'retention_ai', key: 'nav.retention_ai', defaultLabel: 'محلل مخاطر التسرب (AI Predictor)', icon: TrendingDown },
-        { id: 'exit_interviews', key: 'nav.exit_interviews', defaultLabel: 'محلل مقابلات الخروج (AI Exits)', icon: UserMinus },
-      ]
-    },
-    {
-      titleKey: 'nav.sec.compliance',
-      defaultTitle: 'الامتثال والأنظمة السعودية',
-      items: [
-        { id: 'saudi', key: 'nav.saudi', defaultLabel: 'الامتثال والأنظمة السعودية', icon: Scale },
-        { id: 'wps_audit', key: 'nav.wps_audit', defaultLabel: 'تدقيق حماية الأجور (SIF & مدد)', icon: FileCheck2 },
-        { id: 'qiwa_contracts', key: 'nav.qiwa_contracts', defaultLabel: 'عقود قوى الموحدة', icon: FileText },
-        { id: 'medical', key: 'nav.medical', defaultLabel: 'التأمين الطبي ومجلس الضمان (CCHI)', icon: HeartPulse },
-        { id: 'insurance_catalog', key: 'nav.insurance_catalog', defaultLabel: 'دليل شركات التأمين وفئات التغطية', icon: Layers },
-        { id: 'visas', key: 'nav.visas', defaultLabel: 'التأشيرات وخدمات مقيم', icon: Plane },
-        { id: 'nitaqat_sim', key: 'nav.nitaqat_sim', defaultLabel: 'محاكي نطاقات والتوطين', icon: Target },
-        { id: 'health_certificates', key: 'nav.health_certificates', defaultLabel: 'الشهادات الصحية والمتابعة (بلدي)', icon: Stethoscope },
-        { id: 'disciplinary', key: 'nav.disciplinary', defaultLabel: 'لائحة الجزاءات والتحقيق', icon: ShieldAlert },
-        { id: 'grievances', key: 'nav.grievances', defaultLabel: 'التظلمات ولجان التحقيق والإنذارات (المادة 209)', icon: Scale },
-        { id: 'work_injuries', key: 'nav.work_injuries', defaultLabel: 'إصابات العمل (GOSI)', icon: HeartPulse },
-        { id: 'clearance', key: 'nav.clearance', defaultLabel: 'إخلاء الطرف وإبراء الذمة', icon: UserCheck },
-        { id: 'hse_safety', key: 'nav.hse_safety', defaultLabel: 'الصحة والسلامة وتفتيش المنشآت (HSE)', icon: HardHat },
-      ]
-    },
-    {
-      titleKey: 'nav.sec.operations',
-      defaultTitle: 'العمليات والأدوات الذكية',
-      items: [
-        { id: 'assets', key: 'nav.assets', defaultLabel: 'الأصول والعهدة', icon: Wallet },
-        { id: 'smart_assets', key: 'nav.smart_assets', defaultLabel: 'الأصول والعهد الذكية (QR Handover)', icon: Laptop },
-        { id: 'fleet', key: 'nav.fleet', defaultLabel: 'أسطول المركبات والمخالفات', icon: Car },
-        { id: 'systems_hub', key: 'nav.systems_hub', defaultLabel: 'بوابة أنظمة معصوب حليب', icon: Layers },
-        { id: 'alerts_center', key: 'nav.alerts_center', defaultLabel: 'مركز التنبيهات', icon: Bell },
-        { id: 'ai_letters', key: 'nav.ai_letters', defaultLabel: 'استوديو الخطابات (AI)', icon: Sparkles },
-        { id: 'ai_consultant', key: 'nav.ai_consultant', defaultLabel: 'المستشار القانوني الذكي', icon: Sparkles },
-      ]
-    },
-    {
-      titleKey: 'nav.sec.ess',
-      defaultTitle: 'الخدمة الذاتية',
-      items: [
-        { id: 'ess', key: 'nav.ess', defaultLabel: 'بوابة الموظف (ESS)', icon: User },
-      ]
-    },
-    {
-      titleKey: 'nav.sec.admin',
-      defaultTitle: 'الإدارة والنظام',
-      items: [
-        { id: 'users', key: 'nav.users', defaultLabel: 'إدارة المستخدمين', icon: UserCog },
-        { id: 'audit', key: 'nav.audit', defaultLabel: 'سجل العمليات', icon: History },
-        { id: 'settings', key: 'nav.settings', defaultLabel: 'بيانات المنشأة واللوائح', icon: Settings },
-      ]
-    }
-  ];
-
-  const allNavItems = navSections.flatMap(section => section.items);
-  const quickAccess = [
-    { id: 'dashboard', key: 'nav.quick.dashboard', defaultLabel: 'لوحة التحكم' },
-    { id: 'employees', key: 'nav.quick.employees', defaultLabel: 'الموظفون' },
-    { id: 'payroll', key: 'nav.quick.payroll', defaultLabel: 'مسير الرواتب' },
-    { id: 'attendance', key: 'nav.quick.attendance', defaultLabel: 'الحضور' },
-    { id: 'forms_center', key: 'nav.quick.forms_center', defaultLabel: 'النماذج' },
-  ];
+  // Navigation is generated from one flat declaration in src/lib/navigation.ts.
+  // Visibility comes from allow() (the server-RBAC mirror), so a role never sees
+  // a screen it cannot open. Search, collapse state, labels and quick chips are
+  // all derived from that same list — there is no second copy to keep in sync.
+  const navigation = buildNavigation({
+    canOpen: allow,
+    t,
+    query: navSearch,
+    // The icon-only rail cannot show section headers, so every section is
+    // expanded there regardless of the accordion state.
+    collapsed: isSidebarOpen ? collapsedSections : {},
+  });
+  const { sections: filteredSections, quick: quickAccess } = navigation;
 
   const navigateTo = (id: View) => {
     setActiveView(id);
@@ -527,27 +325,7 @@ function AuthenticatedApp() {
   };
 
   const navQuery = navSearch.trim().toLocaleLowerCase();
-  const filteredSections = navSections
-    .map(section => ({
-      ...section,
-      items: section.items.filter(item => allow(item.id)).filter(item => {
-        if (!navQuery) return true;
-        return (
-          t(item.key, item.defaultLabel).toLocaleLowerCase().includes(navQuery) ||
-          item.defaultLabel.toLocaleLowerCase().includes(navQuery) ||
-          item.id.toLocaleLowerCase().includes(navQuery)
-        );
-      }),
-    }))
-    .filter(section => section.items.length > 0);
-
-  const currentLabel = () => {
-    for (const section of navSections) {
-      const item = section.items.find(i => i.id === activeView);
-      if (item) return t(item.key, item.defaultLabel);
-    }
-    return '';
-  };
+  const currentLabel = () => navigation.labelFor(activeView);
 
   return (
     <div className="flex h-screen bg-transparent font-sans" dir={direction}>
@@ -556,7 +334,7 @@ function AuthenticatedApp() {
       <motion.aside 
         initial={false}
         animate={{ width: isSidebarOpen ? 288 : 80 }}
-        className="text-navy-800 dark:text-slate-200 h-full transition-all duration-300 absolute start-0 top-0 md:relative z-20 flex flex-col shrink-0
+        className="text-brand-600 dark:text-brand-night h-full transition-all duration-300 absolute start-0 top-0 md:relative z-20 flex flex-col shrink-0
                    bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-e border-shell-line/80 dark:border-slate-800/80"
       >
         <div className={`flex items-center border-b border-shell-line dark:border-slate-800 shrink-0 ${isSidebarOpen ? 'p-4 justify-between' : 'p-2.5 flex-col gap-2'}`}>
@@ -572,10 +350,10 @@ function AuthenticatedApp() {
             />
             {isSidebarOpen && (
               <div className="overflow-hidden leading-tight">
-                <span className="font-sans text-[14px] font-black truncate block max-w-[180px] text-navy-900 dark:text-white" title={settings.org_name}>
-                  تمكين <span dir="ltr" className="text-brand-600">| EMPOWER</span>
+                <span className="font-sans text-[14px] font-black truncate block max-w-[180px] text-brand-600 dark:text-brand-night" title={settings.org_name}>
+                  تمكين <span dir="ltr" className="text-brand-600 dark:text-brand-night">| EMPOWER</span>
                 </span>
-                <span className="text-[9px] text-brand-600 dark:text-brand-300 font-bold block truncate max-w-[180px]">
+                <span className="text-[9px] text-brand-600 dark:text-brand-night font-bold block truncate max-w-[180px]">
                   {language === 'ar' ? 'الموارد البشرية والرواتب والامتثال' : 'Saudi HR & Compliance'}
                 </span>
               </div>
@@ -584,7 +362,7 @@ function AuthenticatedApp() {
           <button
             ref={sidebarToggle}
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 hover:bg-shell-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-slate-400 hover:text-brand-600 dark:hover:text-brand-300"
+            className="p-2 hover:bg-shell-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-brand-600 dark:text-brand-night hover:text-brand-700 dark:hover:text-white"
             aria-label={isSidebarOpen ? 'طي القائمة' : 'توسيع القائمة'}
             aria-expanded={isSidebarOpen}
             aria-controls="primary-navigation"
@@ -601,7 +379,7 @@ function AuthenticatedApp() {
           {isSidebarOpen && (
             <div className="shrink-0 space-y-3">
               <div className="relative group">
-                <Search className="w-4 h-4 absolute inset-y-0 start-3 my-auto text-slate-400 group-focus-within:text-brand-600 pointer-events-none transition-colors" />
+                <Search className="w-4 h-4 absolute inset-y-0 start-3 my-auto text-brand-600 dark:text-brand-night group-focus-within:text-brand-700 dark:group-focus-within:text-white pointer-events-none transition-colors" />
                 <input
                   ref={navSearchRef}
                   type="search"
@@ -609,25 +387,25 @@ function AuthenticatedApp() {
                   onChange={event => setNavSearch(event.target.value)}
                   placeholder={t('nav.search_placeholder', 'ابحث في القائمة...')}
                   aria-label={t('nav.search_placeholder', 'ابحث في القائمة...')}
-                  className="w-full bg-shell-50/80 dark:bg-slate-800/80 border border-shell-line dark:border-slate-700 rounded-xl py-2 ps-9 pe-8 text-[12px] font-bold text-navy-800 dark:text-slate-100 placeholder:font-normal placeholder:text-slate-400 focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-brand-400 focus:ring-4 focus:ring-brand-500/10 transition-all"
+                  className="w-full bg-shell-50/80 dark:bg-slate-800/80 border border-shell-line dark:border-slate-700 rounded-xl py-2 ps-9 pe-8 text-[12px] font-bold text-brand-600 dark:text-brand-night placeholder:font-normal placeholder:text-brand-600/60 dark:placeholder:text-brand-night/60 focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-brand-400 focus:ring-4 focus:ring-brand-500/10 transition-all"
                 />
                 {navSearch ? (
                   <button
                     type="button"
                     onClick={() => { setNavSearch(''); navSearchRef.current?.focus(); }}
                     aria-label={t('nav.clear_search', 'مسح البحث')}
-                    className="absolute inset-y-0 end-2 my-auto p-1 text-slate-400 hover:text-brand-600 transition-colors"
+                    className="absolute inset-y-0 end-2 my-auto p-1 text-brand-600 dark:text-brand-night hover:text-brand-700 dark:hover:text-white transition-colors"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
                 ) : (
-                  <kbd className="absolute inset-y-0 end-2 my-auto h-5 px-1.5 flex items-center rounded border border-shell-line dark:border-slate-700 bg-white dark:bg-slate-800 text-[9px] font-mono text-slate-400">Ctrl K</kbd>
+                  <kbd className="absolute inset-y-0 end-2 my-auto h-5 px-1.5 flex items-center rounded border border-shell-line dark:border-slate-700 bg-white dark:bg-slate-800 text-[9px] font-mono text-brand-600 dark:text-brand-night">Ctrl K</kbd>
                 )}
               </div>
 
               {!navQuery && (
                 <div>
-                  <p className="px-1 pb-2 text-[10px] font-black tracking-widest text-slate-400">
+                  <p className="px-1 pb-2 text-[10px] font-black tracking-widest text-brand-600 dark:text-brand-night">
                     {t('nav.quick_access', 'الوصول السريع')}
                   </p>
                   <div className="flex flex-wrap gap-1.5">
@@ -638,7 +416,7 @@ function AuthenticatedApp() {
                         whileHover={{ scale: 1.04 }}
                         whileTap={{ scale: 0.96 }}
                         onClick={() => navigateTo(q.id as View)}
-                        className="px-2.5 py-1 rounded-lg bg-gradient-to-br from-brand-50 to-white border border-brand-100 text-brand-700 text-[10.5px] font-bold hover:border-brand-300 hover:shadow-sm transition-colors"
+                        className="px-2.5 py-1 rounded-lg bg-gradient-to-br from-brand-50 to-white dark:from-brand-950/60 dark:to-slate-900/60 border border-brand-100 dark:border-brand-900/70 text-brand-600 dark:text-brand-night text-[10.5px] font-bold hover:border-brand-300 dark:hover:border-brand-700 hover:shadow-sm transition-colors"
                       >
                         {t(q.key, q.defaultLabel)}
                       </motion.button>
@@ -650,73 +428,98 @@ function AuthenticatedApp() {
           )}
 
           {filteredSections.map(section => {
-            const isCollapsed = !navQuery && collapsedSections[section.titleKey];
+            const isCollapsed = section.isCollapsed;
+            const isCurrent = section.items.some(item => item.id === activeView);
             return (
               <div key={section.titleKey} className="space-y-1">
                 {isSidebarOpen ? (
                   <button
                     type="button"
-                    onClick={() => setCollapsedSections(prev => ({ ...prev, [section.titleKey]: !prev[section.titleKey] }))}
+                    onClick={() => setCollapsedSections(prev => toggleNavSection(prev, section.titleKey))}
                     aria-expanded={!isCollapsed}
-                    className="group w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-shell-50 to-transparent hover:from-brand-50/70 transition-all"
+                    aria-controls={`nav-section-${section.id}`}
+                    className={`group w-full flex items-center gap-2 px-2.5 py-2 rounded-xl border transition-all duration-200 ${
+                      isCurrent && !isCollapsed
+                        ? 'border-brand-200 bg-brand-50/80 dark:border-brand-900/70 dark:bg-brand-950/40 shadow-sm'
+                        : 'border-transparent bg-shell-50/70 dark:bg-slate-800/50 hover:border-brand-100 hover:bg-brand-50/60 dark:hover:bg-slate-800'
+                    }`}
                   >
-                    <span className="flex-1 text-start text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-brand-600 transition-colors">
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${isCurrent ? 'bg-brand-500 shadow-[0_0_8px_rgba(23,105,209,0.7)]' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                    <span className={`flex-1 text-start text-[10px] font-black uppercase tracking-[0.12em] transition-colors ${
+                      isCurrent ? 'text-brand-600 dark:text-brand-night' : 'text-brand-600/80 dark:text-brand-night/80 group-hover:text-brand-700 dark:group-hover:text-white'
+                    }`}>
                       {t(section.titleKey, section.defaultTitle)}
                     </span>
-                    <span className="text-[9px] font-bold text-slate-400 bg-white dark:bg-slate-800 border border-shell-line dark:border-slate-700 rounded-full px-1.5 py-0.5">
+                    <span className="text-[9px] font-black tabular-nums text-brand-600 dark:text-brand-night bg-white/90 dark:bg-slate-900 border border-shell-line dark:border-slate-700 rounded-full px-1.5 py-0.5">
                       {section.items.length}
                     </span>
-                    <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                      isCollapsed ? (direction === 'rtl' ? 'rotate-90' : '-rotate-90') : ''
-                    }`} />
+                    <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${
+                      isCurrent ? 'text-brand-600 dark:text-brand-night' : 'text-brand-600/80 dark:text-brand-night/80'
+                    } ${isCollapsed ? (direction === 'rtl' ? 'rotate-90' : '-rotate-90') : ''}`} />
                   </button>
                 ) : (
                   <div className="mx-3 my-2 border-t border-shell-line dark:border-slate-800" />
                 )}
 
-                {!isCollapsed && section.items.map(item => {
-                  const isActive = activeView === item.id;
-                  const label = t(item.key, item.defaultLabel);
-                  return (
-                    <motion.button
-                      key={item.id}
-                      type="button"
-                      data-view={item.id}
-                      whileHover={{ scale: 1.012 }}
-                      whileTap={{ scale: 0.985 }}
-                      onClick={() => navigateTo(item.id as View)}
-                      title={!isSidebarOpen ? label : undefined}
-                      aria-label={label}
-                      aria-current={isActive ? 'page' : undefined}
-                      className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl relative overflow-hidden transition-all duration-200 ${
-                        isActive
-                          ? 'bg-gradient-to-r from-brand-50 via-brand-50/60 to-transparent dark:from-brand-950/60 dark:via-brand-900/40 text-brand-700 dark:text-brand-300 font-bold shadow-sm'
-                          : 'text-slate-600 dark:text-slate-400 hover:bg-shell-100 dark:hover:bg-slate-800 hover:text-navy-900 dark:hover:text-white'
-                      } ${isSidebarOpen ? '' : 'justify-center'}`}
+                <AnimatePresence initial={false}>
+                  {!isCollapsed && (
+                    <motion.div
+                      key="items"
+                      id={`nav-section-${section.id}`}
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      className="overflow-hidden"
                     >
-                      {isActive && (
-                        <motion.span
-                          layoutId="nav-active-indicator"
-                          className="absolute inset-y-1.5 right-0 w-[3px] rounded-l-full bg-brand-600 shadow-[0_0_10px_rgba(23,105,209,0.6)]"
-                        />
-                      )}
-                      <span className={`grid place-items-center rounded-lg transition-all duration-200 ${isActive ? 'bg-brand-100/80 p-1.5' : 'p-0'}`}>
-                        <item.icon className={`w-[18px] h-[18px] shrink-0 transition-colors ${
-                          isActive ? 'text-brand-600 dark:text-brand-300' : 'text-slate-400 group-hover:text-brand-500 dark:group-hover:text-brand-300'
-                        }`} />
-                      </span>
-                      {isSidebarOpen && <span className="font-bold text-[12.5px] truncate text-start">{label}</span>}
-                    </motion.button>
-                  );
-                })}
+                      <div className={`space-y-1 ${isSidebarOpen ? 'ms-2.5 ps-2 border-s border-shell-line/80 dark:border-slate-700/80' : ''}`}>
+                        {section.items.map(item => {
+                          const isActive = activeView === item.id;
+                          const label = t(item.key, item.defaultLabel);
+                          return (
+                            <motion.button
+                              key={item.id}
+                              type="button"
+                              data-view={item.id}
+                              whileHover={{ scale: 1.012 }}
+                              whileTap={{ scale: 0.985 }}
+                              onClick={() => navigateTo(item.id as View)}
+                              title={!isSidebarOpen ? label : undefined}
+                              aria-label={label}
+                              aria-current={isActive ? 'page' : undefined}
+                              className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl relative overflow-hidden transition-all duration-200 ${
+                                isActive
+                                  ? 'bg-gradient-to-r from-brand-50 via-brand-50/60 to-transparent dark:from-brand-950/60 dark:via-brand-900/40 text-brand-600 dark:text-brand-night font-bold shadow-sm'
+                                  : 'text-brand-600/80 dark:text-brand-night/80 hover:bg-shell-100 dark:hover:bg-slate-800 hover:text-brand-700 dark:hover:text-white'
+                              } ${isSidebarOpen ? '' : 'justify-center'}`}
+                            >
+                              {isActive && (
+                                <motion.span
+                                  layoutId="nav-active-indicator"
+                                  className="absolute inset-y-1.5 right-0 w-[3px] rounded-l-full bg-brand-600 shadow-[0_0_10px_rgba(23,105,209,0.6)]"
+                                />
+                              )}
+                              <span className={`grid place-items-center rounded-lg transition-all duration-200 ${isActive ? 'bg-brand-100/80 p-1.5' : 'p-0'}`}>
+                                <item.icon className={`w-[18px] h-[18px] shrink-0 transition-colors ${
+                                  isActive ? 'text-brand-600 dark:text-brand-night' : 'text-brand-600/80 dark:text-brand-night/80 group-hover:text-brand-700 dark:group-hover:text-white'
+                                }`} />
+                              </span>
+                              {isSidebarOpen && <span className="font-bold text-[12.5px] truncate text-start">{label}</span>}
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             );
           })}
 
           {navQuery && filteredSections.length === 0 && (
             <div className="px-3 py-10 text-center">
-              <Search className="w-7 h-7 mx-auto mb-2 text-slate-300" />
-              <p className="text-[12px] text-slate-400">{t('nav.no_results', 'لا توجد شاشات مطابقة')}</p>
+              <Search className="w-7 h-7 mx-auto mb-2 text-brand-600 dark:text-brand-night" />
+              <p className="text-[12px] text-brand-600 dark:text-brand-night">{t('nav.no_results', 'لا توجد شاشات مطابقة')}</p>
             </div>
           )}
         </nav>
@@ -729,13 +532,13 @@ function AuthenticatedApp() {
                 setTempSettings(settings);
                 setIsEditingSettings(true);
               }}
-              className="w-full flex items-center justify-between px-3 py-2.5 bg-shell-100 dark:bg-slate-800 hover:bg-shell-200 dark:hover:bg-slate-700 rounded-xl text-xs text-navy-700 dark:text-slate-200 hover:text-navy-900 dark:hover:text-white transition-colors"
+              className="w-full flex items-center justify-between px-3 py-2.5 bg-shell-100 dark:bg-slate-800 hover:bg-shell-200 dark:hover:bg-slate-700 rounded-xl text-xs text-brand-600 dark:text-brand-night hover:text-brand-700 dark:hover:text-white transition-colors"
             >
               <div className="flex items-center gap-2">
-                <Settings className="w-4 h-4 text-brand-600" />
+                <Settings className="w-4 h-4 text-brand-600 dark:text-brand-night" />
                 <span className="font-bold">{t('btn.quick_settings')}</span>
               </div>
-              <span className="text-[10px] bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded font-mono text-navy-700 dark:text-slate-200 border border-shell-line dark:border-slate-700">{settings.currency || 'SAR'}</span>
+              <span className="text-[10px] bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded font-mono text-brand-600 dark:text-brand-night border border-shell-line dark:border-slate-700">{settings.currency || 'SAR'}</span>
             </button>
             )}
             <button
@@ -749,8 +552,8 @@ function AuthenticatedApp() {
               <span>{t('btn.logout')}</span>
             </button>
             <div className="p-2.5 bg-shell-50 dark:bg-slate-800/60 rounded-xl border border-shell-line dark:border-slate-800 text-center">
-              <p className="text-[10px] text-slate-400">{t('app.title')}</p>
-              <p className="text-[11px] font-mono font-bold text-navy-700 dark:text-brand-300">{t('app.version')}</p>
+              <p className="text-[10px] text-brand-600 dark:text-brand-night">{t('app.title')}</p>
+              <p className="text-[11px] font-mono font-bold text-brand-600 dark:text-brand-night">{t('app.version')}</p>
             </div>
           </div>
         )}
@@ -893,6 +696,13 @@ function AuthenticatedApp() {
               {activeView === 'attendance' && <AttendanceView />}
               {activeView === 'reports' && <ReportsView />}
               {activeView === 'extended_reports' && <ExtendedReportsView />}
+              {activeView === 'presence_gate' && <PresenceGateView />}
+              {activeView === 'presence_policies' && <PresencePoliciesView />}
+              {activeView === 'presence_schedules' && <PresenceSchedulesView />}
+              {activeView === 'presence_exits' && <PresenceExitRequestsView />}
+              {activeView === 'presence_reports' && <PresenceReportsView />}
+              {activeView === 'presence_violations' && <PresenceReportsView initialTab="violations" />}
+              {activeView === 'presence_drift' && <PresenceDriftView />}
               {activeView === 'departments' && <DepartmentsView />}
               {activeView === 'bonuses' && <BonusesView />}
               {activeView === 'leaves' && <LeavesView />}

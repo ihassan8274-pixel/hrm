@@ -331,7 +331,7 @@ app.patch("/api/attendance/devices/:id", async (req, res) => {
         `).run(employee_id, device.branch_id, device.id, now, latitude || null, longitude || null, method || 'manual', status);
         logId = Number(r.lastInsertRowid);
       }
-      await createNotification('تسجيل حضور', `تم تسجيل حضور ${emp.name} عبر ${method || 'الجه'}` , 'success');
+      await createNotification('تسجيل حضور', `تم تسجيل حضور ${emp.name} عبر ${method || 'الجه'}` , 'success', { employeeId: Number(employee_id) });
       res.json({ id: logId, success: true, message: 'تم تسجيل الحضور' });
     } catch (e) { res.status(500).json({ error: (e as Error).message }); }
   });
@@ -357,7 +357,7 @@ app.patch("/api/attendance/devices/:id", async (req, res) => {
       const now = new Date().toISOString();
       await db.prepare("UPDATE attendance_logs SET check_out_time = ?, check_out_lat = ?, check_out_lng = ? WHERE id = ?")
         .run(now, latitude || null, longitude || null, existing.id);
-      await createNotification('تسجيل انصراف', `تم تسجيل انصراف ${emp?.name || ''}` , 'info');
+      await createNotification('تسجيل انصراف', `تم تسجيل انصراف ${emp?.name || ''}` , 'info', { employeeId: Number(employee_id) });
       res.json({ success: true, message: 'تم تسجيل الانصراف' });
     } catch (e) { res.status(500).json({ error: (e as Error).message }); }
   });

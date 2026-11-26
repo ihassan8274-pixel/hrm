@@ -248,7 +248,7 @@ export function registerOvertime(app: express.Express) {
       INSERT INTO bonuses_penalties (employee_id, type, amount, reason, month, year)
       VALUES (?, 'bonus', ?, ?, ?, ?)
     `).run(rec.employee_id, rec.total_overtime_pay, `أجر عمل إضافي (${rec.normal_hours + rec.weekend_hours + rec.holiday_hours} ساعة)`, rec.month, rec.year));
-    await createNotification('اعتماد العمل الإضافي', `تم اعتماد العمل الإضافي بمبلغ ${rec.total_overtime_pay} ر.س وإدراجه في مستحقات الشهر`, 'success');
+    await createNotification('اعتماد العمل الإضافي', `تم اعتماد العمل الإضافي بمبلغ ${rec.total_overtime_pay} ر.س وإدراجه في مستحقات الشهر`, 'success', { employeeId: Number(rec.employee_id) });
     res.json({ success: true });
   });
 

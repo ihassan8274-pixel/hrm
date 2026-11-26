@@ -28,7 +28,7 @@ export function registerCompliance(app: express.Express) {
     `).run(employee_id, visa_type, visa_number || `VISA-${Date.now().toString().slice(-6)}`, issue_date || new Date().toISOString().split('T')[0], travel_before_date, duration_days || 60, return_before_date, cost !== undefined ? cost : defaultCost, notes);
     const emp = await db.prepare("SELECT name FROM employees WHERE id = ?").get(employee_id) as any;
     await logAction('create', 'visa', Number(result.lastInsertRowid), `Issued ${visa_type} for ${emp?.name || employee_id}`);
-    await createNotification('إصدار تأشيرة جديدة', `تم تسجيل تأشيرة بنجاح للموظف ${emp?.name || ''}`, 'success');
+    await createNotification('إصدار تأشيرة جديدة', `تم تسجيل تأشيرة بنجاح للموظف ${emp?.name || ''}`, 'success', { employeeId: Number(employee_id) });
     res.json({ success: true, id: result.lastInsertRowid });
   });
 
@@ -190,7 +190,7 @@ export function registerCompliance(app: express.Express) {
       status || 'approved'
     );
     await logAction('create', 'violation', Number(result.lastInsertRowid), `Logged violation for ${emp.name} (${penalty_level})`);
-    await createNotification('تسجيل مخالفة وقرار جزاء', `تم تسجيل قرار إداري بحق الموظف ${emp.name}`, 'warning');
+    await createNotification('تسجيل مخالفة وقرار جزاء', `تم تسجيل قرار إداري بحق الموظف ${emp.name}`, 'warning', { employeeId: Number(employee_id) });
     res.json({ success: true, id: result.lastInsertRowid, deduction_amount: deductionAmount });
   });
 
@@ -208,7 +208,7 @@ export function registerCompliance(app: express.Express) {
       `).run(viol.employee_id, viol.deduction_amount, `جزاء إداري (${viol.penalty_level}) - خصم ${viol.deduction_days} يوم`, month, year);
       await db.prepare("UPDATE disciplinary_violations SET applied_to_payroll = 1 WHERE id = ?").run(id);
       await logAction('update', 'violation', Number(id), `Applied deduction ${viol.deduction_amount} SAR to payroll`);
-      await createNotification('ترحيل الجزاء لمسير الرواتب', `تم ترحيل خصم الجزاء بقيمة ${viol.deduction_amount} ر.س إلى مسير الشهر الحالي`, 'info');
+      await createNotification('ترحيل الجزاء لمسير الرواتب', `تم ترحيل خصم الجزاء بقيمة ${viol.deduction_amount} ر.س إلى مسير الشهر الحالي`, 'info', { employeeId: Number(viol.employee_id) });
     }
     res.json({ success: true });
   });
@@ -255,7 +255,7 @@ export function registerCompliance(app: express.Express) {
       clearanceSlipNumber
     );
     await logAction('create', 'clearance', Number(result.lastInsertRowid), `Initiated exit clearance for ${emp.name}`);
-    await createNotification('بدء إجراءات إخلاء طرف', `تم إطلاق مسار إخلاء الطرف للموظف ${emp.name} برقم ${clearanceSlipNumber}`, 'info');
+    await createNotification('بدء إجراءات إخلاء طرف', `تم إطلاق مسار إخلاء الطرف للموظف ${emp.name} برقم ${clearanceSlipNumber}`, 'info', { employeeId: Number(employee_id) });
     res.json({ success: true, id: result.lastInsertRowid, clearance_slip_number: clearanceSlipNumber });
   });
 
@@ -288,7 +288,7 @@ export function registerCompliance(app: express.Express) {
         source: "exit_clearance",
       });
       await db.prepare("UPDATE employee_clearances SET overall_status = 'completed' WHERE id = ?").run(id);
-      await createNotification('اكتمال إخلاء الطرف', `تم اعتماد إخلاء الطرف رقم ${updated.clearance_slip_number} من كافة الأقسام، وتم إنهاء خدمة الموظف واستبعاده من مسيرات الرواتب القادمة`, 'success');
+      await createNotification('اكتمال إخلاء الطرف', `تم اعتماد إخلاء الطرف رقم ${updated.clearance_slip_number} من كافة الأقسام، وتم إنهاء خدمة الموظف واستبعاده من مسيرات الرواتب القادمة`, 'success', { employeeId: Number(updated.employee_id) });
     }
     await logAction('update', 'clearance', Number(id), `Updated ${department} clearance status`);
     res.json({ success: true });

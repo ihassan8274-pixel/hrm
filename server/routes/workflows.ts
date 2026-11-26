@@ -329,7 +329,7 @@ export function registerWorkflows(app: express.Express) {
         INSERT INTO peer_kudos (sender_id, sender_name, recipient_id, recipient_name, recipient_job, core_value, message, points_awarded, likes_count)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
       `).run(sender_id, sender_name, recipient_id, recipient_name, recipient_job || '', core_value || 'teamwork', message, points_awarded || 50);
-      await createNotification('بطاقة تقدير جديدة (Kudos)', `حصل الموظف ${recipient_name} على بطاقة شكر من ${sender_name} بمقدار ${points_awarded || 50} نقطة!`, 'success');
+      await createNotification('بطاقة تقدير جديدة (Kudos)', `حصل الموظف ${recipient_name} على بطاقة شكر من ${sender_name} بمقدار ${points_awarded || 50} نقطة!`, 'success', { employeeId: Number(recipient_id) });
       res.json({ id: result.lastInsertRowid, success: true });
     } catch (e) {
       res.status(500).json({ error: "فشل إرسال بطاقة التقدير" });
@@ -407,6 +407,20 @@ export function registerWorkflows(app: express.Express) {
         LEFT JOIN departments d ON e.department_id = d.id
         LEFT JOIN branches b ON e.branch_id = b.id
       `).all() as any[];
+      const viewer = (req as any).user || {};
+      const role = String(viewer.role || '').toLowerCase();
+      let branchId = viewer.branch_id ?? null;
+      if (!branchId && viewer.employee_id) {
+        const own = await db.prepare("SELECT branch_id FROM employees WHERE id = ?").get(viewer.employee_id) as { branch_id?: number | null } | undefined;
+        branchId = own?.branch_id ?? null;
+      }
+      // The expiry hub is permission-gated in the auth middleware. Even an
+      // authorised manager must not receive another branch's document data.
+      const visibleEmployees = employees.filter(emp => {
+        if (role === 'admin' || role === 'hr_manager') return true;
+        if (role === 'branch_manager') return Number(branchId) > 0 && Number(emp.branch_id) === Number(branchId);
+        return false;
+      });
       const alerts: Array<{
         id: string;
         category: 'iqama' | 'insurance' | 'contract' | 'work_permit' | 'vehicle';
@@ -422,7 +436,7 @@ export function registerWorkflows(app: express.Express) {
         action_label: string;
         action_type: string;
       }> = [];
-      employees.forEach(emp => {
+      visibleEmployees.forEach(emp => {
         const isSaudi = emp.is_saudi === 1 || emp.nationality === 'سعودي';
         if (!isSaudi && emp.iqama_expiry_gregorian) {
           const expDate = new Date(emp.iqama_expiry_gregorian);

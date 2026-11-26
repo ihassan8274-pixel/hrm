@@ -40,6 +40,7 @@ const REGISTRARS: Array<[string, string]> = [
   ["registerEmployees", "../employees"],
   ["registerPayroll", "../payroll"],
   ["registerAttendance", "../attendance"],
+  ["registerPresence", "../presence"],
   ["registerSaudi", "../saudi"],
   ["registerReports", "../reports"],
   ["registerWorkflows", "../workflows"],

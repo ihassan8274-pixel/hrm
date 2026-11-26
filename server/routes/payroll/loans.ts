@@ -177,6 +177,7 @@ export function registerLoans(app: express.Express) {
       status === 'active' ? 'اعتماد سلفة' : 'رفض سلفة',
       `${status === 'active' ? 'اعتُمدت' : 'رُفضت'} سلفة الموظف ${loan.employee_name} بمبلغ ${Number(loan.total_amount).toLocaleString("ar-SA")} ر.س.`,
       status === 'active' ? 'success' : 'warning',
+      { employeeId: Number(loan.employee_id) },
     );
     res.json({ success: true, id: loan.id, status });
   });

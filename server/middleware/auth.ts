@@ -215,6 +215,9 @@ export const PERM = {
   EXPENSES_MANAGE: "expenses.manage", // expenses screen: admin, hr_manager, finance
   LEAVES_MANAGE: "leaves.manage", // leaves screen + manager_inbox approvals
   ATTENDANCE_MANAGE: "attendance.manage", // attendance screen (manual punch edits)
+  // Branch presence policy/scope/schedule/decision writes: admin + HR only.
+  // branch_manager keeps ATTENDANCE_MANAGE (gate/reports/confirm), not this key.
+  PRESENCE_MANAGE: "presence.manage",
   WORKFLOWS_MANAGE: "workflows.manage", // approval_workflows + manager_inbox screens
   DOCUMENTS_MANAGE: "documents.manage", // employees & employee_documents screens
   HR_OPERATIONS_MANAGE: "hr_operations.manage", // HR-only screens (fleet, medical, visas, ...)
@@ -390,6 +393,30 @@ export const ROUTE_PERMISSIONS: Array<{ method: string; pattern: RegExp; perm: s
   // attendance screen manual punch edits: admin, hr_manager, branch_manager
   // (src/components/AttendanceView.tsx:188). The kiosk legs stay in openApi untouched.
   { method: "POST", pattern: /^\/api\/attendance$/, perm: PERM.ATTENDANCE_MANAGE },
+
+  // --- Branch presence ---
+  // Gate/checkout/self and supervisor reads stay with ATTENDANCE_MANAGE, which
+  // branch_manager owns. The ESS allowlists below carve out the self-service
+  // subset; handlers additionally restrict rows to the caller's own identity.
+  { method: "POST", pattern: /^\/api\/presence\/gate$/, perm: PERM.ATTENDANCE_MANAGE },
+  { method: "POST", pattern: /^\/api\/presence\/recheck$/, perm: PERM.ATTENDANCE_MANAGE },
+  { method: "POST", pattern: /^\/api\/presence\/checkout$/, perm: PERM.ATTENDANCE_MANAGE },
+  { method: "GET", pattern: /^\/api\/presence\/me$/, perm: PERM.ATTENDANCE_MANAGE },
+  { method: "GET", pattern: /^\/api\/presence\/users$/, perm: PERM.PRESENCE_MANAGE },
+  { method: "GET", pattern: /^\/api\/presence\/policies$/, perm: PERM.PRESENCE_MANAGE },
+  { method: "POST", pattern: /^\/api\/presence\/policies$/, perm: PERM.PRESENCE_MANAGE },
+  { method: "GET", pattern: /^\/api\/presence\/scopes$/, perm: PERM.PRESENCE_MANAGE },
+  { method: "POST", pattern: /^\/api\/presence\/scopes$/, perm: PERM.PRESENCE_MANAGE },
+  { method: "GET", pattern: /^\/api\/presence\/schedules$/, perm: PERM.ATTENDANCE_MANAGE },
+  { method: "POST", pattern: /^\/api\/presence\/schedules$/, perm: PERM.PRESENCE_MANAGE },
+  { method: "POST", pattern: /^\/api\/presence\/exit-request$/, perm: PERM.ATTENDANCE_MANAGE },
+  { method: "GET", pattern: /^\/api\/presence\/exit-requests$/, perm: PERM.ATTENDANCE_MANAGE },
+  { method: "GET", pattern: /^\/api\/presence\/violations$/, perm: PERM.ATTENDANCE_MANAGE },
+  { method: "GET", pattern: /^\/api\/presence\/reports\/(hours|violations)(\/csv)?$/, perm: PERM.ATTENDANCE_MANAGE },
+  { method: "POST", pattern: /^\/api\/presence\/violations\/[^/]+\/confirm$/, perm: PERM.ATTENDANCE_MANAGE },
+  { method: "POST", pattern: /^\/api\/presence\/violations\/[^/]+\/decide$/, perm: PERM.PRESENCE_MANAGE },
+  { method: "GET", pattern: /^\/api\/presence\/drift$/, perm: PERM.ATTENDANCE_MANAGE },
+  { method: "POST", pattern: /^\/api\/presence\/drift\/[^/]+\/ack$/, perm: PERM.PRESENCE_MANAGE },
   // leaves screen + manager_inbox approval: admin, hr_manager, branch_manager
   // (LeavesView.tsx:41,53 and ManagerInboxView.tsx:21)
   { method: "POST", pattern: /^\/api\/leaves$/, perm: PERM.LEAVES_MANAGE },
@@ -408,6 +435,7 @@ export const ROUTE_PERMISSIONS: Array<{ method: string; pattern: RegExp; perm: s
   // expiry-alert hub: opened from the header bell, which every signed-in operational role
   // renders (src/App.tsx:511 -> ExpiryAlertsModal.tsx:78). employee_ess stays denied here,
   // exactly as it was while the route was unclassified.
+  { method: "GET", pattern: /^\/api\/alerts\/expiries$/, perm: PERM.ALERTS_MANAGE },
   { method: "POST", pattern: /^\/api\/alerts\/send-reminder$/, perm: PERM.ALERTS_MANAGE },
   // AI studio screens: admin, hr_manager (LaborLawAiConsultantView.tsx:50)
   { method: "POST", pattern: /^\/api\/ai\/labor-law-consultant$/, perm: PERM.AI_TOOLS_USE },
@@ -488,6 +516,13 @@ export const ESS_READ_ALLOWLIST: Array<{ pattern: RegExp }> = [
   { pattern: /^\/api\/salary-certificates/, }, // own certificates
   { pattern: /^\/api\/ess\/requests$/ },      // own self-service requests (loans/leaves/grievances/suggestions)
   { pattern: /^\/api\/annual\/me$/ },         // own annual review / increase decision
+  // Branch presence: self-only reads. Policies, scopes, users, drift and the
+  // violation decision chain are deliberately absent from this allowlist.
+  { pattern: /^\/api\/presence\/me$/ },
+  { pattern: /^\/api\/presence\/schedules$/ },
+  { pattern: /^\/api\/presence\/exit-requests$/ },
+  { pattern: /^\/api\/presence\/violations$/ },
+  { pattern: /^\/api\/presence\/reports\/(hours|violations)(\/csv)?$/ },
 ];
 
 // --- C4: operational write routes (explicit classification) ---
@@ -506,6 +541,11 @@ export const ESS_WRITE_ALLOWLIST: Array<{ method: string; pattern: RegExp }> = [
   { method: "POST", pattern: /^\/api\/ess\/requests$/ }, // ESSView tab "طلباتي" (سلفة/إجازة/شكوى/مقترح/تطوير سير العمل)
   { method: "POST", pattern: /^\/api\/push-tokens$/ }, // تسجيل رمز جهاز الموظف للتنبيهات الفورية (بدون معرّف مستخدم من الجسم)
   { method: "POST", pattern: /^\/api\/copilot\/chat$/ }, // floating AI launcher is rendered for every role (read-only on the server)
+  // Presence self-service: the handler always derives the employee from req.user.
+  { method: "POST", pattern: /^\/api\/presence\/gate$/ },
+  { method: "POST", pattern: /^\/api\/presence\/recheck$/ },
+  { method: "POST", pattern: /^\/api\/presence\/checkout$/ },
+  { method: "POST", pattern: /^\/api\/presence\/exit-request$/ },
 ];
 
 export const OPERATIONAL_WRITE_ALLOWLIST: Array<{ method: string; pattern: RegExp }> = [
@@ -563,6 +603,15 @@ const enforceRoutePermissions = (req: express.Request, res: express.Response, ne
   if (!user) return next(); // openApi route — nothing to enforce
 
   const method = req.method.toUpperCase();
+  // Presence self-service is intentionally classified with ATTENDANCE_MANAGE so
+  // branch_manager keeps its supervisor surface. Release only the ESS subset
+  // here, before the rule lookup; the handlers still scope every read to self.
+  if (url.startsWith("/api/presence") && String(user.role || "") === "employee_ess") {
+    const essAllowed =
+      (method === "GET" && ESS_READ_ALLOWLIST.some((r) => r.pattern.test(url))) ||
+      (WRITE_METHODS.has(method) && ESS_WRITE_ALLOWLIST.some((r) => r.method === method && r.pattern.test(url)));
+    if (essAllowed) return next();
+  }
   const rule = ROUTE_PERMISSIONS.find((r) => ruleMatches(r, method, url));
   if (rule) return requirePermission(rule.perm)(req, res, next);
 

@@ -141,8 +141,28 @@ export async function logAction(action: string, entityType: string, entityId: nu
   );
 }
 
-export async function createNotification(title: string, message: string, type = "info"): Promise<void> {
-  await execute("INSERT INTO notifications (title, message, type) VALUES (?, ?, ?)", title, message, type);
+export type NotificationTarget = {
+  userId?: number | null;
+  employeeId?: number | null;
+  branchId?: number | null;
+  entityId?: number | null;
+};
+
+/**
+ * Notifications are private. Callers that know the subject pass its id; an
+ * unaddressed notification is an administrative broadcast visible only to
+ * admin/hr_manager (see server/lib/notificationScope.ts).
+ */
+export async function createNotification(
+  title: string, message: string, type = "info", target: NotificationTarget = {},
+): Promise<void> {
+  await execute(
+    `INSERT INTO notifications (title, message, type, user_id, employee_id, branch_id, entity_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    title, message, type,
+    target.userId ?? null, target.employeeId ?? null,
+    target.branchId ?? null, target.entityId ?? null,
+  );
 }
 
 function prepare(sql: string) {

@@ -8,6 +8,7 @@ import { verifyPassword } from "../lib/password";
 import { CountryRulesService } from "../../src/lib/payroll/CountryRulesService";
 import express from "express";
 import { log } from "../lib/logger";
+import { notificationScope, notificationViewerFromRequest } from "../lib/notificationScope";
 
 async function getRestoreTableOrder(): Promise<string[]> {
   const tables = (await db.prepare(`SELECT table_name AS name FROM information_schema.tables
@@ -74,26 +75,7 @@ export function registerCore(app: express.Express) {
     res.json(logs);
   });
 
-    // Notifications
-
-  app.get("/api/notifications", async (req, res) => {
-    const notifications = (await db.prepare("SELECT * FROM notifications ORDER BY created_at DESC LIMIT 50").all());
-    res.json(notifications);
-  });
-
-  app.put("/api/notifications/read-all", async (req, res) => {
-    // Every concurrent caller used to UPDATE the whole table in an arbitrary
-    // row order, which produced PostgreSQL deadlocks (40P01) under load.
-    // Lock the unread rows in a fixed id order first, then update only those.
-    await db.prepare(`
-      WITH ordered AS MATERIALIZED (
-        SELECT id FROM notifications WHERE is_read = 0 ORDER BY id FOR UPDATE
-      )
-      UPDATE notifications n SET is_read = 1
-      FROM ordered WHERE n.id = ordered.id
-    `).run();
-    res.json({ success: true });
-  });
+    // Notifications are registered once, below, with row-level visibility.
 
     // Branches
 
@@ -264,11 +246,24 @@ export function registerCore(app: express.Express) {
     res.json({ success: true });
   });
 
-    // Notifications
+    // Notifications — row-level visibility. Branch managers are resolved
+    // through their employee record because users carry no branch_id column.
+  const notificationViewer = async (req: express.Request) => {
+    const user = (req as any).user || {};
+    let branchId: number | null = user.branch_id ?? null;
+    if (!branchId && user.employee_id) {
+      const employee = await db.prepare("SELECT branch_id FROM employees WHERE id = ?").get(user.employee_id) as { branch_id?: number | null } | undefined;
+      branchId = employee?.branch_id ?? null;
+    }
+    return notificationViewerFromRequest({ user: { ...user, branch_id: branchId } });
+  };
 
   app.get("/api/notifications", async (req, res) => {
     try {
-      const notes = (await db.prepare("SELECT * FROM notifications ORDER BY created_at DESC LIMIT 30").all());
+      const scope = notificationScope(await notificationViewer(req));
+      const notes = await db.prepare(
+        `SELECT * FROM notifications WHERE ${scope.sql} ORDER BY created_at DESC LIMIT 30`,
+      ).all(...scope.params);
       res.json(notes);
     } catch (e) {
       log.error("Error fetching notifications:", e);
@@ -278,14 +273,15 @@ export function registerCore(app: express.Express) {
 
   app.put("/api/notifications/read-all", async (req, res) => {
     try {
+      const scope = notificationScope(await notificationViewer(req));
       // Fixed lock order prevents the 40P01 deadlocks seen under concurrent load.
       await db.prepare(`
         WITH ordered AS MATERIALIZED (
-          SELECT id FROM notifications WHERE is_read = 0 ORDER BY id FOR UPDATE
+          SELECT id FROM notifications WHERE ${scope.sql} AND is_read = 0 ORDER BY id FOR UPDATE
         )
         UPDATE notifications n SET is_read = 1
         FROM ordered WHERE n.id = ordered.id
-      `).run();
+      `).run(...scope.params);
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ error: "Failed to update notifications" });
@@ -294,7 +290,11 @@ export function registerCore(app: express.Express) {
 
   app.put("/api/notifications/:id/read", async (req, res) => {
     try {
-      (await db.prepare("UPDATE notifications SET is_read = 1 WHERE id = ?").run(req.params.id));
+      const scope = notificationScope(await notificationViewer(req));
+      const result = await db.prepare(
+        `UPDATE notifications SET is_read = 1 WHERE id = ? AND (${scope.sql})`,
+      ).run(req.params.id, ...scope.params);
+      if (!result.changes) return res.status(404).json({ error: "التنبيه غير موجود" });
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ error: "Failed to update notification" });
@@ -303,11 +303,14 @@ export function registerCore(app: express.Express) {
 
   app.post("/api/notifications", async (req, res) => {
     try {
+      const user = (req as any).user || {};
       const { title, message, type } = req.body;
-      const info = (await db.prepare(`
-        INSERT INTO notifications (title, message, type, is_read)
-        VALUES (?, ?, ?, 0)
-      `).run(title, message, type || 'info'));
+      // The public endpoint can only address the caller. Notifications to other
+      // users are created by server code with an explicit recipient.
+      const info = await db.prepare(`
+        INSERT INTO notifications (title, message, type, is_read, user_id, employee_id)
+        VALUES (?, ?, ?, 0, ?, ?)
+      `).run(title, message, type || 'info', user.id ?? null, user.employee_id ?? null);
       res.json({ id: info.lastInsertRowid, success: true });
     } catch (e) {
       res.status(500).json({ error: "Failed to create notification" });

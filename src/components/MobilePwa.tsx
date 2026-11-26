@@ -10,10 +10,11 @@ import SessionIdleGuard from './SessionIdleGuard';
 import NativeLock, { useBiometric } from './NativeLock';
 import { isNativeApp, loadOfflineSnapshot, saveOfflineSnapshot, updateAuthUser } from '../lib/nativeSession';
 import { startNativePush } from '../lib/nativePush';
+import { isRestrictedPresencePolicy, presenceRecheckDelay, samplePresenceOnce } from '../lib/presence';
 import '../mobile.css';
 
 type Tab = 'home' | 'requests' | 'inbox' | 'profile';
-type Panel = null | 'payslip' | 'annual' | 'approvals' | 'notifications';
+type Panel = null | 'presence' | 'payslip' | 'annual' | 'approvals' | 'notifications';
 type RequestType = 'leave' | 'loan' | 'grievance' | 'suggestion' | 'workflow_improvement';
 
 const APPROVER_ROLES = new Set(['admin', 'hr_manager', 'branch_manager']);
@@ -291,6 +292,12 @@ function MobileShell() {
   const [payroll, setPayroll] = useState<any[]>([]);
   const [annual, setAnnual] = useState<any>(null);
   const [approvals, setApprovals] = useState<any[]>([]);
+  const [presenceMe, setPresenceMe] = useState<any>(null);
+  const [presenceGate, setPresenceGate] = useState<any>(null);
+  const [presenceBusy, setPresenceBusy] = useState(false);
+  const [presenceError, setPresenceError] = useState('');
+  const [presenceNotice, setPresenceNotice] = useState('');
+  const [exitForm, setExitForm] = useState({ starts_at: '', ends_at: '', reason: '' });
   const [installPrompt, setInstallPrompt] = useState<any>(null);
 
   const canApprove = APPROVER_ROLES.has(String(user?.role || ''));
@@ -421,7 +428,95 @@ function MobileShell() {
     } catch (e) { setToast((e as Error).message); }
   };
 
-  const openPanel = (next: Panel) => { setPanel(next); setTab('home'); };
+  const loadPresence = useCallback(async () => {
+    try { setPresenceError(''); setPresenceMe(await api('/api/presence/me')); }
+    catch (e) { setPresenceError((e as Error).message); }
+  }, []);
+
+  const gatePresence = async () => {
+    if (!online || stale) { setPresenceError('لا يمكن تسجيل الدخول دون اتصال — البيانات للقراءة فقط'); return; }
+    setPresenceBusy(true); setPresenceError(''); setPresenceNotice('');
+    try {
+      const sample = await samplePresenceOnce();
+      const result = await api('/api/presence/gate', {
+        method: 'POST',
+        body: JSON.stringify(sample),
+      });
+      setPresenceGate(result);
+      setPresenceNotice(result?.allowed ? 'تم إصدار تصريح التواجد.' : 'خارج النطاق — لم يُصدر تصريح.');
+      await loadPresence();
+    } catch (e) { setPresenceError((e as Error).message); setPresenceGate(null); }
+    finally { setPresenceBusy(false); }
+  };
+
+  const checkoutPresence = async () => {
+    if (!online || stale) { setPresenceError('لا يمكن تسجيل الخروج دون اتصال — البيانات للقراءة فقط'); return; }
+    setPresenceBusy(true); setPresenceError(''); setPresenceNotice('');
+    try {
+      await api('/api/presence/checkout', { method: 'POST', body: '{}' });
+      setPresenceGate(null);
+      setPresenceNotice('تم تسجيل الخروج من الفرع.');
+      await loadPresence();
+    } catch (e) { setPresenceError((e as Error).message); }
+    finally { setPresenceBusy(false); }
+  };
+
+  // One fresh sample when the permit lapses. No watchPosition, no polling and
+  // no coordinates are kept after the request: the server decides in memory.
+  const recheckPresence = useCallback(async () => {
+    setPresenceBusy(true); setPresenceError(''); setPresenceNotice('');
+    try {
+      const sample = await samplePresenceOnce();
+      const result = await api('/api/presence/recheck', {
+        method: 'POST',
+        body: JSON.stringify(sample),
+      });
+      setPresenceGate(result);
+      setPresenceNotice(result?.allowed
+        ? 'تم تجديد تصريح التواجد بعيّنة واحدة.'
+        : 'تم قفل التواجد — سجّل الخروج ثم عد للتسجيل داخل الفرع.');
+    } catch (e) {
+      setPresenceError((e as Error).message);
+    } finally {
+      setPresenceBusy(false);
+      await loadPresence();
+    }
+  }, [loadPresence]);
+
+  useEffect(() => {
+    if (panel !== 'presence' || presenceMe?.locked) return;
+    if (!presenceMe?.open_interval || !presenceMe.permit_expires_at) return;
+    if (!isRestrictedPresencePolicy(presenceMe.policy)) return;
+    const delay = presenceRecheckDelay(presenceMe.permit_expires_at);
+    if (delay === null) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => { if (!cancelled) void recheckPresence(); }, delay);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [panel, presenceMe?.open_interval?.id, presenceMe?.permit_expires_at, presenceMe?.locked, presenceMe?.policy, recheckPresence]);
+
+  const submitExitRequest = async () => {
+    if (!online || stale) { setPresenceError('لا يمكن رفع طلب دون اتصال — البيانات للقراءة فقط'); return; }
+    if (!exitForm.starts_at || !exitForm.ends_at) return;
+    setPresenceBusy(true); setPresenceError(''); setPresenceNotice('');
+    try {
+      await api('/api/presence/exit-request', {
+        method: 'POST',
+        body: JSON.stringify({
+          starts_at: new Date(exitForm.starts_at).toISOString(),
+          ends_at: new Date(exitForm.ends_at).toISOString(),
+          reason: exitForm.reason,
+        }),
+      });
+      setExitForm({ starts_at: '', ends_at: '', reason: '' });
+      setPresenceNotice('تم رفع طلب الخروج — يُعتمد عبر مسار الاعتمادات.');
+    } catch (e) { setPresenceError((e as Error).message); }
+    finally { setPresenceBusy(false); }
+  };
+
+  const openPanel = (next: Panel) => {
+    setPanel(next); setTab('home');
+    if (next === 'presence') void loadPresence();
+  };
   const goHome = () => { setPanel(null); setTab('home'); };
 
   const header = (
@@ -486,6 +581,62 @@ function MobileShell() {
               <div className="mpwa-grid">
                 {[0, 1, 2, 3].map(i => <div className="mpwa-card tight" key={i}><div className="mpwa-skeleton" style={{ height: 58 }} /></div>)}
               </div>
+            </>
+          ) : panel === 'presence' ? (
+            <>
+              <PanelTitle title="بوابة التواجد" onBack={goHome} onRefresh={() => void loadPresence()} />
+              {presenceError && <div className="mpwa-error">{presenceError}</div>}
+              {presenceMe?.locked && (
+                <div className="mpwa-error">انتهت صلاحية التصريح — البرنامج مقفل حتى تسجّل الخروج ثم تعود للتسجيل داخل الفرع.</div>
+              )}
+              {presenceNotice && <div className="mpwa-card tight" style={{ color: '#0F766E' }}>{presenceNotice}</div>}
+              <Card className="mpwa-hero">
+                <div className="mpwa-note" style={{ color: '#C9D9F0' }}>
+                  السياسة: {String(presenceMe?.policy || 'open')} · دقائق اليوم: {Number(presenceMe?.today?.inside_minutes || 0)}
+                </div>
+                <div className="mpwa-pills" style={{ marginTop: 8 }}>
+                  <span className="mpwa-pill teal"><Fingerprint size={11} /> عيّنة موقع واحدة</span>
+                  <span className="mpwa-pill">فروع: {Number(presenceMe?.branches?.length || 0)}</span>
+                </div>
+                <div className="mpwa-btn-row" style={{ marginTop: 12 }}>
+                  <button className="mpwa-btn" disabled={presenceBusy} onClick={() => void gatePresence()}>
+                    <Fingerprint size={16} /> تسجيل الدخول
+                  </button>
+                  <button className="mpwa-btn ghost" disabled={presenceBusy || !presenceMe?.open_interval} onClick={() => void checkoutPresence()}>
+                    <Check size={16} /> تسجيل الخروج
+                  </button>
+                  {presenceMe?.open_interval && isRestrictedPresencePolicy(presenceMe?.policy) && (
+                    <button className="mpwa-btn ghost" disabled={presenceBusy} onClick={() => void recheckPresence()}>
+                      <RefreshCw size={15} /> تجديد بعيّنة
+                    </button>
+                  )}
+                </div>
+                {presenceGate?.branch_name && (
+                  <p className="mpwa-note" style={{ marginTop: 10 }}>
+                    {presenceGate.allowed ? 'مسموح' : 'ممنوع'} · {presenceGate.branch_name}
+                    {presenceGate.distance_m != null ? ` · ${Math.round(Number(presenceGate.distance_m))} م` : ''}
+                  </p>
+                )}
+                <p className="mpwa-note" style={{ marginTop: 8 }}>بلا بث موقع، بلا خريطة حية، وبلا تخزين إحداثيات على الجهاز.</p>
+              </Card>
+              <Card>
+                <div className="mpwa-card-head"><h3>طلب خروج غير معتمد</h3></div>
+                <div className="mpwa-list">
+                  <div className="mpwa-row">
+                    <span className="ico"><CalendarDays size={16} /></span>
+                    <div style={{ display: 'grid', gap: 6, width: '100%' }}>
+                      <input className="mpwa-input" type="datetime-local" value={exitForm.starts_at}
+                        onChange={e => setExitForm({ ...exitForm, starts_at: e.target.value })} />
+                      <input className="mpwa-input" type="datetime-local" value={exitForm.ends_at}
+                        onChange={e => setExitForm({ ...exitForm, ends_at: e.target.value })} />
+                      <input className="mpwa-input" value={exitForm.reason} placeholder="السبب (اختياري)"
+                        onChange={e => setExitForm({ ...exitForm, reason: e.target.value })} />
+                      <button className="mpwa-btn ghost" disabled={presenceBusy || !exitForm.starts_at || !exitForm.ends_at}
+                        onClick={() => void submitExitRequest()}>رفع الطلب</button>
+                    </div>
+                  </div>
+                </div>
+              </Card>
             </>
           ) : panel === 'payslip' ? (
             <>
@@ -720,6 +871,7 @@ function MobileShell() {
               <Card>
                 <div className="mpwa-card-head"><h3>الخدمات السريعة</h3></div>
                 <div className="mpwa-grid">
+                  <Action icon={<Fingerprint size={18} />} label="بوابة التواجد" sub="دخول وخروج بعيّنة واحدة" tone="teal" onClick={() => openPanel('presence')} />
                   <Action icon={<Wallet size={18} />} label="كشف الراتب" sub="الشهر الحالي" onClick={() => openPanel('payslip')} />
                   <Action icon={<CalendarDays size={18} />} label="إجازة جديدة" sub="طلب سنوي أو بديل" tone="teal" onClick={() => setSheet('leave')} />
                   <Action icon={<Landmark size={18} />} label="طلب سلفة" sub="تقديم واعتماد" tone="teal" onClick={() => setSheet('loan')} />

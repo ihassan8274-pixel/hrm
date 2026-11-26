@@ -64,7 +64,8 @@ export async function endEmployeeService(input: EndServiceInput): Promise<EndSer
     await createNotification(
       "إنهاء خدمة موظف",
       `تم إنهاء خدمة ${employee.name} اعتباراً من ${effectiveDate}، واستُبعد من مسيرات الرواتب القادمة`,
-      "info"
+      "info",
+      { employeeId: id }
     );
   }
 

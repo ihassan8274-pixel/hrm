@@ -561,7 +561,7 @@ export function registerEmployees(app: express.Express) {
       `).run(employee_id, from, to_branch_id, effective_date || new Date().toISOString().slice(0, 10), reason || null));
       (await db.prepare("UPDATE employees SET branch_id = ? WHERE id = ?").run(to_branch_id, employee_id));
       await logAction("update", "employee", employee_id, `Transferred to branch ${to_branch_id}`);
-      await createNotification('نقل موظف', `تم نقل ${emp.name} إلى فرع جديد`, 'info');
+      await createNotification('نقل موظف', `تم نقل ${emp.name} إلى فرع جديد`, 'info', { employeeId: Number(employee_id) });
       res.json({ id: r.lastInsertRowid, success: true });
     } catch (e) { res.status(500).json({ error: (e as Error).message }); }
   });

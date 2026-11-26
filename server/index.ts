@@ -36,6 +36,7 @@ import { registerCore } from "./routes/core";
 import { registerEmployees } from "./routes/employees";
 import { registerPayroll } from "./routes/payroll";
 import { registerAttendance } from "./routes/attendance";
+import { registerPresence, startPresenceJobs, refreshBranchCache } from "./routes/presence";
 import { registerSaudi } from "./routes/saudi";
 import { registerReports } from "./routes/reports";
 import { registerWorkflows } from "./routes/workflows";
@@ -50,6 +51,7 @@ import { registerAnnualCycle, startAnnualCycleScheduler } from "./routes/annualC
 import { registerPushTokens } from "./routes/pushTokens";
 import { startPayrollAutoScheduler } from "./lib/payroll-auto-scheduler";
 import { enforceTenantWriteScope } from "./middleware/tenantScope";
+import { enforcePresenceLock } from "./middleware/presenceLock";
 import { assertEnvFileShape } from "./config/env";
 import { log, requestLogger } from "./lib/logger";
 import { recordRequest, snapshotMetrics } from "./lib/metrics";
@@ -247,6 +249,11 @@ async function startServer() {
 
   setupAuthGate(app);
 
+  // Presence lock: a restricted user whose 10-minute permit has lapsed gets
+  // 403 on branch-bound work, while recovery routes stay reachable. Users with
+  // no explicit policy are never locked (fail-open).
+  app.use(enforcePresenceLock);
+
   // Server metrics: how many requests each route served, how many failed and
   // how long they took. It sits behind the auth gate and the RBAC matrix
   // (metrics.view), because the route names are internal information.
@@ -280,11 +287,23 @@ async function startServer() {
   // permission table changes.
   app.use(enforceTenantWriteScope);
 
+  // Branch coordinates drive the presence gate. Refresh the in-memory cache
+  // once a branch write has completed, without changing the core route module.
+  app.use((req, res, next) => {
+    if (/^\/api\/branches(?:\/|$)/.test(req.path) && ["POST", "PUT", "DELETE"].includes(req.method.toUpperCase())) {
+      res.once("finish", () => {
+        void refreshBranchCache().catch((error) => log.error("[presence] branch cache refresh failed:", error));
+      });
+    }
+    next();
+  });
+
   registerAuth(app);
   registerCore(app);
   registerEmployees(app);
   registerPayroll(app);
   registerAttendance(app);
+  registerPresence(app);
   registerSaudi(app);
   registerReports(app);
   registerWorkflows(app);
@@ -299,6 +318,7 @@ async function startServer() {
   registerPushTokens(app);
   startAnnualCycleScheduler();
   startPayrollAutoScheduler();
+  startPresenceJobs();
 
 
   await seedExtendedModules();

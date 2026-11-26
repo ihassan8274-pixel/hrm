@@ -1,6 +1,7 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { Plus, Trash2, MapPin, Building2 } from 'lucide-react';
+import { Plus, Trash2, MapPin, Building2, Link2 } from 'lucide-react';
 import type { Branch } from '../types';
+import { parseGoogleMapsCoordinates } from '../lib/presence';
 
 export default function BranchesView() {
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -8,6 +9,21 @@ export default function BranchesView() {
   const [newBranch, setNewBranch] = useState({ name: '', location: '', latitude: '', longitude: '', geofence_radius_m: 200 });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editBranch, setEditBranch] = useState({ name: '', location: '', latitude: '', longitude: '', geofence_radius_m: 200 });
+  const [addMapsLink, setAddMapsLink] = useState('');
+  const [editMapsLink, setEditMapsLink] = useState('');
+  const [mapsError, setMapsError] = useState('');
+
+  const extractCoordinates = (raw: string, target: 'add' | 'edit') => {
+    const coords = parseGoogleMapsCoordinates(raw);
+    if (!coords) {
+      setMapsError('لم أجد إحداثيات صالحة في الرابط. الصق رابط Google Maps أو "lat, lng".');
+      return;
+    }
+    setMapsError('');
+    const patch = { latitude: String(coords.latitude), longitude: String(coords.longitude) };
+    if (target === 'add') setNewBranch(prev => ({ ...prev, ...patch }));
+    else setEditBranch(prev => ({ ...prev, ...patch }));
+  };
 
   const fetchBranches = () => {
     fetch('/api/branches')
@@ -28,12 +44,16 @@ export default function BranchesView() {
       body: JSON.stringify({ ...newBranch, latitude: newBranch.latitude ? Number(newBranch.latitude) : null, longitude: newBranch.longitude ? Number(newBranch.longitude) : null, geofence_radius_m: Number(newBranch.geofence_radius_m) })
     });
     setNewBranch({ name: '', location: '', latitude: '', longitude: '', geofence_radius_m: 200 });
+    setAddMapsLink('');
+    setMapsError('');
     setIsAdding(false);
     fetchBranches();
   };
 
   const startEdit = (b: any) => {
     setEditingId(b.id);
+    setEditMapsLink('');
+    setMapsError('');
     setEditBranch({ name: b.name, location: b.location || '', latitude: b.latitude ?? '', longitude: b.longitude ?? '', geofence_radius_m: b.geofence_radius_m || 200 });
   };
 
@@ -70,6 +90,12 @@ export default function BranchesView() {
         </button>
       </div>
 
+      {mapsError && (
+        <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl px-4 py-3 text-sm">
+          {mapsError}
+        </div>
+      )}
+
       {isAdding && (
         <div className="bg-white p-6 rounded-2xl border border-brand-100 shadow-sm animate-in slide-in-from-top-4 duration-300">
           <form onSubmit={handleAddBranch} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
@@ -94,6 +120,18 @@ export default function BranchesView() {
                 className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none"
                 placeholder="مثال: مدينة نصر، شارع عباس العقاد"
               />
+            </div>
+            <div className="md:col-span-3">
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">رابط Google Maps (اختياري — يُقرأ الإحداثي محلياً)</label>
+              <div className="flex gap-2">
+                <input type="url" value={addMapsLink} onChange={e => setAddMapsLink(e.target.value)}
+                  className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-xl outline-none"
+                  placeholder="الصق رابط الموقع من Google Maps" />
+                <button type="button" onClick={() => extractCoordinates(addMapsLink, 'add')}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold flex items-center gap-2">
+                  <Link2 className="w-4 h-4" /> سحب الإحداثيات
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">خط العرض (Latitude)</label>
@@ -145,6 +183,13 @@ export default function BranchesView() {
               <div className="mt-3 space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
                 <input className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" value={editBranch.name} onChange={e => setEditBranch({ ...editBranch, name: e.target.value })} placeholder="اسم الفرع" />
                 <input className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" value={editBranch.location} onChange={e => setEditBranch({ ...editBranch, location: e.target.value })} placeholder="الموقع" />
+                <div className="flex gap-2">
+                  <input className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm" value={editMapsLink} onChange={e => setEditMapsLink(e.target.value)} placeholder="رابط Google Maps (اختياري)" />
+                  <button type="button" onClick={() => extractCoordinates(editMapsLink, 'edit')}
+                    className="px-3 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1">
+                    <Link2 className="w-3 h-3" /> سحب
+                  </button>
+                </div>
                 <input className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" value={editBranch.latitude} onChange={e => setEditBranch({ ...editBranch, latitude: e.target.value })} placeholder="خط العرض" />
                 <input className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" value={editBranch.longitude} onChange={e => setEditBranch({ ...editBranch, longitude: e.target.value })} placeholder="خط الطول" />
                 <input className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" value={editBranch.geofence_radius_m} onChange={e => setEditBranch({ ...editBranch, geofence_radius_m: Number(e.target.value) })} placeholder="شعاع النطاق (متر)" />
