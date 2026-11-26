@@ -1,0 +1,7 @@
+chore: add repo tooling and operational docs
+
+- Add Dependabot config for npm and GitHub Actions with grouped minor/patch updates.
+- Add CodeQL workflow for JavaScript/TypeScript security analysis.
+- Add bug/feature issue templates and a pull request checklist.
+- Add docs/runbook.md with backup, deploy, verification and rollback steps.
+- Add ADR 0001 documenting the React hooks lint gate after the hook-count incident.
