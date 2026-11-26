@@ -47,9 +47,9 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm
@@ -77,15 +77,43 @@ jobs:
       - name: Environment file shape
         run: npm run check:env
 
+      - name: Secret scan
+        # Tracked source only; vendor tokens, PEM keys and a production DB URL
+        # with a real password fail the build before the artifact is uploaded.
+        run: npm run check:secrets
+
       - name: Build
         run: npm run build
 
       - name: Upload build output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dist-${{ github.sha }}
           path: dist/
           retention-days: 7
+
+  semgrep:
+    # Static analysis of source and CI configuration with the community CI
+    # ruleset. CodeQL covers deep data flow; this catches the cheap mistakes —
+    # mutable action refs, missing Dependabot cooldowns, hard-coded keys —
+    # that a code review tends to miss.
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install Semgrep
+        run: python -m pip install --user semgrep==1.187.0
+
+      - name: Scan tracked source
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          semgrep scan --config p/ci --error --metrics=off \
+            --exclude dist --exclude node_modules --exclude android \
+            --exclude ios --exclude releases --exclude backups \
+            --exclude scripts/.build
 
   postgres-gate:
     # Plans every statement the server sends against a real PostgreSQL server.
@@ -114,9 +142,9 @@ jobs:
       PG_GATE_URL: postgres://payroll_app:testpass123@127.0.0.1:5432/payroll
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm
@@ -156,9 +184,9 @@ jobs:
           --health-retries 12
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm
@@ -217,9 +245,9 @@ jobs:
           --health-retries 12
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm
@@ -256,7 +284,7 @@ jobs:
 
       - name: Upload the screen report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ui-smoke-report
           path: scripts/.build/ui-smoke-report.json
@@ -303,9 +331,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm

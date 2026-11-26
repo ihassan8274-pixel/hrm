@@ -72,6 +72,9 @@ describe('verifyAccessAssertion', () => {
   });
 
   it('refuses an assertion signed with a symmetric algorithm', async () => {
+    // Fixture only: this symmetric secret exists so the test can prove HS256
+    // assertions are refused, and is never used to sign a real request.
+    // nosemgrep: javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret
     const token = jwt.sign(identity, 'shared-secret', { algorithm: 'HS256', keyid: keyA.kid });
     await expect(verifyAccessAssertion(token, config, { fetchImpl: serving([keyA.jwk]) }))
       .rejects.toMatchObject({ status: 401 });

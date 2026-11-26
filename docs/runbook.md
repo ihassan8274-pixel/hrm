@@ -14,7 +14,11 @@ npm audit
 npm audit --omit=dev
 pnpm audit
 ```
-`npm run verify` يشغّل: `tsc --noEmit`، اختبارات Vitest، بوابات drift، فحص `.env`، ثم `vite build` وbundle السيرفر.
+`npm run verify` يشغّل: `tsc --noEmit`، اختبارات Vitest، بوابات drift، فحص `.env`، فحص الأسرار `check:secrets`، ثم `vite build` وbundle السيرفر.
+
+فاحص الأسرار يفحص الملفات المتتبّعة بحثاً عن مفاتيح PEM ورموز vendor وJWT ورابط قاعدة بيانات إنتاج بكلمة مرور حقيقية. لأي قيمة اختبار مقصودة أضف تعليقاً `check:secrets-allow <السبب>` في السطر نفسه أو فوقه. لفحص ملفات غير متتبّعة محلياً: `node scripts/check-secrets.cjs --all`.
+
+كما يشغّل CI وظيفة `semgrep` بمجموعة قواعد `p/ci` (أو يدوياً محلياً: `semgrep scan --config p/ci --error`). القواعد تمنع مراجع Actions القابلة للتغيير، وتطلب `cooldown` في Dependabot، وتكشف الأسرار المكتوبة داخل الكود. الاستثناءات المقبولة تُعلَّق بـ `// nosemgrep: <rule-id>` مع سبب واضح، كما في اختبارات التوقيع التي تستخدم مفاتيح وهمية عمداً. مراجع Actions مُثبَّتة على SHA كامل مع تعليق بالإصدار (`# v4`) حتى لا يُعاد توجيه الوسم إلى كود آخر.
 
 ## 3. نسخة قاعدة البيانات قبل النشر
 ```bat

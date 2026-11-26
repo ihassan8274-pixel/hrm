@@ -6,6 +6,8 @@
 ## قائمة التحقق
 - [ ] `npm run verify` أخضر (lint + test + drift + env + build)
 - [ ] `npm audit` و`npm audit --omit=dev` و`pnpm audit` عند الصفر
+- [ ] `npm run check:secrets` أخضر (لا مفاتيح أو كلمات مرور في الملفات المصدرية)
+- [ ] فحص Semgrep (`p/ci`) أخضر، وأي استثناء موثّق بـ `nosemgrep` وسبب واضح
 - [ ] لا تعديل على `geofence_radius_m` أو قواعد الرواتب دون موافقة صريحة
 - [ ] ESS لا يرى إلا نفسه، والتقارير الستة محصورة بـ admin/hr_manager/finance
 - [ ] لا بث موقع، لا خريطة حية، لا تخزين إحداثيات خام على الجهاز

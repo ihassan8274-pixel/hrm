@@ -12,6 +12,9 @@ vi.mock('../../config/env', () => ({
 }));
 import { authenticateToken } from '../auth';
 
+// Fixture only: both the mocked config above and this signing key are
+// throwaway values for a unit test, never a deployed credential.
+// nosemgrep: javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret
 const token = () => jwt.sign({ id: 7, role: 'admin', entity_id: 99 }, 'test-only-organization-key', { expiresIn: '1h' });
 const account = { id: 7, username: 'fixture', role: 'finance', entity_id: 1, employee_id: null };
 const call = async (header: string | undefined) => {
