@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildErrorReport, redact } from '../errorReporting';
+import { buildClientErrorPayload, buildErrorReport, redact, safeClientUrl } from '../errorReporting';
 
 describe('runtime error reporting', () => {
   it('redacts bearer tokens and credential query parameters', () => {
@@ -41,5 +41,33 @@ describe('runtime error reporting', () => {
     const report = buildErrorReport('rejection', { code: 403 }, undefined, () => 't', () => '/');
     expect(report.kind).toBe('rejection');
     expect(report.message).toBe('{"code":403}');
+  });
+
+  it('sends only the four anonymous payload fields', () => {
+    const report = buildErrorReport(
+      'react',
+      new Error('Bearer abc failed password=hunter2'),
+      'Component stack',
+      () => '2026-11-28T12:00:00.000Z',
+      () => '/m/kiosk/secret-token?token=xyz#frag',
+    );
+    const payload = buildClientErrorPayload(report);
+    expect(Object.keys(payload).sort()).toEqual(['level', 'message', 'stack', 'url']);
+    expect(payload.level).toBe('error');
+    expect(payload.message).not.toMatch(/abc|hunter2/);
+    expect(payload.url).toBe('/m/kiosk/[redacted]');
+    expect(JSON.stringify(payload)).not.toContain('2026-11-28T12:00:00.000Z');
+    expect(JSON.stringify(payload)).not.toContain('react');
+  });
+
+  it('caps outbound text and strips identifiers from paths', () => {
+    const error = new Error('boom');
+    error.stack = 'x'.repeat(6000);
+    const payload = buildClientErrorPayload(buildErrorReport('window', error, undefined, () => 't', () => '/m/123'));
+    expect(payload.message.length).toBeLessThanOrEqual(500);
+    expect(payload.stack?.length).toBeLessThanOrEqual(4000);
+    expect(payload.url).toBe('/m/:id');
+    expect(safeClientUrl('/m/550e8400-e29b-41d4-a716-446655440000/payslips?token=abc'))
+      .toBe('/m/:id/payslips');
   });
 });

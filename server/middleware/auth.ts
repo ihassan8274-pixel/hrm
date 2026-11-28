@@ -174,6 +174,8 @@ export const openApi = [
   // coarse status — never schema, row counts, or configuration.
   "/api/health",
   "/api/ready",
+  // Anonymous, redacted frontend crash reports. No auth, no identity, no read route.
+  "/api/client-errors",
 ];
 
 // --- C4: central RBAC policy (single source of truth) ---

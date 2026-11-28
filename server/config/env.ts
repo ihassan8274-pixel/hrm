@@ -52,6 +52,9 @@ export const config = {
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
   // Comma-separated fallbacks; availability changes, so the assistant tries each in order.
   GEMINI_MODEL: process.env.GEMINI_MODEL || "gemini-flash-lite-latest,gemini-flash-latest,gemini-3.8-flash",
+  // Anonymous frontend error storage can be switched off without a rebuild.
+  CLIENT_ERROR_REPORTING_ENABLED:
+    (process.env.CLIENT_ERROR_REPORTING_ENABLED ?? "true").toLowerCase() !== "false",
   APP_URL: process.env.APP_URL || "http://localhost:8090",
 } as const;
 

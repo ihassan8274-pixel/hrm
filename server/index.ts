@@ -50,6 +50,7 @@ import { registerForms } from "./routes/forms";
 import { registerEssRequests } from "./routes/essRequests";
 import { registerAnnualCycle, startAnnualCycleScheduler } from "./routes/annualCycle";
 import { registerPushTokens } from "./routes/pushTokens";
+import { registerClientErrors } from "./routes/clientErrors";
 import { startPayrollAutoScheduler } from "./lib/payroll-auto-scheduler";
 import { enforceTenantWriteScope } from "./middleware/tenantScope";
 import { enforcePresenceLock } from "./middleware/presenceLock";
@@ -318,6 +319,7 @@ async function startServer() {
   registerEssRequests(app);
   registerAnnualCycle(app);
   registerPushTokens(app);
+  registerClientErrors(app);
   startAnnualCycleScheduler();
   startPayrollAutoScheduler();
   startPresenceJobs();

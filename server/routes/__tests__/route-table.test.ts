@@ -54,6 +54,7 @@ const REGISTRARS: Array<[string, string]> = [
   ["registerEssRequests", "../essRequests"],
   ["registerAnnualCycle", "../annualCycle"],
   ["registerPushTokens", "../pushTokens"],
+  ["registerClientErrors", "../clientErrors"],
 ];
 
 interface RouteEntry {
