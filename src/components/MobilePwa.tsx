@@ -8,6 +8,7 @@ import { Browser } from '@capacitor/browser';
 import { useAuth } from '../context/AuthContext';
 import SessionIdleGuard from './SessionIdleGuard';
 import NativeLock, { useBiometric } from './NativeLock';
+import OfflineBanner, { useOnline } from './OfflineBanner';
 import { isNativeApp, loadOfflineSnapshot, saveOfflineSnapshot, updateAuthUser } from '../lib/nativeSession';
 import { startNativePush } from '../lib/nativePush';
 import { isRestrictedPresencePolicy, presenceRecheckDelay, samplePresenceOnce } from '../lib/presence';
@@ -55,18 +56,6 @@ async function api<T = any>(path: string, init?: RequestInit): Promise<T> {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(String(data?.error || data?.message || `فشل الطلب (${response.status})`));
   return data as T;
-}
-
-function useOnline() {
-  const [online, setOnline] = useState(() => navigator.onLine !== false);
-  useEffect(() => {
-    const on = () => setOnline(true);
-    const off = () => setOnline(false);
-    window.addEventListener('online', on);
-    window.addEventListener('offline', off);
-    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
-  }, []);
-  return online;
 }
 
 function Toast({ text }: { text: string }) {
@@ -1172,5 +1161,10 @@ function MobilePwaInner() {
 }
 
 export default function MobilePwa() {
-  return <NativeLock><MobilePwaInner /></NativeLock>;
+  return (
+    <NativeLock>
+      <OfflineBanner />
+      <MobilePwaInner />
+    </NativeLock>
+  );
 }

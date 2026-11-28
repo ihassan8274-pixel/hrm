@@ -66,8 +66,9 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   return response;
 };
 
-// الـ Service Worker مخصص للـ PWA على نطاق الويب؛ WebView الأصلي يعتمد على التخزين الآمن.
-if ('serviceWorker' in navigator && !NATIVE_APP) {
+// الـ Service Worker مخصص للـ PWA على نطاق الويب في الإنتاج فقط؛
+// التطوير يستخدم الذاكرة مباشرة، وWebView الأصلي يعتمد على التخزين الآمن.
+if (import.meta.env.PROD && 'serviceWorker' in navigator && !NATIVE_APP) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 

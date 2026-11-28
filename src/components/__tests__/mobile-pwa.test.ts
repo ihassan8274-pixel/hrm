@@ -27,11 +27,16 @@ describe("mobile PWA shell", () => {
     expect(html).toContain("/m-manifest.json");
   });
 
-  it("never caches API responses or kiosk tokens in the service worker", () => {
+  it("never caches API responses, uploads or kiosk tokens in the service worker", () => {
     const sw = read("public/sw.js");
-    expect(sw).toContain("url.pathname.startsWith('/api/')");
-    expect(sw).toContain("url.pathname.includes('/kiosk/')");
-    expect(sw).not.toContain("caches.match(request) });\n    return;");
+    expect(sw).toContain("const FORBIDDEN = /^\\/(api|kiosk|uploads)(\\/|$)/i");
+    expect(sw).toContain("if (!CACHEABLE.has(url.pathname)) return;");
+    expect(sw).toContain("if (request.method !== 'GET') return;");
+    expect(sw).toContain("if (url.origin !== self.location.origin) return;");
+    // Only the static /m shell is stored; no generic dynamic cache.put(request).
+    expect(sw).not.toContain("cache.put(request");
+    expect(read("package.json")).toContain("tsx scripts/generate-sw.ts");
+    expect(read("src/main.tsx")).toContain("import.meta.env.PROD && 'serviceWorker' in navigator");
   });
 
   it("calls only existing API routes and keeps the ESS self-service boundary", () => {
@@ -64,7 +69,8 @@ describe("mobile PWA shell", () => {
   it("wraps the native build in a biometric lock instead of duplicating auth logic", () => {
     const component = read("src/components/MobilePwa.tsx");
     expect(component).toContain("import NativeLock, { useBiometric } from './NativeLock'");
-    expect(component).toContain("<NativeLock><MobilePwaInner /></NativeLock>");
+    expect(component).toContain("<OfflineBanner />");
+    expect(component).toContain("<MobilePwaInner />");
     expect(component).toContain("useBiometric()");
     // The lock is a device gate only; it never writes a session or role.
     const lock = read("src/components/NativeLock.tsx");
@@ -83,6 +89,18 @@ describe("mobile PWA shell", () => {
     expect(session).toContain("SecureStorage.set(SNAPSHOT_KEY");
     expect(session).toContain("SNAPSHOT_MAX_AGE_MS");
     expect(session).toContain("await clearOfflineSnapshot();");
+  });
+
+  it("shows a translated offline badge on every /m screen", () => {
+    const banner = read("src/components/OfflineBanner.tsx");
+    expect(banner).toContain("window.addEventListener('offline'");
+    expect(banner).toContain("t('offline.banner'");
+    expect(banner).toContain("t('offline.readonly'");
+    expect(banner).toContain("window.location.reload()");
+    const translations = read("src/context/LanguageContext.tsx");
+    expect(translations).toContain("'offline.banner': 'أنت دون اتصال'");
+    expect(translations).toContain("'offline.banner': 'You are offline'");
+    expect(read("src/mobile.css")).toContain(".mpwa-offline-banner");
   });
 
   it("registers push tokens only inside the native wrapper", () => {

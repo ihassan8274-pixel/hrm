@@ -17,10 +17,17 @@ echo "== objects =="
 psql "$DATABASE_URL" -tAc "select table_name from information_schema.tables where table_schema='${PGSCHEMA:-public}' and table_name in ('training_courses','training_enrollments','client_errors') order by table_name"
 echo "== client errors =="
 echo "empty_body=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' -d '{}' http://127.0.0.1:${PORT:-8090}/api/client-errors)"
+echo "valid_body=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' -d '{"message":"deploy smoke test","level":"warn","url":"/m/kiosk/secret-token?token=abc"}' http://127.0.0.1:${PORT:-8090}/api/client-errors)"
+echo "extra_field=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' -d '{"message":"x","user_id":1}' http://127.0.0.1:${PORT:-8090}/api/client-errors)"
+psql "$DATABASE_URL" -tAc "select coalesce(string_agg(url, ','), 'no-redacted-row') from client_errors where message='deploy smoke test' and url='/m/kiosk/[redacted]'"
 echo "== new columns =="
 psql "$DATABASE_URL" -tAc "select table_name || '.' || column_name from information_schema.columns where table_schema='${PGSCHEMA:-public}' and ((table_name='payroll' and column_name in ('approval_status','payment_status','is_final_settlement')) or (table_name='promotions' and column_name='training_enrollment_id')) order by 1"
 echo "== mobile shell =="
-curl -fsS http://127.0.0.1:${PORT:-8090}/sw.js | head -c 120; echo
+curl -fsS http://127.0.0.1:${PORT:-8090}/sw.js > /tmp/tamkeen-sw-check.js
+head -c 120 /tmp/tamkeen-sw-check.js; echo
+grep -c '__BUILD_ID__\|__ASSET_URLS__' /tmp/tamkeen-sw-check.js || true
+grep -o "const BUILD_ID = \"[0-9a-f]\{12\}\"" /tmp/tamkeen-sw-check.js | head -1
+grep -F "(api|kiosk|uploads)" /tmp/tamkeen-sw-check.js | head -1 || true
 curl -fsS http://127.0.0.1:${PORT:-8090}/m | grep -o 'assets/index-[A-Za-z0-9_-]*\.js' | head -1
 echo "== employees =="
 psql "$DATABASE_URL" -tAc "select count(*) from employees"

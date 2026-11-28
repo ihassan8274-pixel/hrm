@@ -1,8 +1,12 @@
 /* تمكين | EMPOWER — service worker للنسخة المحمولة.
-   القاعدة: لا تُخزّن أي استجابة /api، ولا أي رابط يحتوي رمز كيسك،
-   ولا صفحة تحتوي بيانات مستخدم. نخزّن فقط هيكل التطبيق وأصوله الثابتة. */
+   القاعدة: لا تُخزّن أي استجابة /api أو /kiosk أو /uploads، ولا أي صفحة تحمل بيانات مستخدم.
+   تُخزَّن فقط أصول الهيكل الثابتة المذكورة صراحةً أدناه، مع إصدار BUILD_ID مشتق من
+   أسماء أصول Vite؛ تغيّر الأصول يعني إبطال كل التخزين القديم تلقائياً. */
 
-const SHELL_CACHE = 'tamkeen-mobile-shell-v5';
+const BUILD_ID = "__BUILD_ID__";
+const ASSET_URLS = __ASSET_URLS__;
+
+const SHELL_CACHE = `tamkeen-mobile-shell-${BUILD_ID}`;
 const SHELL = [
   '/m',
   '/index.html',
@@ -23,10 +27,20 @@ const SHELL = [
   '/brand/plex-sans-700.ttf',
 ];
 
+// Allow-list, never a deny-list: an unknown URL is simply left on the network.
+const CACHEABLE = new Set([...SHELL, ...ASSET_URLS]);
+const FORBIDDEN = /^\/(api|kiosk|uploads)(\/|$)/i;
+
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') self.skipWaiting();
+});
+
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(SHELL_CACHE);
-    await Promise.all(SHELL.map((url) => cache.add(new Request(url, { cache: 'reload' })).catch(() => {})));
+    await Promise.all([...CACHEABLE].map((url) =>
+      cache.add(new Request(url, { cache: 'reload' })).catch(() => {}),
+    ));
     await self.skipWaiting();
   })());
 });
@@ -34,7 +48,9 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const names = await caches.keys();
-    await Promise.all(names.filter((name) => name.startsWith('tamkeen-mobile-shell-') && name !== SHELL_CACHE).map((name) => caches.delete(name)));
+    await Promise.all(names
+      .filter((name) => name.startsWith('tamkeen-mobile-shell-') && name !== SHELL_CACHE)
+      .map((name) => caches.delete(name)));
     await clients.claim();
   })());
 });
@@ -44,35 +60,34 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith('/api/')) return;
-  if (url.pathname.includes('/kiosk/')) return;
+  if (url.search || url.hash) return;
+  if (FORBIDDEN.test(url.pathname)) return;
 
+  // Only the static /m shell is stored offline. It contains no employee data;
+  // all /api calls always go straight to the network, even while offline.
   if (request.mode === 'navigate') {
+    if (url.pathname.replace(/\/$/, '') !== '/m') return;
     event.respondWith((async () => {
+      const cache = await caches.open(SHELL_CACHE);
       try {
         const response = await fetch(request);
-        if (response.ok && url.pathname === '/m') {
-          const cache = await caches.open(SHELL_CACHE);
-          await cache.put('/m', response.clone());
-        }
+        if (response.ok && response.type === 'basic') await cache.put('/m', response.clone());
         return response;
       } catch {
-        const cache = await caches.open(SHELL_CACHE);
-        return (await cache.match(url.pathname === '/m' ? '/m' : '/index.html')) || Response.error();
+        return (await cache.match('/m')) || Response.error();
       }
     })());
     return;
   }
 
-  if (['style', 'script', 'font', 'image'].includes(request.destination)) {
-    event.respondWith((async () => {
-      const cache = await caches.open(SHELL_CACHE);
-      const cached = await cache.match(request);
-      const network = fetch(request).then((response) => {
-        if (response.ok && response.type === 'basic') cache.put(request, response.clone());
-        return response;
-      }).catch(() => cached);
-      return cached || network;
-    })());
-  }
+  if (!CACHEABLE.has(url.pathname)) return;
+  event.respondWith((async () => {
+    const cache = await caches.open(SHELL_CACHE);
+    const cached = await cache.match(url.pathname);
+    const network = fetch(request).then((response) => {
+      if (response.ok && response.type === 'basic') cache.put(url.pathname, response.clone());
+      return response;
+    }).catch(() => cached || Response.error());
+    return cached || network;
+  })());
 });

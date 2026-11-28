@@ -88,6 +88,23 @@
 .mpwa-online i { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); display: block; }
 .mpwa-online.off i { background: var(--coral); }
 
+/* شارة الاتصال تظهر على كل شاشات /m، بما فيها الدخول وتغيير كلمة المرور. */
+.mpwa-offline-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 80;
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 14px; color: #fff; background: #F26B5B;
+  box-shadow: 0 6px 18px rgba(16, 42, 86, .2);
+  font-size: 11px;
+}
+.mpwa-offline-banner span { display: grid; flex: 1; min-width: 0; }
+.mpwa-offline-banner b { font-size: 12px; }
+.mpwa-offline-banner small { opacity: .92; }
+.mpwa-offline-banner button {
+  flex: 0 0 auto; border: 1px solid rgba(255, 255, 255, .7); border-radius: 8px;
+  background: transparent; color: #fff; padding: 5px 9px; font-size: 10px; cursor: pointer;
+}
+body:has(.mpwa-offline-banner) .mpwa-top { padding-top: 56px; }
+
 /* ---------- المحتوى ---------- */
 .mpwa-main { padding: 16px 16px 8px; }
 .mpwa-greeting { margin: 2px 2px 16px; }
