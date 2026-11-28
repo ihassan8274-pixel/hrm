@@ -3,6 +3,7 @@ process.env.DATABASE_URL ||= "postgres://payroll:payroll@localhost:5432/payroll"
 import { describe, expect, it } from 'vitest';
 import {
   CUSTOM_DATASETS, REPORT_CATALOG, buildCustomReport, reportsSchema, validateBuilderSpec,
+  asksForGeneratedReport,
 } from '../../lib/report-catalog';
 import { hasPermission, PERM, ROUTE_PERMISSIONS, ruleMatches } from '../../middleware/auth';
 
@@ -18,6 +19,14 @@ describe('reports hub catalog and builder', () => {
       expect(JSON.stringify(dataset)).not.toContain('SELECT');
       expect('from' in dataset).toBe(false);
     }
+  });
+
+  it('labels drafts only for explicit report/file requests', () => {
+    expect(asksForGeneratedReport('ما الفرق بين اعتماد مسير الرواتب وحالة الدفع؟')).toBe(false);
+    expect(asksForGeneratedReport('ما التقارير المتاحة للامتثال السعودي؟')).toBe(false);
+    expect(asksForGeneratedReport('أين أجد بوابة التواجد؟')).toBe(false);
+    expect(asksForGeneratedReport('أنشئ تقريرًا غير موجود في الدليل')).toBe(true);
+    expect(asksForGeneratedReport('أعطني ملف CSV للموظفين')).toBe(true);
   });
 
   it('rejects anything that is not an allowlisted dataset, field or filter', () => {
@@ -64,6 +73,18 @@ describe('reports hub catalog and builder', () => {
     expect(JSON.stringify(systemKnowledge())).not.toMatch(/entity_id|branch_id|SELECT\b/i);
     expect(matchingScreens('بوابة التواجد').map((m) => m.navId)).toContain('presence_gate');
     expect(matchingScreens('الرواتب').map((m) => m.navId)).toContain('payroll');
+
+    const conceptual = 'ما الفرق بين اعتماد مسير الرواتب وحالة الدفع؟';
+    expect(matchingScreens(conceptual).map((m) => m.navId)).toContain('payroll');
+    expect(matchingScreens('كيف أجد بوابة التواجد؟').map((m) => m.navId)).toContain('presence_gate');
+    expect(matchingScreens('أين شاشة تقارير الرواتب؟').map((m) => m.navId)).toContain('salary_reports');
+
+    const known = new Set(SYSTEM_MODULES.map((m) => m.navId));
+    for (const screen of matchingScreens(conceptual)) {
+      expect(known.has(screen.navId)).toBe(true);
+      expect(screen.titleAr).toBe(SYSTEM_MODULES.find((m) => m.navId === screen.navId)?.titleAr);
+    }
+    expect(JSON.stringify(matchingScreens(conceptual))).not.toMatch(/entity_id|branch_id|SELECT\b/i);
   });
 
   it('has a nonempty catalog for every registered report group', () => {

@@ -395,3 +395,13 @@ export function reportsSchema() {
     })),
   };
 }
+
+/** True only for an explicit request to produce a report/file, not for a question. */
+export function asksForGeneratedReport(question: string) {
+  const q = question
+    .toLowerCase()
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ة/g, 'ه');
+  return /(انشئ|انشىء|اصنع|اعمل|جهز|ولد|اعطني|اعط|اريد|احتاج|صدر|نزل|استخرج|اخرج|حمل|اطبع)\s*(لي\s*)?(تقرير|تقريرا|ملف|ملفا|كشف|كشفا|مستند|جدول|csv|pdf)/.test(q);
+}

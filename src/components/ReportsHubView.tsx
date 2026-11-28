@@ -432,7 +432,7 @@ export default function ReportsHubView() {
             {messages.length === 0 && (
               <div className="flex items-start gap-3 text-slate-500 dark:text-slate-400">
                 <Bot className="w-5 h-5 text-brand-600 shrink-0" />
-                <p className="text-sm">اسأل عن أي شاشة أو تقرير في النظام. يمكنك طلب تقرير غير موجود في الدليل كنص، وسيخبرك بأقرب مولّد معتمد لإخراج ملف رسمي.</p>
+                <p className="text-sm">اسأل عن معنى الحالات أو الفرق بينها أو مكان شاشة، أو اطلب صراحةً تقريرًا/ملفًا غير موجود في الدليل؛ فقط طلب الملف يُوسَم كمسودة نصية.</p>
               </div>
             )}
             {messages.map((message, index) => (
